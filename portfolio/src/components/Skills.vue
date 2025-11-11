@@ -35,8 +35,8 @@ const proficiency = [
     <div class="skills-bg-gradient"></div>
 
     <div class="container-main relative space-y-16">
-      <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-20 items-start">
-        <div class="space-y-8">
+      <div class="flex flex-col gap-12 xl:flex-row xl:items-start xl:justify-between">
+        <div class="flex-1 space-y-8">
           <div class="space-y-4">
             <p class="text-sm font-semibold tracking-[0.35em] uppercase text-blue-500">Skillset</p>
             <h2 class="text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
@@ -47,7 +47,7 @@ const proficiency = [
             </p>
           </div>
 
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div class="skills-category-row">
             <div
               v-for="(category, idx) in skillCategories"
               :key="idx"
@@ -154,6 +154,8 @@ const proficiency = [
   opacity: 0;
   transform: translateY(20px);
   animation: floatUp 0.85s ease forwards;
+  flex: 1 1 280px;
+  max-width: 360px;
 }
 
 .skills-category:hover {
@@ -183,15 +185,20 @@ const proficiency = [
 
 .skills-chip {
   width: 100%;
-  padding: 0.8rem 1.2rem;
+  padding: 0.8rem 1rem;
   border-radius: 1rem;
   font-size: 0.95rem;
   font-weight: 600;
+  text-align: center;
   letter-spacing: 0.01em;
   color: rgb(30 64 175);
   border: 1px solid rgba(37, 99, 235, 0.35);
   background: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(191, 219, 254, 0.6));
   transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .skills-chip:hover {
@@ -265,6 +272,24 @@ const proficiency = [
   text-transform: uppercase;
   letter-spacing: 0.3em;
   color: rgba(255, 255, 255, 0.65);
+}
+
+.skills-category-row {
+  display: flex;
+  gap: 1.75rem;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .skills-panel {
+    order: 0;
+  }
+
+  .skills-category-row {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 2rem;
+  }
 }
 
 @media (max-width: 1023px) {

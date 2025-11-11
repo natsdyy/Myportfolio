@@ -24,7 +24,7 @@ const handleSubmit = (e) => {
 const contactInfo = [
   { icon: Mail, label: 'Email', value: 'charleslouiealvaran@gmail.com', link: 'mailto:charleslouiealvaran@gmail.com', span: 'full' },
   { icon: Phone, label: 'Phone', value: '+63 929 856 8415', link: 'tel:+639298568415' },
-  { icon: Facebook, label: 'Facebook', value: 'facebook.com/CharlesLouieAlvaran', link: 'https://www.facebook.com/CharlesLouieAlvaran/' },
+  { icon: Facebook, label: 'Facebook', value: 'facebook.com/CharlesLouieAlvaran', link: 'https://www.facebook.com/CharlesLouieAlvaran/', span: 'wide' },
   { icon: Instagram, label: 'Instagram', value: '@natsdyyy', link: 'https://www.instagram.com/natsdyyy/' },
   { icon: MapPin, label: 'Location', value: 'Dasmariñas City, Cavite, Philippines', link: 'https://maps.app.goo.gl/', span: 'full' }
 ]
@@ -56,8 +56,9 @@ const contactInfo = [
               :key="info.label"
               :href="info.link"
               :class="[
-                'group flex w-full items-start gap-4 rounded-3xl border border-blue-100 bg-white/90 px-6 py-5 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
-                info.span === 'full' ? 'sm:col-span-2' : ''
+                'group flex w-full items-start gap-6 rounded-3xl border border-blue-100 bg-white/90 px-8 py-6 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
+                info.span === 'full' ? 'sm:col-span-2' : '',
+                info.span === 'wide' ? 'sm:col-span-2 lg:col-span-2' : ''
               ]"
             >
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
