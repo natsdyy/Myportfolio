@@ -5,27 +5,27 @@ const skillCategories = [
   {
     icon: Code,
     category: "Frontend",
-    skills: ["Vue.js", "React", "JavaScript", "TypeScript", "HTML5", "CSS3", "Tailwind CSS"]
+    skills: ["Vue.js", "JavaScript", "HTML5", "CSS3", "Tailwind CSS"]
   },
   {
     icon: Server,
     category: "Backend",
-    skills: ["Node.js", "Express", "Python", "Django", "PostgreSQL", "MongoDB"]
+    skills: ["Node.js", "Express", "PostgreSQL", "Firebase", "PHP (Native)"]
   },
   {
     icon: Wrench,
     category: "Tools & Platforms",
-    skills: ["Git", "GitHub", "Docker", "AWS", "Vercel", "Netlify", "VS Code"]
+    skills: ["Git", "GitHub", "Railway", "Firebase Auth", "VS Code", "Postman"]
   }
 ]
 
 const proficiency = [
   { skill: "Vue.js", level: 95 },
   { skill: "JavaScript", level: 90 },
-  { skill: "React", level: 85 },
   { skill: "CSS", level: 90 },
   { skill: "Node.js", level: 85 },
-  { skill: "TypeScript", level: 80 }
+  { skill: "PostgreSQL", level: 82 },
+  { skill: "Firebase / PHP Native", level: 78 }
 ]
 </script>
 
@@ -103,10 +103,10 @@ const proficiency = [
             From UI polish to infrastructure, I stay curious and adaptable so the solutions I ship feel modern today and ready for tomorrow.
           </p>
         </div>
-        <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex flex-wrap gap-4 items-center">
           <div class="skills-stat">
-            <span class="skills-stat-value">7+</span>
-            <span class="skills-stat-label">Years coding</span>
+            <span class="skills-stat-value">3+</span>
+            <span class="skills-stat-label">Years building</span>
           </div>
           <div class="skills-stat">
             <span class="skills-stat-value">20+</span>
