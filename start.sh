@@ -3,6 +3,11 @@ set -euo pipefail
 
 if ! command -v npm >/dev/null 2>&1; then
   echo 'npm not found. Installing Node.js 20...'
+  if ! command -v curl >/dev/null 2>&1; then
+    echo 'curl not found. Installing curl...'
+    apt-get update
+    apt-get install -y curl
+  fi
   export DEBIAN_FRONTEND=noninteractive
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get update
