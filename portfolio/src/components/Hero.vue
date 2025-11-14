@@ -5,7 +5,7 @@ import heroImage from '../assets/profile-removebg-preview.png'
 
 const name = "CLA"
 const title = "Student Developer & Tech Enthusiast"
-const description = "4th Year Computer Science Student | Passionate about building innovative web solutions and learning modern technologies"
+const description = "4th Year BS Information Technology Student | Passionate about building innovative web solutions and learning modern technologies"
 
 const displayedText = ref('')
 const textIndex = ref(0)
