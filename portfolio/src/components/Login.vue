@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { LogOut, Shield, User } from 'lucide-vue-next'
+import { LogOut, Shield, User, LogIn, UserPlus } from 'lucide-vue-next'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
 const googleButtonRef = ref(null)
+const googleSignUpButtonRef = ref(null)
+const activeTab = ref('login') // 'login' or 'signup'
 const account = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -39,14 +41,25 @@ const fetchAccountInfo = async () => {
   }
 }
 
-const initGoogleButton = async () => {
-  if (!googleButtonRef.value) return
-  googleButtonRef.value.innerHTML = ''
-  await renderGoogleButton(googleButtonRef.value, {
+const initGoogleButton = async (ref, isSignUp = false) => {
+  if (!ref) return
+  ref.innerHTML = ''
+  await renderGoogleButton(ref, {
     type: 'standard',
-    theme: 'filled_blue',
+    theme: isSignUp ? 'outline' : 'filled_blue',
     size: 'large',
+    text: isSignUp ? 'signup_with' : 'signin_with',
   })
+}
+
+const initButtons = async () => {
+  if (!isAuthenticated.value) {
+    if (activeTab.value === 'login' && googleButtonRef.value) {
+      await initGoogleButton(googleButtonRef.value, false)
+    } else if (activeTab.value === 'signup' && googleSignUpButtonRef.value) {
+      await initGoogleButton(googleSignUpButtonRef.value, true)
+    }
+  }
 }
 
 const handleSignOut = () => {
@@ -56,7 +69,7 @@ const handleSignOut = () => {
 
 onMounted(() => {
   if (!isAuthenticated.value) {
-    initGoogleButton()
+    initButtons()
   } else {
     fetchAccountInfo()
   }
@@ -67,7 +80,13 @@ watch(isAuthenticated, (value) => {
     fetchAccountInfo()
   } else {
     account.value = null
-    initGoogleButton()
+    initButtons()
+  }
+})
+
+watch(activeTab, () => {
+  if (!isAuthenticated.value) {
+    initButtons()
   }
 })
 </script>
@@ -81,21 +100,63 @@ watch(isAuthenticated, (value) => {
       <div class="mx-auto max-w-md">
         <div class="rounded-[34px] border border-blue-100 bg-white/95 p-8 shadow-2xl backdrop-blur">
           <div class="space-y-6">
-            <div class="text-center space-y-2">
-              <h2 class="text-3xl font-bold text-slate-900">Account Login</h2>
-              <p class="text-sm text-slate-600">
-                Sign in with your Google account to access your profile
-              </p>
+            <!-- Tabs -->
+            <div v-if="!isAuthenticated" class="flex gap-2 rounded-2xl border border-blue-100 bg-blue-50/30 p-1">
+              <button
+                @click="activeTab = 'login'"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
+                  activeTab === 'login'
+                    ? 'bg-white text-blue-600 shadow-md'
+                    : 'text-slate-600 hover:text-blue-600'
+                ]"
+              >
+                <LogIn :size="18" />
+                Login
+              </button>
+              <button
+                @click="activeTab = 'signup'"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
+                  activeTab === 'signup'
+                    ? 'bg-white text-blue-600 shadow-md'
+                    : 'text-slate-600 hover:text-blue-600'
+                ]"
+              >
+                <UserPlus :size="18" />
+                Sign Up
+              </button>
             </div>
 
-            <div v-if="!isAuthenticated" class="space-y-4">
-              <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-6">
-                <p class="text-sm font-semibold text-slate-700 mb-4 text-center">
-                  Sign in to continue
+            <!-- Login Tab -->
+            <div v-if="!isAuthenticated && activeTab === 'login'" class="space-y-4">
+              <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Welcome Back</h2>
+                <p class="text-sm text-slate-600">
+                  Sign in to your account to continue
                 </p>
+              </div>
+              <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-6">
                 <div ref="googleButtonRef" class="flex justify-center"></div>
                 <p v-if="authError" class="mt-3 text-xs text-red-600 text-center">{{ authError }}</p>
               </div>
+            </div>
+
+            <!-- Sign Up Tab -->
+            <div v-if="!isAuthenticated && activeTab === 'signup'" class="space-y-4">
+              <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Create Account</h2>
+                <p class="text-sm text-slate-600">
+                  Sign up with Google to get started
+                </p>
+              </div>
+              <div class="rounded-2xl border border-blue-100 bg-indigo-50/60 p-6">
+                <div ref="googleSignUpButtonRef" class="flex justify-center"></div>
+                <p v-if="authError" class="mt-3 text-xs text-red-600 text-center">{{ authError }}</p>
+              </div>
+              <p class="text-xs text-center text-slate-500">
+                By signing up, you agree to our Terms of Service and Privacy Policy
+              </p>
             </div>
 
             <div v-else-if="loading" class="text-center py-8">
@@ -103,6 +164,10 @@ watch(isAuthenticated, (value) => {
             </div>
 
             <div v-else-if="account" class="space-y-4">
+              <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Your Account</h2>
+                <p class="text-sm text-slate-600">Manage your profile and settings</p>
+              </div>
               <div class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
                 <div class="flex items-center gap-4 mb-4">
                   <img
