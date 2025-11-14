@@ -17,8 +17,8 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT_DIR}/portfolio"
 
-echo 'Installing dependencies...'
-npm install --production
+echo 'Installing dependencies (including dev)...'
+npm install
 
 echo 'Building app...'
 npm run build
