@@ -1,25 +1,80 @@
 <script setup>
-import { ref } from 'vue'
-import { Mail, Phone, MapPin, Send, Facebook, Instagram } from 'lucide-vue-next'
+import { ref, onMounted, watch } from 'vue'
+import { Mail, Phone, MapPin, Send, Facebook, Instagram, LogOut } from 'lucide-vue-next'
+import { useGoogleAuth } from '../composables/useGoogleAuth'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 const form = ref({
-  name: '',
-  email: '',
+  subject: '',
   message: ''
 })
 
-const submitted = ref(false)
+const status = ref({
+  loading: false,
+  success: false,
+  error: ''
+})
 
-const handleSubmit = (e) => {
+const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
+const googleButtonRef = ref(null)
+
+const handleSubmit = async (e) => {
   e.preventDefault()
-  submitted.value = true
-  console.log('Form submitted:', form.value)
-  
-  setTimeout(() => {
-    form.value = { name: '', email: '', message: '' }
-    submitted.value = false
-  }, 2000)
+  status.value.error = ''
+  status.value.success = false
+
+  if (!isAuthenticated.value || !idToken.value) {
+    status.value.error = 'Please sign in with Google to send a message.'
+    return
+  }
+
+  status.value.loading = true
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idToken: idToken.value,
+        subject: form.value.subject || null,
+        message: form.value.message
+      })
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to send message')
+    }
+
+    status.value.success = true
+    form.value.subject = ''
+    form.value.message = ''
+  } catch (error) {
+    status.value.error = error.message
+  } finally {
+    status.value.loading = false
+  }
 }
+
+const initGoogleButton = async () => {
+  if (!googleButtonRef.value) return
+  googleButtonRef.value.innerHTML = ''
+  await renderGoogleButton(googleButtonRef.value, { type: 'standard', theme: 'filled_blue', size: 'large' })
+}
+
+onMounted(() => {
+  if (!isAuthenticated.value) {
+    initGoogleButton()
+  }
+})
+
+watch(isAuthenticated, (value) => {
+  if (!value) {
+    initGoogleButton()
+  }
+})
 
 const contactInfo = [
   { icon: Mail, label: 'Email', value: 'charleslouiealvaran@gmail.com', link: 'mailto:charleslouiealvaran@gmail.com', span: 'full' },
@@ -82,49 +137,84 @@ const contactInfo = [
         >
           <div class="space-y-2">
             <h3 class="text-2xl font-semibold text-slate-900">Send a message</h3>
-            <p class="text-sm text-slate-500">I aim to respond within 1-2 business days.</p>
+            <p class="text-sm text-slate-500">
+              Sign in with Google so I can reply to the email that’s attached to your account.
+            </p>
+          </div>
+
+          <div class="rounded-3xl border border-blue-100 bg-blue-50/60 p-4">
+            <template v-if="isAuthenticated">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-4">
+                  <img
+                    v-if="user?.picture"
+                    :src="user.picture"
+                    alt="Profile photo"
+                    class="h-12 w-12 rounded-full border border-white object-cover shadow"
+                  />
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">Signed in as</p>
+                    <p class="text-base font-semibold text-blue-700">{{ user?.name }}</p>
+                    <p class="text-xs text-slate-600">{{ user?.email }}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  @click="signOut"
+                  class="mt-3 inline-flex items-center justify-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 sm:mt-0"
+                >
+                  <LogOut :size="16" />
+                  Sign out
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <p class="text-sm font-semibold text-slate-700">Sign in to unlock the contact form.</p>
+              <p class="text-xs text-slate-500 mb-3">I’ll only use your Google email to reply.</p>
+              <div ref="googleButtonRef" class="flex justify-start"></div>
+              <p v-if="authError" class="mt-2 text-xs text-red-600">{{ authError }}</p>
+            </template>
           </div>
 
           <label class="space-y-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
-            Your Name
-              <input 
-                v-model="form.name"
-                type="text"
-                placeholder="Enter your name"
+            Subject (optional)
+            <input
+              v-model="form.subject"
+              type="text"
+              placeholder="Collaboration, freelance, etc."
               class="w-full rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
-                required
-              />
-          </label>
-
-          <label class="space-y-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
-            Email Address
-              <input 
-                v-model="form.email"
-                type="email"
-              placeholder="you@example.com"
-              class="w-full rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
-                required
-              />
+              :disabled="!isAuthenticated"
+            />
           </label>
 
           <label class="space-y-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
             Message
-              <textarea 
-                v-model="form.message"
+            <textarea
+              v-model="form.message"
               rows="5"
-                placeholder="Tell me about your project..."
+              placeholder="Tell me about your project..."
               class="w-full resize-none rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
-                required
-              ></textarea>
+              :disabled="!isAuthenticated"
+              required
+            ></textarea>
           </label>
 
-          <button
-            type="submit"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg transition duration-300 hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5"
-          >
-            <Send :size="18" />
-              {{ submitted ? 'Message Sent! ✓' : 'Send Message' }}
+          <div class="space-y-2">
+            <button
+              type="submit"
+              :disabled="!isAuthenticated || status.loading"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg transition duration-300 hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Send :size="18" v-if="!status.success" />
+              <span v-if="status.loading">Sending...</span>
+              <span v-else-if="status.success">Message Sent ✓</span>
+              <span v-else>Send Message</span>
             </button>
+            <p v-if="status.error" class="text-sm font-semibold text-red-600">{{ status.error }}</p>
+            <p v-else-if="status.success" class="text-sm font-semibold text-green-600">
+              Thanks for reaching out! I’ll reply soon.
+            </p>
+          </div>
         </form>
       </div>
     </div>
