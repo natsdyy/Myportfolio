@@ -3,6 +3,7 @@ const cors = require('cors');
 const { config } = require('./config');
 const { ensureTables } = require('./db');
 const contactRouter = require('./routes/contact');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api', contactRouter);
+app.use('/api/auth', authRouter);
 
 app.use((err, req, res, next) => {
   console.error('[server] Unexpected error', err);

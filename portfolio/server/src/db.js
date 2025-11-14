@@ -16,21 +16,48 @@ const pool = new Pool({
 });
 
 async function ensureTables() {
+  // Create roles table first
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE IF NOT EXISTS roles (
+      id SERIAL PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  // Insert default roles if they don't exist
+  await pool.query(`
+    INSERT INTO roles (name, description)
+    VALUES ('user', 'Regular user with basic access'), ('admin', 'Administrator with full access')
+    ON CONFLICT (name) DO NOTHING;
+  `);
+
+  // Create accounts/users table with role reference
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accounts (
       id SERIAL PRIMARY KEY,
       google_id TEXT UNIQUE NOT NULL,
       email TEXT NOT NULL,
       name TEXT,
       avatar_url TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      role_id INTEGER NOT NULL DEFAULT 1 REFERENCES roles(id) ON DELETE RESTRICT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  // Create index for faster lookups
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_accounts_email ON accounts(email);
+    CREATE INDEX IF NOT EXISTS idx_accounts_google_id ON accounts(google_id);
+    CREATE INDEX IF NOT EXISTS idx_accounts_role_id ON accounts(role_id);
   `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
       subject TEXT,
       body TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

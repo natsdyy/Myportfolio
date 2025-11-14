@@ -4,19 +4,18 @@ const { verifyIdToken } = require('../services/googleAuth');
 
 const router = express.Router();
 
-router.post('/contact', async (req, res) => {
+// Get current user info with role
+router.post('/me', async (req, res) => {
   try {
-    const { idToken, subject, message } = req.body || {};
+    const { idToken } = req.body || {};
 
     if (!idToken) {
-      return res.status(400).json({ error: 'idToken is required' });
-    }
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'message is required' });
+      return res.status(401).json({ error: 'idToken is required' });
     }
 
     const profile = await verifyIdToken(idToken);
 
+    // Get or create account
     const accountResult = await pool.query(
       `
       INSERT INTO accounts (google_id, email, name, avatar_url)
@@ -40,30 +39,15 @@ router.post('/contact', async (req, res) => {
     );
     const role = roleResult.rows[0];
 
-    const messageResult = await pool.query(
-      `
-      INSERT INTO messages (account_id, subject, body)
-      VALUES ($1, $2, $3)
-      RETURNING id, subject, body, created_at;
-    `,
-      [account.id, subject || null, message]
-    );
-
-    const savedMessage = messageResult.rows[0];
-
-    res.status(201).json({
-      message: 'Message received',
-      data: {
-        message: savedMessage,
-        account: {
-          ...account,
-          role,
-        },
+    res.json({
+      account: {
+        ...account,
+        role,
       },
     });
   } catch (error) {
-    console.error('[contact] Error handling message', error);
-    res.status(500).json({ error: 'Failed to submit message' });
+    console.error('[auth] Error getting user info', error);
+    res.status(500).json({ error: 'Failed to get user information' });
   }
 });
 

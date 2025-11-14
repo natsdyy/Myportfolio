@@ -14,7 +14,8 @@ const navItems = [
   { name: 'About', id: 'about' },
   { name: 'Projects', id: 'projects' },
   { name: 'Skills', id: 'skills' },
-  { name: 'Contact', id: 'contact' }
+  { name: 'Contact', id: 'contact' },
+  { name: 'Login', id: 'login' }
 ]
 
 const handleNavigate = (page) => {

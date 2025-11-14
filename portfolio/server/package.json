@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "set-admin": "node scripts/set-admin.js"
   },
   "keywords": [],
   "author": "",
