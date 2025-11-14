@@ -2,7 +2,7 @@
 import { Code, BookOpen, Lightbulb, Heart } from 'lucide-vue-next'
 import profileImage from '../assets/profile-removebg-preview.png'
 
-const aboutText = "I'm a 4th Year Computer Science student with a passion for web development and technology. I love solving real-world problems through code and continuously learning new technologies. My journey has been about building practical projects while developing a strong foundation in computer science fundamentals."
+const aboutText = "I'm a 4th Year BS Information Technology student with a passion for web development and technology. I love solving real-world problems through code and continuously learning new technologies. My journey has been about building practical projects while developing a strong foundation in IT fundamentals."
 
 const highlights = [
   { 
