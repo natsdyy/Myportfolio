@@ -1,44 +1,211 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { LogOut, Shield, User, LogIn, UserPlus } from 'lucide-vue-next'
+import { ref, onMounted, watch, computed } from 'vue'
+import { LogOut, Shield, User, LogIn, UserPlus, Mail, Lock, Phone, UserCircle, Eye, EyeOff, ChevronDown } from 'lucide-vue-next'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
+import { countries, getCountryByCode } from '../data/countries'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
 const googleButtonRef = ref(null)
 const googleSignUpButtonRef = ref(null)
-const activeTab = ref('login') // 'login' or 'signup'
+const activeTab = ref('login')
 const account = ref(null)
 const loading = ref(false)
 const error = ref('')
+const success = ref('')
 
-const fetchAccountInfo = async () => {
-  if (!idToken.value) return
+// Form states
+const loginForm = ref({
+  email: '',
+  password: ''
+})
 
-  loading.value = true
+const signupForm = ref({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  phone: '',
+  countryCode: 'PH'
+})
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const countryDropdownOpen = ref(false)
+const selectedCountry = computed(() => getCountryByCode(signupForm.value.countryCode))
+
+// Form validation
+const signupErrors = ref({})
+const loginErrors = ref({})
+
+const validateSignup = () => {
+  signupErrors.value = {}
+  
+  if (!signupForm.value.username || signupForm.value.username.length < 3) {
+    signupErrors.value.username = 'Username must be at least 3 characters'
+  }
+  
+  if (!signupForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.value.email)) {
+    signupErrors.value.email = 'Please enter a valid email'
+  }
+  
+  if (!signupForm.value.password || signupForm.value.password.length < 6) {
+    signupErrors.value.password = 'Password must be at least 6 characters'
+  }
+  
+  if (signupForm.value.password !== signupForm.value.confirmPassword) {
+    signupErrors.value.confirmPassword = 'Passwords do not match'
+  }
+  
+  const phoneDigits = signupForm.value.phone.replace(/\D/g, '')
+  if (!phoneDigits || phoneDigits.length < selectedCountry.value.maxLength) {
+    signupErrors.value.phone = `Phone number must be ${selectedCountry.value.maxLength} digits`
+  }
+  
+  return Object.keys(signupErrors.value).length === 0
+}
+
+const validateLogin = () => {
+  loginErrors.value = {}
+  
+  if (!loginForm.value.email) {
+    loginErrors.value.email = 'Email is required'
+  }
+  
+  if (!loginForm.value.password) {
+    loginErrors.value.password = 'Password is required'
+  }
+  
+  return Object.keys(loginErrors.value).length === 0
+}
+
+const handleSignup = async (e) => {
+  e.preventDefault()
   error.value = ''
-
+  success.value = ''
+  
+  if (!validateSignup()) {
+    return
+  }
+  
+  loading.value = true
+  
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const phoneDigits = signupForm.value.phone.replace(/\D/g, '')
+    const fullPhone = `${selectedCountry.value.dialCode}${phoneDigits}`
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: idToken.value }),
+      body: JSON.stringify({
+        username: signupForm.value.username,
+        email: signupForm.value.email,
+        password: signupForm.value.password,
+        phone: fullPhone,
+        countryCode: signupForm.value.countryCode
+      }),
     })
-
+    
     const data = await response.json()
-
+    
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get account info')
+      throw new Error(data.error || 'Sign up failed')
     }
-
-    account.value = data.account
+    
+    success.value = 'Account created successfully! Please log in.'
+    signupForm.value = {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      phone: '',
+      countryCode: 'PH'
+    }
+    activeTab.value = 'login'
+    loginForm.value.email = data.email || signupForm.value.email
   } catch (err) {
     error.value = err.message
-    console.error('[Login] Error fetching account', err)
   } finally {
     loading.value = false
   }
+}
+
+const handleLogin = async (e) => {
+  e.preventDefault()
+  error.value = ''
+  success.value = ''
+  
+  if (!validateLogin()) {
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: loginForm.value.email,
+        password: loginForm.value.password
+      }),
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed')
+    }
+    
+    // Store token and fetch account info
+    if (data.token) {
+      // For now, we'll use a simple approach - in production use httpOnly cookies
+      localStorage.setItem('auth_token', data.token)
+      await fetchAccountInfo(data.token)
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchAccountInfo = async (token = null) => {
+  const authToken = token || localStorage.getItem('auth_token')
+  if (!authToken) return
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      },
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to get account info')
+    }
+    
+    account.value = data.account
+  } catch (err) {
+    error.value = err.message
+    localStorage.removeItem('auth_token')
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatPhoneInput = (value) => {
+  const digits = value.replace(/\D/g, '')
+  const maxLength = selectedCountry.value.maxLength
+  return digits.slice(0, maxLength)
 }
 
 const initGoogleButton = async (ref, isSignUp = false) => {
@@ -65,10 +232,15 @@ const initButtons = async () => {
 const handleSignOut = () => {
   signOut()
   account.value = null
+  localStorage.removeItem('auth_token')
 }
 
 onMounted(() => {
-  if (!isAuthenticated.value) {
+  // Check for existing token
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    fetchAccountInfo(token)
+  } else if (!isAuthenticated.value) {
     initButtons()
   } else {
     fetchAccountInfo()
@@ -87,7 +259,13 @@ watch(isAuthenticated, (value) => {
 watch(activeTab, () => {
   if (!isAuthenticated.value) {
     initButtons()
+    error.value = ''
+    success.value = ''
   }
+})
+
+watch(() => signupForm.value.phone, (newVal) => {
+  signupForm.value.phone = formatPhoneInput(newVal)
 })
 </script>
 
@@ -101,7 +279,7 @@ watch(activeTab, () => {
         <div class="rounded-[34px] border border-blue-100 bg-white/95 p-8 shadow-2xl backdrop-blur">
           <div class="space-y-6">
             <!-- Tabs -->
-            <div v-if="!isAuthenticated" class="flex gap-2 rounded-2xl border border-blue-100 bg-blue-50/30 p-1">
+            <div v-if="!account" class="flex gap-2 rounded-2xl border border-blue-100 bg-blue-50/30 p-1">
               <button
                 @click="activeTab = 'login'"
                 :class="[
@@ -128,42 +306,258 @@ watch(activeTab, () => {
               </button>
             </div>
 
-            <!-- Login Tab -->
-            <div v-if="!isAuthenticated && activeTab === 'login'" class="space-y-4">
+            <!-- Login Form -->
+            <form v-if="!account && activeTab === 'login'" @submit="handleLogin" class="space-y-4">
               <div class="text-center space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900">Welcome Back</h2>
-                <p class="text-sm text-slate-600">
-                  Sign in to your account to continue
-                </p>
+                <p class="text-sm text-slate-600">Sign in to your account</p>
               </div>
-              <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-6">
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Email or Username
+                  </label>
+                  <div class="relative">
+                    <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="loginForm.email"
+                      type="text"
+                      placeholder="Enter your email or username"
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': loginErrors.email }"
+                    />
+                  </div>
+                  <p v-if="loginErrors.email" class="mt-1 text-xs text-red-600">{{ loginErrors.email }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Password
+                  </label>
+                  <div class="relative">
+                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="loginForm.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="Enter your password"
+                      class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': loginErrors.password }"
+                    />
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <Eye v-if="!showPassword" :size="18" />
+                      <EyeOff v-else :size="18" />
+                    </button>
+                  </div>
+                  <p v-if="loginErrors.password" class="mt-1 text-xs text-red-600">{{ loginErrors.password }}</p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                :disabled="loading"
+                class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span v-if="loading">Signing in...</span>
+                <span v-else class="flex items-center justify-center gap-2">
+                  <LogIn :size="18" />
+                  Sign In
+                </span>
+              </button>
+
+              <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full border-t border-blue-100"></div>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                  <span class="bg-white px-2 text-slate-500">Or continue with</span>
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
                 <div ref="googleButtonRef" class="flex justify-center"></div>
                 <p v-if="authError" class="mt-3 text-xs text-red-600 text-center">{{ authError }}</p>
               </div>
-            </div>
+            </form>
 
-            <!-- Sign Up Tab -->
-            <div v-if="!isAuthenticated && activeTab === 'signup'" class="space-y-4">
+            <!-- Sign Up Form -->
+            <form v-if="!account && activeTab === 'signup'" @submit="handleSignup" class="space-y-4">
               <div class="text-center space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900">Create Account</h2>
-                <p class="text-sm text-slate-600">
-                  Sign up with Google to get started
-                </p>
+                <p class="text-sm text-slate-600">Sign up to get started</p>
               </div>
-              <div class="rounded-2xl border border-blue-100 bg-indigo-50/60 p-6">
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Username
+                  </label>
+                  <div class="relative">
+                    <UserCircle class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="signupForm.username"
+                      type="text"
+                      placeholder="Choose a username"
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': signupErrors.username }"
+                    />
+                  </div>
+                  <p v-if="signupErrors.username" class="mt-1 text-xs text-red-600">{{ signupErrors.username }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Email
+                  </label>
+                  <div class="relative">
+                    <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="signupForm.email"
+                      type="email"
+                      placeholder="Enter your email"
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': signupErrors.email }"
+                    />
+                  </div>
+                  <p v-if="signupErrors.email" class="mt-1 text-xs text-red-600">{{ signupErrors.email }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Password
+                  </label>
+                  <div class="relative">
+                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="signupForm.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="Create a password"
+                      class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': signupErrors.password }"
+                    />
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <Eye v-if="!showPassword" :size="18" />
+                      <EyeOff v-else :size="18" />
+                    </button>
+                  </div>
+                  <p v-if="signupErrors.password" class="mt-1 text-xs text-red-600">{{ signupErrors.password }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <div class="relative">
+                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="signupForm.confirmPassword"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      placeholder="Confirm your password"
+                      class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': signupErrors.confirmPassword }"
+                    />
+                    <button
+                      type="button"
+                      @click="showConfirmPassword = !showConfirmPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <Eye v-if="!showConfirmPassword" :size="18" />
+                      <EyeOff v-else :size="18" />
+                    </button>
+                  </div>
+                  <p v-if="signupErrors.confirmPassword" class="mt-1 text-xs text-red-600">{{ signupErrors.confirmPassword }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Phone Number
+                  </label>
+                  <div class="flex gap-2">
+                    <div class="relative flex-shrink-0">
+                      <button
+                        type="button"
+                        @click="countryDropdownOpen = !countryDropdownOpen"
+                        class="flex items-center gap-2 px-3 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[120px]"
+                      >
+                        <span class="text-sm font-medium">{{ selectedCountry.dialCode }}</span>
+                        <ChevronDown :size="16" class="text-slate-400" :class="{ 'rotate-180': countryDropdownOpen }" />
+                      </button>
+                      <div
+                        v-if="countryDropdownOpen"
+                        class="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto rounded-xl border border-blue-100 bg-white shadow-xl z-50"
+                      >
+                        <div
+                          v-for="country in countries"
+                          :key="country.code"
+                          @click="signupForm.countryCode = country.code; countryDropdownOpen = false"
+                          class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          :class="{ 'bg-blue-50': signupForm.countryCode === country.code }"
+                        >
+                          <div class="font-medium text-slate-900">{{ country.name }}</div>
+                          <div class="text-xs text-slate-500">{{ country.dialCode }} • {{ country.format }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="relative flex-1">
+                      <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <input
+                        v-model="signupForm.phone"
+                        type="tel"
+                        :placeholder="`Enter ${selectedCountry.maxLength} digits`"
+                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': signupErrors.phone }"
+                        :maxlength="selectedCountry.maxLength"
+                      />
+                    </div>
+                  </div>
+                  <p v-if="signupErrors.phone" class="mt-1 text-xs text-red-600">{{ signupErrors.phone }}</p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Format: {{ selectedCountry.dialCode }} {{ selectedCountry.format }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                :disabled="loading"
+                class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span v-if="loading">Creating account...</span>
+                <span v-else class="flex items-center justify-center gap-2">
+                  <UserPlus :size="18" />
+                  Create Account
+                </span>
+              </button>
+
+              <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full border-t border-blue-100"></div>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                  <span class="bg-white px-2 text-slate-500">Or sign up with</span>
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-blue-100 bg-indigo-50/60 p-4">
                 <div ref="googleSignUpButtonRef" class="flex justify-center"></div>
                 <p v-if="authError" class="mt-3 text-xs text-red-600 text-center">{{ authError }}</p>
               </div>
+
               <p class="text-xs text-center text-slate-500">
                 By signing up, you agree to our Terms of Service and Privacy Policy
               </p>
-            </div>
+            </form>
 
-            <div v-else-if="loading" class="text-center py-8">
-              <p class="text-sm text-slate-600">Loading account information...</p>
-            </div>
-
-            <div v-else-if="account" class="space-y-4">
+            <!-- Account Info (when logged in) -->
+            <div v-if="account" class="space-y-4">
               <div class="text-center space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900">Your Account</h2>
                 <p class="text-sm text-slate-600">Manage your profile and settings</p>
@@ -177,7 +571,7 @@ watch(activeTab, () => {
                     class="h-16 w-16 rounded-full border-2 border-white object-cover shadow-lg"
                   />
                   <div class="flex-1">
-                    <h3 class="text-lg font-bold text-slate-900">{{ account.name }}</h3>
+                    <h3 class="text-lg font-bold text-slate-900">{{ account.name || account.username }}</h3>
                     <p class="text-sm text-slate-600">{{ account.email }}</p>
                   </div>
                 </div>
@@ -211,6 +605,10 @@ watch(activeTab, () => {
               </button>
             </div>
 
+            <!-- Success/Error Messages -->
+            <div v-if="success" class="rounded-lg bg-green-50 border border-green-200 p-3">
+              <p class="text-sm text-green-600">{{ success }}</p>
+            </div>
             <div v-if="error" class="rounded-lg bg-red-50 border border-red-200 p-3">
               <p class="text-sm text-red-600">{{ error }}</p>
             </div>
@@ -227,4 +625,3 @@ watch(activeTab, () => {
   margin: 0 auto;
 }
 </style>
-

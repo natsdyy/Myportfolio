@@ -15,6 +15,7 @@ const config = {
   databaseUrl: process.env.DATABASE_URL || '',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS || ''),
+  jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
 };
 
 module.exports = { config };
