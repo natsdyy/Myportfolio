@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v npm >/dev/null 2>&1; then
+  echo 'npm not found. Installing Node.js 20...'
+  export DEBIAN_FRONTEND=noninteractive
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get update
+  apt-get install -y nodejs
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT_DIR}/portfolio"
 
-echo "Installing dependencies..."
-npm install
+echo 'Installing dependencies...'
+npm install --production
 
-echo "Building app..."
+echo 'Building app...'
 npm run build
 
 PORT_VALUE="${PORT:-4173}"
