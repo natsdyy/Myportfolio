@@ -113,7 +113,13 @@ const contactDetails = [
       </div>
 
       <div class="flex flex-col items-center justify-between gap-4 border-t border-blue-500/20 pt-8 text-xs text-slate-400 sm:flex-row sm:text-sm">
-        <p>&copy; {{ currentYear }} Charles Louie Alvaran. Crafted with Vue, Tailwind, and a love for clean experiences.</p>
+        <p class="text-center sm:text-left">
+          &copy; {{ currentYear }} Charles Louie Alvaran. Crafted with Vue, Tailwind, and a love for clean experiences.
+          <span class="ml-2 inline-flex gap-3">
+            <a href="/privacy.html" class="hover:text-white underline-offset-2 hover:underline">Privacy Policy</a>
+            <a href="/terms.html" class="hover:text-white underline-offset-2 hover:underline">Terms of Service</a>
+          </span>
+        </p>
         <button
           @click="scrollToTop"
           class="inline-flex items-center gap-2 rounded-full border border-blue-400/30 px-4 py-2 text-blue-200 transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-white"
