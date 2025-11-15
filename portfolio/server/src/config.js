@@ -16,6 +16,7 @@ const config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS || ''),
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+  recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY || '',
 };
 
 module.exports = { config };

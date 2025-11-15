@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { Mail, Phone, MapPin, Send, Facebook, Instagram, LogOut } from 'lucide-vue-next'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeQLw0sAAAAAJRLg2dc_KWfYx7g4KddAK-JRROi'
 
 const form = ref({
   subject: '',
@@ -18,6 +19,68 @@ const status = ref({
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
 const googleButtonRef = ref(null)
+const recaptchaRef = ref(null)
+const recaptchaWidgetId = ref(null)
+const recaptchaLoaded = ref(false)
+
+const loadRecaptchaScript = () => {
+  if (window.grecaptcha) {
+    recaptchaLoaded.value = true
+    initRecaptcha()
+    return
+  }
+
+  if (document.querySelector('script[src*="recaptcha"]')) {
+    // Script is loading, wait for it
+    const checkInterval = setInterval(() => {
+      if (window.grecaptcha) {
+        clearInterval(checkInterval)
+        recaptchaLoaded.value = true
+        initRecaptcha()
+      }
+    }, 100)
+    return
+  }
+
+  const script = document.createElement('script')
+  script.src = `https://www.google.com/recaptcha/api.js?render=explicit`
+  script.async = true
+  script.defer = true
+  script.onload = () => {
+    recaptchaLoaded.value = true
+    initRecaptcha()
+  }
+  document.head.appendChild(script)
+}
+
+const initRecaptcha = () => {
+  if (!window.grecaptcha || !recaptchaRef.value || recaptchaWidgetId.value !== null) {
+    return
+  }
+
+  try {
+    recaptchaWidgetId.value = window.grecaptcha.render(recaptchaRef.value, {
+      sitekey: RECAPTCHA_SITE_KEY,
+      theme: 'light',
+      size: 'normal',
+    })
+  } catch (error) {
+    console.error('Error initializing reCAPTCHA:', error)
+  }
+}
+
+const getRecaptchaToken = () => {
+  if (!window.grecaptcha || recaptchaWidgetId.value === null) {
+    return null
+  }
+  return window.grecaptcha.getResponse(recaptchaWidgetId.value)
+}
+
+const resetRecaptcha = () => {
+  if (window.grecaptcha && recaptchaWidgetId.value !== null) {
+    window.grecaptcha.reset(recaptchaWidgetId.value)
+  }
+}
 
 const handleSubmit = async (e) => {
   e.preventDefault()
@@ -29,6 +92,12 @@ const handleSubmit = async (e) => {
     return
   }
 
+  const recaptchaToken = getRecaptchaToken()
+  if (!recaptchaToken) {
+    status.value.error = 'Please complete the reCAPTCHA verification.'
+    return
+  }
+
   status.value.loading = true
 
   try {
@@ -37,6 +106,7 @@ const handleSubmit = async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         idToken: idToken.value,
+        recaptchaToken: recaptchaToken,
         subject: form.value.subject || null,
         message: form.value.message
       })
@@ -51,8 +121,10 @@ const handleSubmit = async (e) => {
     status.value.success = true
     form.value.subject = ''
     form.value.message = ''
+    resetRecaptcha()
   } catch (error) {
     status.value.error = error.message
+    resetRecaptcha()
   } finally {
     status.value.loading = false
   }
@@ -68,11 +140,31 @@ onMounted(() => {
   if (!isAuthenticated.value) {
     initGoogleButton()
   }
+  loadRecaptchaScript()
 })
 
 watch(isAuthenticated, (value) => {
   if (!value) {
     initGoogleButton()
+  }
+})
+
+watch([recaptchaLoaded, isAuthenticated], ([loaded, authenticated]) => {
+  if (loaded && authenticated) {
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      initRecaptcha()
+    }, 100)
+  }
+})
+
+onUnmounted(() => {
+  if (window.grecaptcha && recaptchaWidgetId.value !== null) {
+    try {
+      window.grecaptcha.reset(recaptchaWidgetId.value)
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
   }
 })
 
@@ -198,6 +290,10 @@ const contactInfo = [
               required
             ></textarea>
           </label>
+
+          <div v-if="isAuthenticated" class="flex justify-start">
+            <div ref="recaptchaRef"></div>
+          </div>
 
           <div class="space-y-2">
             <button
