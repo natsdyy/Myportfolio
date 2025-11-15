@@ -59,14 +59,19 @@ if (frontendExists) {
   // Serve static files (CSS, JS, images, etc.)
   app.use(express.static(distPath));
   
-  // Serve frontend for all non-API routes
-  app.get('*', (req, res, next) => {
+  // Serve frontend for all non-API routes (catch-all route)
+  // Use app.all with '/*' pattern for compatibility with newer path-to-regexp
+  app.all('/*', (req, res, next) => {
     // Don't serve frontend for API routes
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
       return next();
     }
-    // Serve index.html for all other routes (SPA routing)
-    res.sendFile(path.join(distPath, 'index.html'));
+    // Only serve index.html for GET requests (SPA routing)
+    if (req.method === 'GET') {
+      res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+      next();
+    }
   });
 } else {
   // If frontend not built, show API info
