@@ -1,14 +1,8 @@
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 
-// Try to use Resend package if available, otherwise use HTTP API
-let Resend;
-try {
-  Resend = require('resend');
-} catch (e) {
-  // Resend package not installed, will use HTTP API instead
-  Resend = null;
-}
+// Load Resend package
+const { Resend } = require('resend');
 
 const createTransporter = () => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -76,30 +70,27 @@ const sendContactEmailViaResend = async ({ fromEmail, fromName, subject, message
   // Use onboarding@resend.dev for testing, or your verified domain for production
   const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
   
-  const emailData = {
-    from: `${businessName} <${resendFromEmail}>`,
-    to: [businessEmail],
-    replyTo: `${fromName} <${fromEmail}>`, // This can be any email - recipients will reply here
-    subject: subject || `New Contact Form Message from ${fromName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #2563eb; margin-bottom: 20px;">New Contact Form Message</h2>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>From:</strong> ${fromName}</p>
-          <p style="margin: 5px 0;"><strong>Email:</strong> ${fromEmail}</p>
-          ${subject ? `<p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>` : ''}
-          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-        </div>
-        <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-          <h3 style="color: #1f2937; margin-top: 0;">Message:</h3>
-          <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
-        </div>
-        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</p>
-        </div>
+  // Prepare email HTML and text content
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #2563eb; margin-bottom: 20px;">New Contact Form Message</h2>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>From:</strong> ${fromName}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> ${fromEmail}</p>
+        ${subject ? `<p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>` : ''}
+        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
       </div>
-    `,
-    text: `
+      <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <h3 style="color: #1f2937; margin-top: 0;">Message:</h3>
+        <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+      </div>
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+        <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</p>
+      </div>
+    </div>
+  `;
+  
+  const emailText = `
 New Contact Form Message
 
 From: ${fromName}
@@ -112,55 +103,46 @@ ${message}
 
 ---
 This message was sent from your portfolio contact form.
-    `.trim(),
-  };
+  `.trim();
 
   try {
-    // Use Resend package if available, otherwise use HTTP API
-    if (Resend) {
-      const resend = new Resend(resendApiKey);
-      
-      // Resend requires verified domain for custom 'from' email
-      // Use onboarding@resend.dev for testing, or your verified domain for production
-      const fromEmailForResend = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-      
-      console.log('[email-service] Sending via Resend with from:', fromEmailForResend);
-      
-      const result = await resend.emails.send({
-        from: fromEmailForResend,
-        to: [businessEmail],
-        replyTo: fromEmail,
-        subject: subject || `New Contact Form Message from ${fromName}`,
-        html: emailData.html,
-        text: emailData.text
-      });
+    // Initialize Resend with API key (matching sample code pattern)
+    const resend = new Resend(resendApiKey);
+    
+    // Resend requires verified domain for custom 'from' email
+    // Use onboarding@resend.dev for testing, or your verified domain for production
+    const fromEmailForResend = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const emailSubject = subject || `New Contact Form Message from ${fromName}`;
+    
+    console.log('[email-service] Sending via Resend with from:', fromEmailForResend);
+    console.log('[email-service] Sending to:', businessEmail);
+    console.log('[email-service] Subject:', emailSubject);
+    
+    // Send email using Resend API (matching sample code pattern exactly)
+    const result = await resend.emails.send({
+      from: fromEmailForResend,
+      to: businessEmail,
+      replyTo: fromEmail,
+      subject: emailSubject,
+      html: emailHtml
+    });
 
-      console.log('[email-service] ✅ Email sent via Resend:', result);
-      return {
-        messageId: result.data?.id,
-        accepted: [businessEmail],
-        rejected: [],
-        response: 'Email sent via Resend API'
-      };
-    } else {
-      // Fallback to HTTP API
-      const response = await axios.post('https://api.resend.com/emails', emailData, {
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('[email-service] ✅ Email sent via Resend HTTP API:', response.data);
-      return {
-        messageId: response.data.id,
-        accepted: [businessEmail],
-        rejected: [],
-        response: 'Email sent via Resend HTTP API'
-      };
-    }
+    console.log('[email-service] ✅ Email sent via Resend:', result);
+    return {
+      messageId: result.data?.id,
+      accepted: [businessEmail],
+      rejected: [],
+      response: 'Email sent via Resend API'
+    };
   } catch (error) {
-    console.error('[email-service] Resend API error:', error.response?.data || error.message);
+    console.error('[email-service] ❌ Resend API error:', error);
+    console.error('[email-service] Error details:', error.response?.data || error.message);
+    
+    // Provide more helpful error messages
+    if (error.message?.includes('domain')) {
+      throw new Error(`Resend API error: The 'from' email domain must be verified. Use 'onboarding@resend.dev' for testing, or verify your domain in Resend dashboard.`);
+    }
+    
     throw new Error(`Resend API error: ${error.response?.data?.message || error.message}`);
   }
 };
