@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { LogOut, Shield, User, LogIn, UserPlus, Mail, Lock, Phone, UserCircle, Eye, EyeOff, ChevronDown } from 'lucide-vue-next'
+import { LogOut, Shield, User, LogIn, UserPlus, Mail, Lock, Phone, UserCircle, Eye, EyeOff, ChevronDown, Code, Monitor, Zap, Sparkles } from 'lucide-vue-next'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { countries, getCountryByCode } from '../data/countries'
+import cat1Image from '../assets/cat1.jpg'
+import cat2Image from '../assets/cat2.jpg'
 
 // If VITE_API_BASE_URL is not set, use same origin (backend serves frontend)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
@@ -557,9 +559,53 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
     <div class="pointer-events-none absolute bottom-0 left-0 h-72 w-72 -translate-x-1/2 translate-y-1/2 rounded-full bg-indigo-200/30 blur-3xl"></div>
 
     <div class="container-main relative">
-      <div class="mx-auto max-w-md">
-        <div class="rounded-[34px] border border-blue-100 bg-white/95 p-8 shadow-2xl backdrop-blur">
-          <div class="space-y-6">
+      <div class="mx-auto max-w-5xl">
+        <div :class="['grid grid-cols-1 lg:grid-cols-2 gap-8 items-center', activeTab === 'signup' && 'lg:grid-flow-dense']">
+          <!-- Design Side (Left for login, Right for signup) -->
+          <div class="hidden lg:flex flex-col items-center justify-center space-y-6 relative" :class="activeTab === 'signup' ? 'lg:col-start-2' : ''">
+            <div class="relative w-full max-w-md">
+              <!-- Decorative background circles -->
+              <div class="absolute -top-10 -left-10 w-40 h-40 bg-blue-200/30 rounded-full blur-3xl"></div>
+              <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-200/30 rounded-full blur-3xl"></div>
+              
+              <!-- Cat illustration container -->
+              <div class="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white/50">
+                <img 
+                  :src="activeTab === 'login' ? cat1Image : cat2Image" 
+                  :alt="activeTab === 'login' ? 'Coding cat developer illustration' : 'Cat developer on sofa illustration'"
+                  class="w-full h-auto object-cover rounded-3xl"
+                />
+                <!-- Overlay gradient for better text readability if needed -->
+                <div class="absolute inset-0 bg-gradient-to-t from-blue-900/20 to-transparent pointer-events-none rounded-3xl"></div>
+              </div>
+              
+              <!-- Floating code icons -->
+              <div class="absolute -top-4 -right-4 bg-white rounded-2xl p-3 shadow-lg border border-blue-100 animate-bounce">
+                <Code class="text-blue-600" :size="24" />
+              </div>
+              <div class="absolute -bottom-4 -left-4 bg-white rounded-2xl p-3 shadow-lg border border-indigo-100 animate-bounce" style="animation-delay: 0.2s;">
+                <Zap class="text-indigo-600" :size="24" />
+              </div>
+            </div>
+            
+            <!-- Text below illustration -->
+            <div class="text-center space-y-2 mt-6">
+              <h3 class="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
+                <span v-if="activeTab === 'login'">Welcome Back! 👋</span>
+                <span v-else>Create Your Account! 🚀</span>
+                <Sparkles class="text-indigo-600 animate-pulse" :size="20" />
+              </h3>
+              <p class="text-sm text-slate-600 max-w-sm">
+                <span v-if="activeTab === 'login'">Sign in to access your account and continue building amazing things</span>
+                <span v-else>Join us and start your journey into building incredible projects</span>
+              </p>
+            </div>
+          </div>
+          
+          <!-- Login/Signup Form Side (Right for login, Left for signup) -->
+          <div class="w-full" :class="activeTab === 'signup' ? 'lg:col-start-1 lg:row-start-1' : ''">
+            <div :class="['rounded-[34px] border border-blue-100 bg-white/95 shadow-2xl backdrop-blur', activeTab === 'signup' ? 'p-6' : 'p-8']">
+              <div :class="activeTab === 'signup' ? 'space-y-3' : 'space-y-6'">
             <!-- Tabs -->
             <div v-if="!account" class="flex gap-2 rounded-2xl border border-blue-100 bg-blue-50/30 p-1">
               <button
@@ -667,99 +713,101 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
             </form>
 
             <!-- Sign Up Form -->
-            <form v-if="!account && activeTab === 'signup'" @submit="handleSignup" class="space-y-4">
-              <div class="text-center space-y-2">
-                <h2 class="text-2xl font-bold text-slate-900">Create Account</h2>
-                <p class="text-sm text-slate-600">Sign up to get started</p>
+            <form v-if="!account && activeTab === 'signup'" @submit="handleSignup" class="space-y-3">
+              <div class="text-center space-y-1">
+                <h2 class="text-xl font-bold text-slate-900">Create Account</h2>
+                <p class="text-xs text-slate-600">Sign up to get started</p>
               </div>
 
-              <div class="space-y-4">
+              <div class="space-y-3">
                 <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
                     Username
                   </label>
                   <div class="relative">
-                    <UserCircle class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <UserCircle class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
                     <input
                       v-model="signupForm.username"
                       type="text"
                       placeholder="Choose a username"
-                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
                       :class="{ 'border-red-300': signupErrors.username }"
                     />
                   </div>
-                  <p v-if="signupErrors.username" class="mt-1 text-xs text-red-600">{{ signupErrors.username }}</p>
+                  <p v-if="signupErrors.username" class="mt-0.5 text-xs text-red-600">{{ signupErrors.username }}</p>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
                     Email
                   </label>
                   <div class="relative">
-                    <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
                     <input
                       v-model="signupForm.email"
                       type="email"
                       placeholder="Enter your email"
-                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
                       :class="{ 'border-red-300': signupErrors.email }"
                     />
                   </div>
-                  <p v-if="signupErrors.email" class="mt-1 text-xs text-red-600">{{ signupErrors.email }}</p>
+                  <p v-if="signupErrors.email" class="mt-0.5 text-xs text-red-600">{{ signupErrors.email }}</p>
                 </div>
 
-                <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">
-                    Password
-                  </label>
-                  <div class="relative">
-                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
-                    <input
-                      v-model="signupForm.password"
-                      :type="showPassword ? 'text' : 'password'"
-                      placeholder="Create a password"
-                      class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                      :class="{ 'border-red-300': signupErrors.password }"
-                    />
-                    <button
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <Eye v-if="!showPassword" :size="18" />
-                      <EyeOff v-else :size="18" />
-                    </button>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Password
+                    </label>
+                    <div class="relative">
+                      <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
+                      <input
+                        v-model="signupForm.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        placeholder="Password"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': signupErrors.password }"
+                      />
+                      <button
+                        type="button"
+                        @click="showPassword = !showPassword"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye v-if="!showPassword" :size="16" />
+                        <EyeOff v-else :size="16" />
+                      </button>
+                    </div>
+                    <p v-if="signupErrors.password" class="mt-0.5 text-xs text-red-600">{{ signupErrors.password }}</p>
                   </div>
-                  <p v-if="signupErrors.password" class="mt-1 text-xs text-red-600">{{ signupErrors.password }}</p>
-                </div>
 
-                <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">
-                    Confirm Password
-                  </label>
-                  <div class="relative">
-                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
-                    <input
-                      v-model="signupForm.confirmPassword"
-                      :type="showConfirmPassword ? 'text' : 'password'"
-                      placeholder="Confirm your password"
-                      class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
-                      :class="{ 'border-red-300': signupErrors.confirmPassword }"
-                    />
-                    <button
-                      type="button"
-                      @click="showConfirmPassword = !showConfirmPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <Eye v-if="!showConfirmPassword" :size="18" />
-                      <EyeOff v-else :size="18" />
-                    </button>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Confirm
+                    </label>
+                    <div class="relative">
+                      <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
+                      <input
+                        v-model="signupForm.confirmPassword"
+                        :type="showConfirmPassword ? 'text' : 'password'"
+                        placeholder="Confirm"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': signupErrors.confirmPassword }"
+                      />
+                      <button
+                        type="button"
+                        @click="showConfirmPassword = !showConfirmPassword"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye v-if="!showConfirmPassword" :size="16" />
+                        <EyeOff v-else :size="16" />
+                      </button>
+                    </div>
+                    <p v-if="signupErrors.confirmPassword" class="mt-0.5 text-xs text-red-600">{{ signupErrors.confirmPassword }}</p>
                   </div>
-                  <p v-if="signupErrors.confirmPassword" class="mt-1 text-xs text-red-600">{{ signupErrors.confirmPassword }}</p>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
                     Phone Number
                   </label>
                   <div class="flex gap-2">
@@ -767,11 +815,11 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                       <button
                         type="button"
                         @click="countryDropdownOpen = !countryDropdownOpen"
-                        class="flex items-center gap-2 px-3 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[140px]"
+                        class="flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[120px] text-sm"
                       >
-                        <span class="text-lg">{{ selectedCountry.flag }}</span>
-                        <span class="text-sm font-medium">{{ selectedCountry.dialCode }}</span>
-                        <ChevronDown :size="16" class="text-slate-400 ml-auto" :class="{ 'rotate-180': countryDropdownOpen }" />
+                        <span class="text-base">{{ selectedCountry.flag }}</span>
+                        <span class="text-xs font-medium">{{ selectedCountry.dialCode }}</span>
+                        <ChevronDown :size="14" class="text-slate-400 ml-auto" :class="{ 'rotate-180': countryDropdownOpen }" />
                       </button>
                       <div
                         v-if="countryDropdownOpen"
@@ -793,37 +841,34 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                       </div>
                     </div>
                     <div class="relative flex-1">
-                      <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
                       <input
                         v-model="signupForm.phone"
                         type="tel"
-                        :placeholder="`Enter ${selectedCountry.maxLength} digits`"
-                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :placeholder="`${selectedCountry.maxLength} digits`"
+                        class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
                         :class="{ 'border-red-300': signupErrors.phone }"
                         :maxlength="selectedCountry.maxLength"
                       />
                     </div>
                   </div>
-                  <p v-if="signupErrors.phone" class="mt-1 text-xs text-red-600">{{ signupErrors.phone }}</p>
-                  <p class="mt-1 text-xs text-slate-500">
-                    Format: {{ selectedCountry.dialCode }} {{ selectedCountry.format }}
-                  </p>
+                  <p v-if="signupErrors.phone" class="mt-0.5 text-xs text-red-600">{{ signupErrors.phone }}</p>
                 </div>
               </div>
 
               <button
                 type="submit"
                 :disabled="loading"
-                class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <span v-if="loading">Creating account...</span>
                 <span v-else class="flex items-center justify-center gap-2">
-                  <UserPlus :size="18" />
+                  <UserPlus :size="16" />
                   Create Account
                 </span>
               </button>
 
-              <div class="relative">
+              <div class="relative py-1">
                 <div class="absolute inset-0 flex items-center">
                   <div class="w-full border-t border-blue-100"></div>
                 </div>
@@ -832,13 +877,13 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-blue-100 bg-indigo-50/60 p-4">
+              <div class="rounded-xl border border-blue-100 bg-indigo-50/60 p-3">
                 <div ref="googleSignUpButtonRef" class="flex justify-center"></div>
-                <p v-if="authError" class="mt-3 text-xs text-red-600 text-center">{{ authError }}</p>
+                <p v-if="authError" class="mt-2 text-xs text-red-600 text-center">{{ authError }}</p>
               </div>
 
-              <p class="text-xs text-center text-slate-500">
-                By signing up, you agree to our Terms of Service and Privacy Policy
+              <p class="text-xs text-center text-slate-500 px-2">
+                By signing up, you agree to our <a href="/terms.html" target="_blank" class="text-blue-600 hover:underline">Terms</a> and <a href="/privacy.html" target="_blank" class="text-blue-600 hover:underline">Privacy Policy</a>
               </p>
             </form>
 
@@ -1198,6 +1243,8 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
             </div>
             <div v-if="error" class="rounded-lg bg-red-50 border border-red-200 p-3">
               <p class="text-sm text-red-600">{{ error }}</p>
+            </div>
+              </div>
             </div>
           </div>
         </div>
