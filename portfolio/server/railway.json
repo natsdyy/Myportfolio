@@ -1,9 +1,5 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "cd .. && export NPM_CONFIG_CACHE=/tmp/.npm-cache && export NPM_CONFIG_TMP=/tmp/.npm-tmp && rm -rf ~/.npm /tmp/npm-* /tmp/.npm-cache /tmp/.npm-tmp node_modules 2>/dev/null || true && mkdir -p /tmp/.npm-cache /tmp/.npm-tmp && npm install --omit=optional --no-audit --no-fund --legacy-peer-deps && npm run build && cd server"
-  },
   "deploy": {
     "startCommand": "npm start",
     "restartPolicyType": "ON_FAILURE",
