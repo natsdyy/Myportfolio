@@ -11,6 +11,8 @@ const googleButtonRef = ref(null)
 const googleSignUpButtonRef = ref(null)
 const activeTab = ref('login')
 const account = ref(null)
+const needsProfileCompletion = ref(false)
+const isEditingProfile = ref(false)
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
@@ -30,10 +32,32 @@ const signupForm = ref({
   countryCode: 'PH'
 })
 
+// Profile completion form for Google sign-ups
+const profileCompletionForm = ref({
+  username: '',
+  phone: '',
+  countryCode: 'PH'
+})
+const profileCompletionErrors = ref({})
+
+// Profile edit form
+const profileEditForm = ref({
+  name: '',
+  password: '',
+  confirmPassword: '',
+  currentPassword: ''
+})
+const profileEditErrors = ref({})
+const showEditPassword = ref(false)
+const showEditCurrentPassword = ref(false)
+const showEditConfirmPassword = ref(false)
+
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const countryDropdownOpen = ref(false)
+const profileCountryDropdownOpen = ref(false)
 const selectedCountry = computed(() => getCountryByCode(signupForm.value.countryCode))
+const selectedProfileCountry = computed(() => getCountryByCode(profileCompletionForm.value.countryCode))
 
 // Form validation
 const signupErrors = ref({})
@@ -78,6 +102,46 @@ const validateLogin = () => {
   }
   
   return Object.keys(loginErrors.value).length === 0
+}
+
+const validateProfileCompletion = () => {
+  profileCompletionErrors.value = {}
+  
+  if (!profileCompletionForm.value.username || profileCompletionForm.value.username.length < 3) {
+    profileCompletionErrors.value.username = 'Username must be at least 3 characters'
+  }
+  
+  const phoneDigits = profileCompletionForm.value.phone.replace(/\D/g, '')
+  if (!phoneDigits || phoneDigits.length < selectedProfileCountry.value.maxLength) {
+    profileCompletionErrors.value.phone = `Phone number must be ${selectedProfileCountry.value.maxLength} digits`
+  }
+  
+  return Object.keys(profileCompletionErrors.value).length === 0
+}
+
+const validateProfileEdit = () => {
+  profileEditErrors.value = {}
+  
+  if (!profileEditForm.value.name || profileEditForm.value.name.trim().length < 2) {
+    profileEditErrors.value.name = 'Name must be at least 2 characters'
+  }
+  
+  // If password is being changed, validate it
+  if (profileEditForm.value.password) {
+    if (profileEditForm.value.password.length < 6) {
+      profileEditErrors.value.password = 'Password must be at least 6 characters'
+    }
+    
+    if (profileEditForm.value.password !== profileEditForm.value.confirmPassword) {
+      profileEditErrors.value.confirmPassword = 'Passwords do not match'
+    }
+    
+    if (!profileEditForm.value.currentPassword) {
+      profileEditErrors.value.currentPassword = 'Current password is required to change password'
+    }
+  }
+  
+  return Object.keys(profileEditErrors.value).length === 0
 }
 
 const handleSignup = async (e) => {
@@ -212,6 +276,12 @@ const fetchAccountInfo = async (token = null) => {
     }
     
     account.value = data.account
+    needsProfileCompletion.value = data.needsProfileCompletion || false
+    
+    // Pre-fill profile completion form if needed
+    if (needsProfileCompletion.value && user.value) {
+      profileCompletionForm.value.email = user.value.email || account.value.email
+    }
     
     // If we got account info from Google sign-in, also save a JWT token if provided
     if (data.token) {
@@ -233,7 +303,10 @@ const fetchAccountInfo = async (token = null) => {
         avatar_url: user.value.picture,
         role: { name: 'user', description: 'Regular user' }
       }
-      error.value = 'Connected with Google, but unable to sync with server. Some features may be limited.'
+      // Check if profile needs completion (no username or phone in Google data)
+      needsProfileCompletion.value = true
+      profileCompletionForm.value.email = user.value.email
+      error.value = 'Connected with Google, but unable to sync with server. Please complete your profile.'
     }
   } finally {
     loading.value = false
@@ -267,9 +340,171 @@ const initButtons = async () => {
   }
 }
 
+const handleCompleteProfile = async (e) => {
+  e.preventDefault()
+  error.value = ''
+  success.value = ''
+  
+  if (!validateProfileCompletion()) {
+    return
+  }
+  
+  if (!idToken.value) {
+    error.value = 'Google authentication required'
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const phoneDigits = profileCompletionForm.value.phone.replace(/\D/g, '')
+    const fullPhone = `${selectedProfileCountry.value.dialCode}${phoneDigits}`
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/complete-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idToken: idToken.value,
+        username: profileCompletionForm.value.username,
+        phone: fullPhone,
+        countryCode: profileCompletionForm.value.countryCode
+      }),
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to complete profile')
+    }
+    
+    account.value = data.account
+    needsProfileCompletion.value = false
+    success.value = data.message || 'Profile completed successfully!'
+    
+    // Clear form
+    profileCompletionForm.value = {
+      username: '',
+      phone: '',
+      countryCode: 'PH'
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleEditProfile = () => {
+  isEditingProfile.value = true
+  profileEditForm.value = {
+    name: account.value?.name || '',
+    password: '',
+    confirmPassword: '',
+    currentPassword: ''
+  }
+  profileEditErrors.value = {}
+  error.value = ''
+  success.value = ''
+}
+
+const handleCancelEdit = () => {
+  isEditingProfile.value = false
+  profileEditForm.value = {
+    name: '',
+    password: '',
+    confirmPassword: '',
+    currentPassword: ''
+  }
+  profileEditErrors.value = {}
+}
+
+const handleUpdateProfile = async (e) => {
+  e.preventDefault()
+  error.value = ''
+  success.value = ''
+  
+  if (!validateProfileEdit()) {
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    let response
+    
+    // Check if user is authenticated via Google or JWT
+    if (idToken.value) {
+      // Google user - can only update name
+      if (profileEditForm.value.password) {
+        error.value = 'Google sign-in users cannot set a password. Please use Google to sign in.'
+        loading.value = false
+        return
+      }
+      
+      response = await fetch(`${API_BASE_URL}/api/auth/profile/google`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: idToken.value,
+          name: profileEditForm.value.name
+        }),
+      })
+    } else {
+      // JWT user - can update name and password
+      const authToken = localStorage.getItem('auth_token')
+      if (!authToken) {
+        throw new Error('Not authenticated')
+      }
+      
+      const body = {
+        name: profileEditForm.value.name
+      }
+      
+      // Only include password fields if password is being changed
+      if (profileEditForm.value.password) {
+        body.password = profileEditForm.value.password
+        body.currentPassword = profileEditForm.value.currentPassword
+      }
+      
+      response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body),
+      })
+    }
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update profile')
+    }
+    
+    account.value = data.account
+    isEditingProfile.value = false
+    success.value = data.message || 'Profile updated successfully!'
+    
+    // Clear form
+    profileEditForm.value = {
+      name: '',
+      password: '',
+      confirmPassword: '',
+      currentPassword: ''
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleSignOut = () => {
   signOut()
   account.value = null
+  needsProfileCompletion.value = false
+  isEditingProfile.value = false
   localStorage.removeItem('auth_token')
 }
 
@@ -306,6 +541,12 @@ watch(activeTab, () => {
 
 watch(() => signupForm.value.phone, (newVal) => {
   signupForm.value.phone = formatPhoneInput(newVal)
+})
+
+watch(() => profileCompletionForm.value.phone, (newVal) => {
+  const digits = newVal.replace(/\D/g, '')
+  const maxLength = selectedProfileCountry.value.maxLength
+  profileCompletionForm.value.phone = digits.slice(0, maxLength)
 })
 </script>
 
@@ -600,8 +841,276 @@ watch(() => signupForm.value.phone, (newVal) => {
               </p>
             </form>
 
+            <!-- Profile Completion Form (for Google sign-ups) -->
+            <form v-if="account && needsProfileCompletion" @submit="handleCompleteProfile" class="space-y-4">
+              <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Complete Your Profile</h2>
+                <p class="text-sm text-slate-600">Please provide additional information to complete your account</p>
+              </div>
+
+              <div class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 mb-4">
+                <div class="flex items-center gap-3">
+                  <img
+                    v-if="account.avatar_url || user?.picture"
+                    :src="account.avatar_url || user?.picture"
+                    alt="Profile photo"
+                    class="h-12 w-12 rounded-full border-2 border-white object-cover shadow-lg"
+                  />
+                  <div class="flex-1">
+                    <h3 class="text-sm font-bold text-slate-900">{{ account.name || user?.name }}</h3>
+                    <p class="text-xs text-slate-600">{{ account.email || user?.email }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Username <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <UserCircle class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="profileCompletionForm.username"
+                      type="text"
+                      placeholder="Choose a username"
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': profileCompletionErrors.username }"
+                    />
+                  </div>
+                  <p v-if="profileCompletionErrors.username" class="mt-1 text-xs text-red-600">{{ profileCompletionErrors.username }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Phone Number <span class="text-red-500">*</span>
+                  </label>
+                  <div class="flex gap-2">
+                    <div class="relative flex-shrink-0">
+                      <button
+                        type="button"
+                        @click="profileCountryDropdownOpen = !profileCountryDropdownOpen"
+                        class="flex items-center gap-2 px-3 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[140px]"
+                      >
+                        <span class="text-lg">{{ selectedProfileCountry.flag }}</span>
+                        <span class="text-sm font-medium">{{ selectedProfileCountry.dialCode }}</span>
+                        <ChevronDown :size="16" class="text-slate-400 ml-auto" :class="{ 'rotate-180': profileCountryDropdownOpen }" />
+                      </button>
+                      <div
+                        v-if="profileCountryDropdownOpen"
+                        class="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto rounded-xl border border-blue-100 bg-white shadow-xl z-50"
+                      >
+                        <div
+                          v-for="country in countries"
+                          :key="country.code"
+                          @click="profileCompletionForm.countryCode = country.code; profileCountryDropdownOpen = false"
+                          class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm flex items-center gap-3"
+                          :class="{ 'bg-blue-50': profileCompletionForm.countryCode === country.code }"
+                        >
+                          <span class="text-xl flex-shrink-0">{{ country.flag }}</span>
+                          <div class="flex-1 min-w-0">
+                            <div class="font-medium text-slate-900">{{ country.name }}</div>
+                            <div class="text-xs text-slate-500">{{ country.dialCode }} • {{ country.format }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="relative flex-1">
+                      <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <input
+                        v-model="profileCompletionForm.phone"
+                        type="tel"
+                        :placeholder="`Enter ${selectedProfileCountry.maxLength} digits`"
+                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': profileCompletionErrors.phone }"
+                        :maxlength="selectedProfileCountry.maxLength"
+                      />
+                    </div>
+                  </div>
+                  <p v-if="profileCompletionErrors.phone" class="mt-1 text-xs text-red-600">{{ profileCompletionErrors.phone }}</p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Format: {{ selectedProfileCountry.dialCode }} {{ selectedProfileCountry.format }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                :disabled="loading"
+                class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span v-if="loading">Completing profile...</span>
+                <span v-else class="flex items-center justify-center gap-2">
+                  <UserPlus :size="18" />
+                  Complete Profile
+                </span>
+              </button>
+            </form>
+
+            <!-- Profile Edit Form -->
+            <form v-if="account && !needsProfileCompletion && isEditingProfile" @submit="handleUpdateProfile" class="space-y-4">
+              <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Edit Profile</h2>
+                <p class="text-sm text-slate-600">Update your account information</p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Name <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <UserCircle class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      v-model="profileEditForm.name"
+                      type="text"
+                      placeholder="Enter your name"
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                      :class="{ 'border-red-300': profileEditErrors.name }"
+                    />
+                  </div>
+                  <p v-if="profileEditErrors.name" class="mt-1 text-xs text-red-600">{{ profileEditErrors.name }}</p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Email
+                  </label>
+                  <div class="relative">
+                    <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      :value="account.email"
+                      type="email"
+                      disabled
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-slate-100 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">Email cannot be changed</p>
+                </div>
+
+                <div v-if="account.username">
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Username
+                  </label>
+                  <div class="relative">
+                    <User class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                    <input
+                      :value="account.username"
+                      type="text"
+                      disabled
+                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 bg-slate-100 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">Username cannot be changed</p>
+                </div>
+
+                <!-- Password change section (only for JWT users, not Google) -->
+                <div v-if="!idToken" class="space-y-4 pt-4 border-t border-blue-100">
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                      Current Password
+                    </label>
+                    <div class="relative">
+                      <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <input
+                        v-model="profileEditForm.currentPassword"
+                        :type="showEditCurrentPassword ? 'text' : 'password'"
+                        placeholder="Enter current password (required to change password)"
+                        class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': profileEditErrors.currentPassword }"
+                      />
+                      <button
+                        type="button"
+                        @click="showEditCurrentPassword = !showEditCurrentPassword"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye v-if="!showEditCurrentPassword" :size="18" />
+                        <EyeOff v-else :size="18" />
+                      </button>
+                    </div>
+                    <p v-if="profileEditErrors.currentPassword" class="mt-1 text-xs text-red-600">{{ profileEditErrors.currentPassword }}</p>
+                    <p class="mt-1 text-xs text-slate-500">Leave blank if you don't want to change password</p>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                      New Password
+                    </label>
+                    <div class="relative">
+                      <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <input
+                        v-model="profileEditForm.password"
+                        :type="showEditPassword ? 'text' : 'password'"
+                        placeholder="Enter new password"
+                        class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': profileEditErrors.password }"
+                      />
+                      <button
+                        type="button"
+                        @click="showEditPassword = !showEditPassword"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye v-if="!showEditPassword" :size="18" />
+                        <EyeOff v-else :size="18" />
+                      </button>
+                    </div>
+                    <p v-if="profileEditErrors.password" class="mt-1 text-xs text-red-600">{{ profileEditErrors.password }}</p>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                      Confirm New Password
+                    </label>
+                    <div class="relative">
+                      <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="18" />
+                      <input
+                        v-model="profileEditForm.confirmPassword"
+                        :type="showEditConfirmPassword ? 'text' : 'password'"
+                        placeholder="Confirm new password"
+                        class="w-full pl-10 pr-12 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                        :class="{ 'border-red-300': profileEditErrors.confirmPassword }"
+                      />
+                      <button
+                        type="button"
+                        @click="showEditConfirmPassword = !showEditConfirmPassword"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye v-if="!showEditConfirmPassword" :size="18" />
+                        <EyeOff v-else :size="18" />
+                      </button>
+                    </div>
+                    <p v-if="profileEditErrors.confirmPassword" class="mt-1 text-xs text-red-600">{{ profileEditErrors.confirmPassword }}</p>
+                  </div>
+                </div>
+
+                <div v-if="idToken" class="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                  <p class="text-xs text-blue-700">
+                    <strong>Note:</strong> Google sign-in users cannot change their password. Please use Google to sign in.
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  @click="handleCancelEdit"
+                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  :disabled="loading"
+                  class="flex-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span v-if="loading">Updating...</span>
+                  <span v-else>Save Changes</span>
+                </button>
+              </div>
+            </form>
+
             <!-- Account Info (when logged in) -->
-            <div v-if="account" class="space-y-4">
+            <div v-if="account && !needsProfileCompletion && !isEditingProfile" class="space-y-4">
               <div class="text-center space-y-2">
                 <h2 class="text-2xl font-bold text-slate-900">Your Account</h2>
                 <p class="text-sm text-slate-600">Manage your profile and settings</p>
@@ -617,6 +1126,32 @@ watch(() => signupForm.value.phone, (newVal) => {
                   <div class="flex-1">
                     <h3 class="text-lg font-bold text-slate-900">{{ account.name || account.username }}</h3>
                     <p class="text-sm text-slate-600">{{ account.email }}</p>
+                  </div>
+                </div>
+
+                <div class="space-y-3 mb-4">
+                  <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-white/80 border border-blue-100">
+                    <div class="flex items-center gap-2">
+                      <User class="text-blue-600" :size="18" />
+                      <span class="text-sm font-medium text-slate-700">Name:</span>
+                    </div>
+                    <span class="text-sm text-slate-900">{{ account.name || 'Not set' }}</span>
+                  </div>
+
+                  <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-white/80 border border-blue-100">
+                    <div class="flex items-center gap-2">
+                      <Mail class="text-blue-600" :size="18" />
+                      <span class="text-sm font-medium text-slate-700">Email:</span>
+                    </div>
+                    <span class="text-sm text-slate-900">{{ account.email }}</span>
+                  </div>
+
+                  <div v-if="account.username" class="flex items-center justify-between px-3 py-2 rounded-lg bg-white/80 border border-blue-100">
+                    <div class="flex items-center gap-2">
+                      <UserCircle class="text-blue-600" :size="18" />
+                      <span class="text-sm font-medium text-slate-700">Username:</span>
+                    </div>
+                    <span class="text-sm text-slate-900">{{ account.username }}</span>
                   </div>
                 </div>
 
@@ -639,6 +1174,14 @@ watch(() => signupForm.value.phone, (newVal) => {
                   <p>Member since: {{ new Date(account.created_at).toLocaleDateString() }}</p>
                 </div>
               </div>
+
+              <button
+                @click="handleEditProfile"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700"
+              >
+                <User :size="16" />
+                Edit Profile
+              </button>
 
               <button
                 @click="handleSignOut"

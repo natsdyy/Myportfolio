@@ -231,7 +231,7 @@ router.post('/me', async (req, res) => {
             name = EXCLUDED.name,
             avatar_url = EXCLUDED.avatar_url,
             updated_at = NOW()
-      RETURNING id, google_id, email, name, avatar_url, role_id, created_at;
+      RETURNING id, google_id, email, name, avatar_url, username, phone_number, country_code, role_id, created_at;
     `,
       [profile.googleId, profile.email, profile.name, profile.avatarUrl]
     );
@@ -245,15 +245,235 @@ router.post('/me', async (req, res) => {
     );
     const role = roleResult.rows[0];
 
+    // Check if profile is incomplete (missing username or phone)
+    const needsProfileCompletion = !account.username || !account.phone_number;
+
     res.json({
       account: {
         ...account,
         role,
       },
+      needsProfileCompletion,
     });
   } catch (error) {
     console.error('[auth] Error getting user info', error);
     res.status(500).json({ error: 'Failed to get user information' });
+  }
+});
+
+// Complete Google profile (add username and phone)
+router.post('/complete-profile', async (req, res) => {
+  try {
+    const { idToken, username, phone, countryCode } = req.body || {};
+
+    if (!idToken) {
+      return res.status(401).json({ error: 'idToken is required' });
+    }
+
+    if (!username || !phone || !countryCode) {
+      return res.status(400).json({ error: 'Username, phone, and country code are required' });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+
+    // Verify Google token and get profile
+    const profile = await verifyIdToken(idToken);
+
+    // Check if username is already taken
+    const existingUser = await pool.query(
+      `SELECT id FROM accounts WHERE username = $1 AND google_id != $2`,
+      [username, profile.googleId]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    // Update account with username and phone
+    const result = await pool.query(
+      `
+      UPDATE accounts
+      SET username = $1,
+          phone_number = $2,
+          country_code = $3,
+          updated_at = NOW()
+      WHERE google_id = $4
+      RETURNING id, username, email, name, avatar_url, phone_number, country_code, role_id, created_at;
+    `,
+      [username, phone, countryCode, profile.googleId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const account = result.rows[0];
+
+    // Get role information
+    const roleResult = await pool.query(
+      `SELECT id, name, description FROM roles WHERE id = $1`,
+      [account.role_id]
+    );
+    const role = roleResult.rows[0];
+
+    res.json({
+      account: {
+        ...account,
+        role,
+      },
+      message: 'Profile completed successfully',
+    });
+  } catch (error) {
+    console.error('[auth] Error completing profile', error);
+    res.status(500).json({ error: 'Failed to complete profile' });
+  }
+});
+
+// Update profile (name and password only)
+router.put('/profile', verifyToken, async (req, res) => {
+  try {
+    const { name, password, currentPassword } = req.body || {};
+
+    // At least one field must be provided
+    if (!name && !password) {
+      return res.status(400).json({ error: 'Name or password must be provided' });
+    }
+
+    // If updating password, current password is required
+    if (password && !currentPassword) {
+      return res.status(400).json({ error: 'Current password is required to change password' });
+    }
+
+    // Get current account
+    const accountResult = await pool.query(
+      `SELECT id, password_hash FROM accounts WHERE id = $1 OR email = $2`,
+      [req.userId, req.userEmail]
+    );
+
+    if (accountResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const account = accountResult.rows[0];
+
+    // Verify current password if changing password
+    if (password) {
+      if (!account.password_hash) {
+        return res.status(400).json({ error: 'This account uses Google sign-in. Password cannot be set.' });
+      }
+
+      const passwordMatch = await bcrypt.compare(currentPassword, account.password_hash);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+    }
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (name) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+
+    if (password) {
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      updates.push(`password_hash = $${paramIndex++}`);
+      values.push(passwordHash);
+    }
+
+    // Add WHERE clause
+    values.push(req.userId);
+    const updateQuery = `
+      UPDATE accounts
+      SET ${updates.join(', ')}, updated_at = NOW()
+      WHERE id = $${paramIndex}
+      RETURNING id, username, email, name, avatar_url, phone_number, country_code, role_id, created_at;
+    `;
+
+    const result = await pool.query(updateQuery, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const updatedAccount = result.rows[0];
+
+    // Get role information
+    const roleResult = await pool.query(
+      `SELECT id, name, description FROM roles WHERE id = $1`,
+      [updatedAccount.role_id]
+    );
+    const role = roleResult.rows[0];
+
+    res.json({
+      account: {
+        ...updatedAccount,
+        role,
+      },
+      message: 'Profile updated successfully',
+    });
+  } catch (error) {
+    console.error('[auth] Error updating profile', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Update profile for Google users (name only, no password)
+router.put('/profile/google', async (req, res) => {
+  try {
+    const { idToken, name } = req.body || {};
+
+    if (!idToken) {
+      return res.status(401).json({ error: 'idToken is required' });
+    }
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    // Verify Google token and get profile
+    const profile = await verifyIdToken(idToken);
+
+    // Update account name
+    const result = await pool.query(
+      `
+      UPDATE accounts
+      SET name = $1, updated_at = NOW()
+      WHERE google_id = $2
+      RETURNING id, username, email, name, avatar_url, phone_number, country_code, role_id, created_at;
+    `,
+      [name, profile.googleId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const account = result.rows[0];
+
+    // Get role information
+    const roleResult = await pool.query(
+      `SELECT id, name, description FROM roles WHERE id = $1`,
+      [account.role_id]
+    );
+    const role = roleResult.rows[0];
+
+    res.json({
+      account: {
+        ...account,
+        role,
+      },
+      message: 'Profile updated successfully',
+    });
+  } catch (error) {
+    console.error('[auth] Error updating Google profile', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
