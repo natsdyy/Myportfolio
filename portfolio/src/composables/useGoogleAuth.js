@@ -123,16 +123,22 @@ const initializeClient = async () => {
 
   await waitForGoogle()
 
-  window.google.accounts.id.initialize({
-    client_id: clientId,
-    callback: handleCredential,
-    auto_select: false,
-    cancel_on_tap_outside: true,
-    ux_mode: 'popup',
-  })
+  try {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      ux_mode: 'popup', // Keep popup for better UX
+      itp_support: true, // Support Intelligent Tracking Prevention
+    })
 
-  initialized = true
-  ready.value = true
+    initialized = true
+    ready.value = true
+  } catch (error) {
+    console.error('[google-auth] Failed to initialize', error)
+    authError.value = 'Failed to initialize Google Sign-In. Please check your browser settings.'
+  }
 }
 
 const renderGoogleButton = async (element, options = {}) => {
@@ -142,24 +148,37 @@ const renderGoogleButton = async (element, options = {}) => {
     return
   }
 
-  await initializeClient()
+  try {
+    await initializeClient()
 
-  window.google.accounts.id.renderButton(
-    element,
-    Object.assign(
-      {
-        type: 'standard',
-        theme: 'outline',
-        text: 'signin_with',
-        size: 'large',
-        shape: 'pill',
-        logo_alignment: 'left',
-      },
-      options
+    window.google.accounts.id.renderButton(
+      element,
+      Object.assign(
+        {
+          type: 'standard',
+          theme: 'outline',
+          text: 'signin_with',
+          size: 'large',
+          shape: 'pill',
+          logo_alignment: 'left',
+        },
+        options
+      )
     )
-  )
 
-  window.google.accounts.id.prompt()
+    // Try to prompt, but ignore errors (FedCM/COOP related errors are harmless)
+    if (window.google?.accounts?.id?.prompt) {
+      try {
+        window.google.accounts.id.prompt()
+      } catch (promptError) {
+        // FedCM/COOP errors are expected in some browsers and don't affect functionality
+        // These are already suppressed in index.html
+      }
+    }
+  } catch (error) {
+    console.error('[google-auth] Failed to render button', error)
+    authError.value = 'Failed to load Google Sign-In. Please try refreshing the page or check your browser settings.'
+  }
 }
 
 const signOut = () => {
