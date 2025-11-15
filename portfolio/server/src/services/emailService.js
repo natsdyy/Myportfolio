@@ -43,13 +43,22 @@ const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
   const transporter = createTransporter();
   
   // Ensure we use SMTP_TO if set, otherwise fall back to SMTP_USER
-  const businessEmail = process.env.SMTP_TO || process.env.SMTP_USER || process.env.SMTP_FROM;
+  // Priority: SMTP_TO > SMTP_USER > SMTP_FROM
+  const businessEmail = process.env.SMTP_TO || process.env.SMTP_USER || process.env.SMTP_FROM || 'businessemail.charlesalvaran@gmail.com';
   const businessName = process.env.SMTP_FROM_NAME || 'Charles Louie Alvaran';
   const smtpUser = process.env.SMTP_USER;
 
   if (!businessEmail) {
     throw new Error('No recipient email configured. Please set SMTP_TO or SMTP_USER environment variable.');
   }
+
+  console.log('[email-service] Email configuration:', {
+    SMTP_TO: process.env.SMTP_TO || 'NOT SET',
+    SMTP_USER: process.env.SMTP_USER || 'NOT SET',
+    SMTP_FROM: process.env.SMTP_FROM || 'NOT SET',
+    recipientEmail: businessEmail,
+    senderEmail: smtpUser
+  });
 
   console.log('[email-service] Sending email:', {
     to: businessEmail,
