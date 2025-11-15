@@ -31,8 +31,20 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug middleware to log all API requests
+app.use('/api', (req, res, next) => {
+  console.log(`[server] ${req.method} ${req.path}`);
+  next();
+});
+
 app.use('/api', contactRouter);
 app.use('/api/auth', authRouter);
+
+// 404 handler for unmatched API routes
+app.use('/api/*', (req, res) => {
+  console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
+  res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+});
 
 app.use((err, req, res, next) => {
   console.error('[server] Unexpected error', err);
