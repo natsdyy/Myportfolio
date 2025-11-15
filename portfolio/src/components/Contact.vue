@@ -6,6 +6,11 @@ import { useGoogleAuth } from '../composables/useGoogleAuth'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeQLw0sAAAAAJRLg2dc_KWfYx7g4KddAK-JRROi'
 
+// Debug: Log site key (first 10 chars only for security)
+if (import.meta.env.DEV) {
+  console.log('reCAPTCHA Site Key loaded:', RECAPTCHA_SITE_KEY.substring(0, 10) + '...')
+}
+
 const form = ref({
   subject: '',
   message: ''
@@ -19,112 +24,96 @@ const status = ref({
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
 const googleButtonRef = ref(null)
-const recaptchaRef = ref(null)
-const recaptchaWidgetId = ref(null)
 const recaptchaLoaded = ref(false)
-const recaptchaError = ref('')
 
-const destroyRecaptcha = () => {
-  if (window.grecaptcha && recaptchaWidgetId.value !== null) {
-    try {
-      window.grecaptcha.reset(recaptchaWidgetId.value)
-      window.grecaptcha.remove(recaptchaWidgetId.value)
-    } catch (error) {
-      // Ignore errors during cleanup
-    }
-    recaptchaWidgetId.value = null
-  }
-}
-
+// Load reCAPTCHA v3 script (invisible, no widget needed)
 const loadRecaptchaScript = () => {
-  if (window.grecaptcha && window.grecaptcha.ready) {
-    recaptchaLoaded.value = true
-    return
-  }
-
-  if (document.querySelector('script[src*="recaptcha"]')) {
-    // Script is loading, wait for it
-    const checkInterval = setInterval(() => {
-      if (window.grecaptcha && window.grecaptcha.ready) {
-        clearInterval(checkInterval)
+  // Check if script already exists
+  if (document.querySelector(`script[src*="recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}"]`)) {
+    // Script exists, wait for it to be ready
+    if (window.grecaptcha && window.grecaptcha.ready) {
+      window.grecaptcha.ready(() => {
         recaptchaLoaded.value = true
-      }
-    }, 100)
-    setTimeout(() => clearInterval(checkInterval), 10000)
+      })
+    } else {
+      // Wait for grecaptcha to be available
+      const checkInterval = setInterval(() => {
+        if (window.grecaptcha && window.grecaptcha.ready) {
+          clearInterval(checkInterval)
+          window.grecaptcha.ready(() => {
+            recaptchaLoaded.value = true
+          })
+        }
+      }, 100)
+      setTimeout(() => clearInterval(checkInterval), 10000)
+    }
     return
   }
 
+  // Create and load the script
   const script = document.createElement('script')
-  script.src = `https://www.google.com/recaptcha/api.js?render=explicit&onload=onRecaptchaLoad`
+  script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`
   script.async = true
   script.defer = true
   
-  // Global callback for reCAPTCHA load
-  window.onRecaptchaLoad = () => {
-    recaptchaLoaded.value = true
-    if (isAuthenticated.value) {
-      setTimeout(() => initRecaptcha(), 200)
+  script.onload = () => {
+    // Wait for grecaptcha to be ready
+    if (window.grecaptcha && window.grecaptcha.ready) {
+      window.grecaptcha.ready(() => {
+        recaptchaLoaded.value = true
+      })
+    } else {
+      // Fallback: wait a bit for grecaptcha to initialize
+      setTimeout(() => {
+        if (window.grecaptcha && window.grecaptcha.ready) {
+          window.grecaptcha.ready(() => {
+            recaptchaLoaded.value = true
+          })
+        } else {
+          recaptchaLoaded.value = true // Assume ready if grecaptcha exists
+        }
+      }, 500)
     }
   }
   
   script.onerror = () => {
-    recaptchaError.value = 'Failed to load reCAPTCHA script'
+    console.error('Failed to load reCAPTCHA script')
+    status.value.error = 'Failed to load reCAPTCHA. Please refresh the page.'
   }
   
   document.head.appendChild(script)
 }
 
-const initRecaptcha = () => {
-  if (!window.grecaptcha || !recaptchaRef.value) {
-    return
-  }
-
-  // Destroy existing widget if any
-  if (recaptchaWidgetId.value !== null) {
-    destroyRecaptcha()
-  }
-
-  // Wait a bit for DOM to be ready
-  setTimeout(() => {
-    if (!recaptchaRef.value) return
-
-    try {
-      recaptchaWidgetId.value = window.grecaptcha.render(recaptchaRef.value, {
-        sitekey: RECAPTCHA_SITE_KEY,
-        theme: 'light',
-        size: 'normal',
-        callback: () => {
-          recaptchaError.value = ''
-        },
-        'error-callback': () => {
-          recaptchaError.value = 'reCAPTCHA verification failed. Please try again.'
-        },
-        'expired-callback': () => {
-          recaptchaError.value = 'reCAPTCHA expired. Please verify again.'
-        }
-      })
-    } catch (error) {
-      console.error('Error initializing reCAPTCHA:', error)
-      recaptchaError.value = error.message || 'Failed to initialize reCAPTCHA. Please check your site key.'
-    }
-  }, 100)
-}
-
-const getRecaptchaToken = () => {
-  if (!window.grecaptcha || recaptchaWidgetId.value === null) {
+// Execute reCAPTCHA v3 and get token
+const getRecaptchaToken = async () => {
+  if (!window.grecaptcha) {
+    console.error('reCAPTCHA not loaded')
     return null
   }
-  return window.grecaptcha.getResponse(recaptchaWidgetId.value)
-}
 
-const resetRecaptcha = () => {
-  if (window.grecaptcha && recaptchaWidgetId.value !== null) {
-    try {
-      window.grecaptcha.reset(recaptchaWidgetId.value)
-      recaptchaError.value = ''
-    } catch (error) {
-      console.error('Error resetting reCAPTCHA:', error)
-    }
+  try {
+    // Use grecaptcha.ready() to ensure it's fully loaded
+    return new Promise((resolve, reject) => {
+      if (window.grecaptcha.ready) {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit' })
+            resolve(token)
+          } catch (error) {
+            console.error('Error executing reCAPTCHA:', error)
+            reject(error)
+          }
+        })
+      } else {
+        // Fallback: try to execute directly
+        window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit' })
+          .then(resolve)
+          .catch(reject)
+      }
+    })
+  } catch (error) {
+    console.error('Error executing reCAPTCHA:', error)
+    return null
   }
 }
 
@@ -138,15 +127,23 @@ const handleSubmit = async (e) => {
     return
   }
 
-  const recaptchaToken = getRecaptchaToken()
-  if (!recaptchaToken) {
-    status.value.error = 'Please complete the reCAPTCHA verification.'
-    return
-  }
-
   status.value.loading = true
 
   try {
+    // Get reCAPTCHA v3 token (invisible, executed on submit)
+    if (!recaptchaLoaded.value) {
+      status.value.error = 'reCAPTCHA is still loading. Please wait a moment and try again.'
+      status.value.loading = false
+      return
+    }
+
+    const recaptchaToken = await getRecaptchaToken()
+    if (!recaptchaToken) {
+      status.value.error = 'reCAPTCHA verification failed. Please check your browser console or try refreshing the page.'
+      status.value.loading = false
+      return
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -167,10 +164,8 @@ const handleSubmit = async (e) => {
     status.value.success = true
     form.value.subject = ''
     form.value.message = ''
-    resetRecaptcha()
   } catch (error) {
     status.value.error = error.message
-    resetRecaptcha()
   } finally {
     status.value.loading = false
   }
@@ -186,30 +181,18 @@ onMounted(() => {
   if (!isAuthenticated.value) {
     initGoogleButton()
   }
-  loadRecaptchaScript()
+  // Load reCAPTCHA script on mount
+  if (RECAPTCHA_SITE_KEY) {
+    loadRecaptchaScript()
+  } else {
+    console.warn('reCAPTCHA site key not found in environment variables')
+  }
 })
 
 watch(isAuthenticated, (value) => {
   if (!value) {
     initGoogleButton()
   }
-})
-
-watch(isAuthenticated, (authenticated) => {
-  if (authenticated && recaptchaLoaded.value) {
-    // Small delay to ensure DOM is ready
-    setTimeout(() => {
-      initRecaptcha()
-    }, 200)
-  } else if (!authenticated) {
-    // Destroy reCAPTCHA when user signs out
-    destroyRecaptcha()
-    recaptchaError.value = ''
-  }
-})
-
-onUnmounted(() => {
-  destroyRecaptcha()
 })
 
 const contactInfo = [
@@ -335,10 +318,6 @@ const contactInfo = [
             ></textarea>
           </label>
 
-          <div v-if="isAuthenticated" class="space-y-2">
-            <div ref="recaptchaRef" class="flex justify-start"></div>
-            <p v-if="recaptchaError" class="text-xs text-red-600">{{ recaptchaError }}</p>
-          </div>
 
           <div class="space-y-2">
             <button

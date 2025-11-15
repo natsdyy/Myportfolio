@@ -30,6 +30,17 @@ const verifyRecaptcha = async (token) => {
     );
 
     if (!response.data.success) {
+      const errorCodes = response.data['error-codes'] || [];
+      console.error('[contact] reCAPTCHA verification failed:', errorCodes);
+      
+      // Provide more specific error messages
+      if (errorCodes.includes('invalid-input-secret') || errorCodes.includes('invalid-input-response')) {
+        throw new Error('reCAPTCHA configuration error. Please check your keys.');
+      }
+      if (errorCodes.includes('timeout-or-duplicate')) {
+        throw new Error('reCAPTCHA token expired. Please try again.');
+      }
+      
       throw new Error('reCAPTCHA verification failed');
     }
 
