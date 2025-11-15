@@ -485,10 +485,11 @@ watch(() => signupForm.value.phone, (newVal) => {
                       <button
                         type="button"
                         @click="countryDropdownOpen = !countryDropdownOpen"
-                        class="flex items-center gap-2 px-3 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[120px]"
+                        class="flex items-center gap-2 px-3 py-3 rounded-xl border border-blue-100 bg-white/80 text-slate-800 hover:border-blue-400 transition min-w-[140px]"
                       >
+                        <span class="text-lg">{{ selectedCountry.flag }}</span>
                         <span class="text-sm font-medium">{{ selectedCountry.dialCode }}</span>
-                        <ChevronDown :size="16" class="text-slate-400" :class="{ 'rotate-180': countryDropdownOpen }" />
+                        <ChevronDown :size="16" class="text-slate-400 ml-auto" :class="{ 'rotate-180': countryDropdownOpen }" />
                       </button>
                       <div
                         v-if="countryDropdownOpen"
@@ -498,11 +499,14 @@ watch(() => signupForm.value.phone, (newVal) => {
                           v-for="country in countries"
                           :key="country.code"
                           @click="signupForm.countryCode = country.code; countryDropdownOpen = false"
-                          class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm flex items-center gap-3"
                           :class="{ 'bg-blue-50': signupForm.countryCode === country.code }"
                         >
-                          <div class="font-medium text-slate-900">{{ country.name }}</div>
-                          <div class="text-xs text-slate-500">{{ country.dialCode }} • {{ country.format }}</div>
+                          <span class="text-xl flex-shrink-0">{{ country.flag }}</span>
+                          <div class="flex-1 min-w-0">
+                            <div class="font-medium text-slate-900">{{ country.name }}</div>
+                            <div class="text-xs text-slate-500">{{ country.dialCode }} • {{ country.format }}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
