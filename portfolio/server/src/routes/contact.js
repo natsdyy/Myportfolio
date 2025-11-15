@@ -130,8 +130,11 @@ router.post('/contact', async (req, res) => {
     console.log('[contact] Message saved to database:', savedMessage.id);
 
     // Send email via SMTP
+    let emailSent = false;
+    let emailError = null;
+    
     try {
-      console.log('[contact] Sending email via SMTP...');
+      console.log('[contact] ========== ATTEMPTING TO SEND EMAIL ==========');
       console.log('[contact] SMTP Config:', {
         SMTP_HOST: process.env.SMTP_HOST,
         SMTP_PORT: process.env.SMTP_PORT,
@@ -139,7 +142,8 @@ router.post('/contact', async (req, res) => {
         SMTP_USER: process.env.SMTP_USER,
         SMTP_TO: process.env.SMTP_TO,
         SMTP_FROM: process.env.SMTP_FROM,
-        hasSMTP_PASS: !!process.env.SMTP_PASS
+        hasSMTP_PASS: !!process.env.SMTP_PASS,
+        SMTP_PASS_length: process.env.SMTP_PASS?.length || 0
       });
       
       const emailInfo = await sendContactEmail({
@@ -149,31 +153,36 @@ router.post('/contact', async (req, res) => {
         message: message,
       });
       
-      console.log('[contact] Email sent successfully:', {
+      emailSent = true;
+      console.log('[contact] ✅ Email sent successfully:', {
         messageId: emailInfo.messageId,
         accepted: emailInfo.accepted,
         rejected: emailInfo.rejected,
         response: emailInfo.response
       });
-    } catch (emailError) {
+      console.log('[contact] ==============================================');
+    } catch (err) {
+      emailError = err;
       // Log comprehensive error information
       console.error('[contact] ========== EMAIL ERROR ==========');
-      console.error('[contact] Error message:', emailError.message);
-      console.error('[contact] Error code:', emailError.code);
-      console.error('[contact] Error command:', emailError.command);
-      console.error('[contact] Error response:', emailError.response);
-      console.error('[contact] Error responseCode:', emailError.responseCode);
-      console.error('[contact] Error stack:', emailError.stack);
-      console.error('[contact] Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError)));
+      console.error('[contact] Error message:', err.message);
+      console.error('[contact] Error code:', err.code);
+      console.error('[contact] Error command:', err.command);
+      console.error('[contact] Error response:', err.response);
+      console.error('[contact] Error responseCode:', err.responseCode);
+      console.error('[contact] Error stack:', err.stack);
+      console.error('[contact] Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
       console.error('[contact] =================================');
-      
-      // Still return success to user, but log the error prominently
-      // This way we can see what's wrong in logs without breaking the user experience
     }
 
     console.log('[contact] Request completed successfully');
     res.status(201).json({
       message: 'Message received',
+      emailSent: emailSent,
+      emailError: emailError ? {
+        message: emailError.message,
+        code: emailError.code
+      } : null,
       data: {
         message: savedMessage,
         account: {
