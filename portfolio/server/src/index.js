@@ -38,6 +38,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'This is the backend API server. The frontend should be served from a different domain.',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      test: '/api/test',
+      routes: '/api/routes'
+    },
+    timestamp: new Date().toISOString() 
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
