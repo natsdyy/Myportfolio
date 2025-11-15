@@ -1171,7 +1171,6 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                 </div>
 
                 <div class="mt-4 pt-4 border-t border-blue-100 space-y-2 text-xs text-slate-500">
-                  <p>Account ID: {{ account.id }}</p>
                   <p>Member since: {{ new Date(account.created_at).toLocaleDateString() }}</p>
                 </div>
               </div>
