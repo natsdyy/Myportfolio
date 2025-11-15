@@ -58,21 +58,6 @@ const frontendExists = fs.existsSync(distPath);
 if (frontendExists) {
   // Serve static files (CSS, JS, images, etc.)
   app.use(express.static(distPath));
-  
-  // Serve frontend for all non-API routes (catch-all route)
-  // Use app.all with '/*' pattern for compatibility with newer path-to-regexp
-  app.all('/*', (req, res, next) => {
-    // Don't serve frontend for API routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return next();
-    }
-    // Only serve index.html for GET requests (SPA routing)
-    if (req.method === 'GET') {
-      res.sendFile(path.join(distPath, 'index.html'));
-    } else {
-      next();
-    }
-  });
 } else {
   // If frontend not built, show API info
   app.get('/', (req, res) => {
@@ -165,14 +150,30 @@ console.log('  GET  /api/routes');
 console.log('  POST /api/contact (via router)');
 console.log('  POST /api/auth/*');
 
-// 404 handler for unmatched API routes (only if frontend is not serving)
-if (!frontendExists) {
+// 404 handler for unmatched API routes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
+    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+  }
+  next();
+});
+
+// Catch-all middleware for SPA routing (placed after all routes)
+// This serves index.html for any GET request that doesn't match API routes
+if (frontendExists) {
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
-      return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+    // Only handle GET requests that aren't API or health check routes
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+      // Check if the request was already handled (e.g., static file was served)
+      if (!res.headersSent) {
+        res.sendFile(path.join(distPath, 'index.html'));
+      } else {
+        next();
+      }
+    } else {
+      next();
     }
-    next();
   });
 }
 
