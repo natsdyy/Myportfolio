@@ -42,6 +42,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Direct route test (not using router) to verify server is working
+app.post('/api/contact-test', (req, res) => {
+  console.log('[contact-test] Direct route hit!', req.body);
+  res.json({ 
+    message: 'Direct route is working!', 
+    body: req.body,
+    timestamp: new Date().toISOString() 
+  });
+});
+
 // Debug middleware to log all API requests
 app.use('/api', (req, res, next) => {
   console.log(`[server] ${req.method} ${req.path} - Body keys:`, Object.keys(req.body || {}));
@@ -70,6 +80,14 @@ app.get('/api/routes', (req, res) => {
   });
 });
 
+// Verify routers before mounting
+if (!contactRouter) {
+  console.error('[server] ERROR: contactRouter is not defined!');
+} else {
+  console.log('[server] contactRouter type:', typeof contactRouter);
+  console.log('[server] contactRouter has post method:', typeof contactRouter.post === 'function');
+}
+
 app.use('/api', contactRouter);
 app.use('/api/auth', authRouter);
 
@@ -77,8 +95,9 @@ app.use('/api/auth', authRouter);
 console.log('[server] Routes registered:');
 console.log('  GET  /health');
 console.log('  GET  /api/test');
+console.log('  POST /api/contact-test (direct route)');
 console.log('  GET  /api/routes');
-console.log('  POST /api/contact');
+console.log('  POST /api/contact (via router)');
 console.log('  POST /api/auth/*');
 
 // 404 handler for unmatched API routes
