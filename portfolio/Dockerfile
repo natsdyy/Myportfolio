@@ -17,6 +17,16 @@ RUN rm -rf ~/.npm /tmp/npm-* 2>/dev/null || true && \
 COPY . ./
 
 # Build the frontend application
+# Accept Vite environment variables as build arguments
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_API_BASE_URL
+ARG VITE_RECAPTCHA_SITE_KEY
+
+# Set environment variables for Vite build and build
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID \
+    VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_RECAPTCHA_SITE_KEY=$VITE_RECAPTCHA_SITE_KEY
+
 RUN npm run build
 
 # Switch to server directory
