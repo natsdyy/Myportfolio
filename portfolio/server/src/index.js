@@ -124,10 +124,57 @@ app.get('/api/routes', (req, res) => {
       'POST /api/auth/signup',
       'POST /api/auth/login',
       'GET  /api/auth/me',
-      'POST /api/auth/me'
+      'POST /api/auth/me',
+      'POST /api/test-email'
     ],
     timestamp: new Date().toISOString()
   });
+});
+
+// Test email endpoint (for debugging SMTP configuration)
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const { sendContactEmail } = require('./services/emailService');
+    
+    console.log('[test-email] Testing SMTP configuration...');
+    console.log('[test-email] Environment variables:', {
+      SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+      SMTP_PORT: process.env.SMTP_PORT || '587',
+      SMTP_SECURE: process.env.SMTP_SECURE || 'false',
+      SMTP_USER: process.env.SMTP_USER || 'NOT SET',
+      SMTP_TO: process.env.SMTP_TO || 'NOT SET',
+      SMTP_FROM: process.env.SMTP_FROM || 'NOT SET',
+      hasSMTP_PASS: !!process.env.SMTP_PASS
+    });
+
+    // Send a test email
+    const testEmailInfo = await sendContactEmail({
+      fromEmail: process.env.SMTP_USER || 'test@example.com',
+      fromName: 'Test Sender',
+      subject: 'Test Email from Portfolio',
+      message: 'This is a test email to verify SMTP configuration is working correctly.\n\nIf you receive this email, your SMTP setup is working!'
+    });
+
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      details: {
+        messageId: testEmailInfo.messageId,
+        accepted: testEmailInfo.accepted,
+        rejected: testEmailInfo.rejected,
+        response: testEmailInfo.response
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[test-email] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Verify routers before mounting

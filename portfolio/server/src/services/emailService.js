@@ -5,14 +5,37 @@ const createTransporter = () => {
     throw new Error('SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables.');
   }
 
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const secure = process.env.SMTP_SECURE === 'true';
+
+  console.log('[email-service] Creating transporter:', {
+    host,
+    port,
+    secure,
+    user: process.env.SMTP_USER,
+    hasPass: !!process.env.SMTP_PASS
+  });
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
+    host,
+    port,
+    secure, // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Additional options for better Gmail compatibility
+    tls: {
+      // Do not fail on invalid certs
+      rejectUnauthorized: false
+    },
+    // Connection timeout
+    connectionTimeout: 10000,
+    // Socket timeout
+    socketTimeout: 10000,
+    // Greeting timeout
+    greetingTimeout: 10000,
   });
 };
 
@@ -76,23 +99,56 @@ This message was sent from your portfolio contact form.
     `.trim(),
   };
 
-  // Verify connection and send email
+  // Verify connection before sending
   try {
+    console.log('[email-service] Verifying SMTP connection...');
     await transporter.verify();
     console.log('[email-service] SMTP connection verified successfully');
   } catch (verifyError) {
-    console.error('[email-service] SMTP verification failed:', verifyError);
-    throw new Error(`SMTP connection failed: ${verifyError.message}`);
+    console.error('[email-service] SMTP verification failed:', {
+      message: verifyError.message,
+      code: verifyError.code,
+      command: verifyError.command,
+      response: verifyError.response,
+      responseCode: verifyError.responseCode
+    });
+    
+    // Provide helpful error messages
+    if (verifyError.code === 'EAUTH' || verifyError.responseCode === 535) {
+      throw new Error('SMTP authentication failed. Please check your SMTP_USER and SMTP_PASS. For Gmail, you need to use an App Password, not your regular password.');
+    } else if (verifyError.code === 'ECONNECTION' || verifyError.code === 'ETIMEDOUT') {
+      throw new Error(`SMTP connection failed. Could not connect to ${process.env.SMTP_HOST || 'smtp.gmail.com'}:${process.env.SMTP_PORT || '587'}. Please check your SMTP_HOST and SMTP_PORT settings.`);
+    } else {
+      throw new Error(`SMTP verification failed: ${verifyError.message}`);
+    }
   }
 
-  const info = await transporter.sendMail(mailOptions);
-  console.log('[email-service] Email sent:', {
-    messageId: info.messageId,
-    accepted: info.accepted,
-    rejected: info.rejected
-  });
-  
-  return info;
+  // Send email
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[email-service] Email sent successfully:', {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response
+    });
+    
+    if (info.rejected && info.rejected.length > 0) {
+      console.warn('[email-service] Email was rejected:', info.rejected);
+      throw new Error(`Email was rejected by server: ${info.rejected.join(', ')}`);
+    }
+    
+    return info;
+  } catch (sendError) {
+    console.error('[email-service] Error sending email:', {
+      message: sendError.message,
+      code: sendError.code,
+      command: sendError.command,
+      response: sendError.response,
+      responseCode: sendError.responseCode
+    });
+    throw sendError;
+  }
 };
 
 module.exports = {
