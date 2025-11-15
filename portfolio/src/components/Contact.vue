@@ -173,7 +173,15 @@ const handleSubmit = async (e) => {
     console.log('[contact] Response data:', data)
 
     if (!response.ok) {
-      const errorMessage = data.error || `Server error: ${response.status} ${response.statusText}`
+      let errorMessage = data.error || `Server error: ${response.status} ${response.statusText}`
+      
+      // Provide helpful error messages for common issues
+      if (response.status === 405) {
+        errorMessage = 'API endpoint not found. Please check that the backend service is deployed and VITE_API_BASE_URL is set correctly.'
+      } else if (response.status === 404) {
+        errorMessage = 'Backend API not found. Please verify VITE_API_BASE_URL points to your backend service domain.'
+      }
+      
       console.error('[contact] Request failed:', errorMessage)
       throw new Error(errorMessage)
     }
