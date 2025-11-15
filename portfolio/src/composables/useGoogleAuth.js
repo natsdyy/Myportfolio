@@ -2,6 +2,8 @@ import { ref, computed } from 'vue'
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
+const STORAGE_KEY = 'google_auth_state'
+
 const user = ref(null)
 const idToken = ref(null)
 const ready = ref(false)
@@ -9,6 +11,44 @@ const authError = ref(null)
 
 let initialized = false
 let waitingForGoogle = false
+
+// Load saved auth state from localStorage
+const loadSavedAuth = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (parsed.idToken && parsed.user) {
+        idToken.value = parsed.idToken
+        user.value = parsed.user
+      }
+    }
+  } catch (error) {
+    console.error('[google-auth] Failed to load saved auth', error)
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+// Save auth state to localStorage
+const saveAuth = () => {
+  try {
+    if (idToken.value && user.value) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        idToken: idToken.value,
+        user: user.value
+      }))
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  } catch (error) {
+    console.error('[google-auth] Failed to save auth', error)
+  }
+}
+
+// Load on module init
+if (typeof window !== 'undefined') {
+  loadSavedAuth()
+}
 
 const decodeJwt = (token) => {
   try {
@@ -74,6 +114,7 @@ const handleCredential = (response) => {
       email: profile.email,
       picture: profile.picture,
     }
+    saveAuth()
   }
 }
 
@@ -124,6 +165,7 @@ const renderGoogleButton = async (element, options = {}) => {
 const signOut = () => {
   idToken.value = null
   user.value = null
+  localStorage.removeItem(STORAGE_KEY)
   window.google?.accounts?.id?.disableAutoSelect()
 }
 
