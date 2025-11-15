@@ -17,26 +17,37 @@ const createTransporter = () => {
     hasPass: !!process.env.SMTP_PASS
   });
 
-  return nodemailer.createTransport({
+  // Build transporter config
+  const transporterConfig = {
     host,
     port,
-    secure, // true for 465, false for other ports
+    secure, // true for 465, false for 587 (TLS)
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    // Additional options for better Gmail compatibility
-    tls: {
-      // Do not fail on invalid certs
-      rejectUnauthorized: false
-    },
-    // Connection timeout
-    connectionTimeout: 10000,
-    // Socket timeout
-    socketTimeout: 10000,
-    // Greeting timeout
-    greetingTimeout: 10000,
-  });
+    // Increased timeouts for Railway network
+    connectionTimeout: 30000,
+    socketTimeout: 30000,
+    greetingTimeout: 15000,
+  };
+
+  // Add TLS options for port 587 (TLS)
+  if (port === 587) {
+    transporterConfig.tls = {
+      rejectUnauthorized: false,
+      // Use modern TLS ciphers
+      ciphers: 'SSLv3'
+    };
+    transporterConfig.secure = false; // Explicitly set for TLS
+  }
+
+  // For port 465 (SSL), use secure connection
+  if (port === 465) {
+    transporterConfig.secure = true;
+  }
+
+  return nodemailer.createTransport(transporterConfig);
 };
 
 const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
