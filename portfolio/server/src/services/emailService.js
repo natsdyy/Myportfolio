@@ -18,47 +18,37 @@ const createTransporter = () => {
 
 const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
   const transporter = createTransporter();
-  const businessEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const businessEmail = process.env.SMTP_TO || process.env.SMTP_USER || process.env.SMTP_FROM;
   const businessName = process.env.SMTP_FROM_NAME || 'Charles Louie Alvaran';
 
-  // Send acknowledgment email TO the form submitter FROM your business email
+  // Send email TO your business email
+  // Note: SMTP requires 'from' to be your authenticated email, but we set replyTo to the form submitter
   const mailOptions = {
-    from: `"${businessName}" <${businessEmail}>`,
-    to: fromEmail, // Send to the person who filled the form
-    replyTo: businessEmail,
-    subject: subject || 'Thank you for contacting me',
+    from: `"${fromName} (via Contact Form)" <${process.env.SMTP_USER}>`, // Must use authenticated email for SMTP
+    to: businessEmail, // Send to your business email
+    replyTo: fromEmail, // So you can reply directly to the form submitter
+    subject: subject || `New Contact Form Message from ${fromName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Thank you for your message!</h2>
-        <p style="color: #4b5563; line-height: 1.6;">
-          Hi ${fromName},
-        </p>
-        <p style="color: #4b5563; line-height: 1.6;">
-          I've received your message and will get back to you soon.
-        </p>
-        ${subject ? `<p style="color: #4b5563; line-height: 1.6;"><strong>Subject:</strong> ${subject}</p>` : ''}
+        <h2 style="color: #2563eb;">New Contact Form Message</h2>
         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>From:</strong> ${fromName} (${fromEmail})</p>
+          ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
+        </div>
+        <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+          <h3 style="color: #1f2937; margin-top: 0;">Message:</h3>
           <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message}</p>
         </div>
-        <p style="color: #4b5563; line-height: 1.6;">
-          Best regards,<br>
-          ${businessName}
-        </p>
       </div>
     `,
     text: `
-Thank you for your message!
+New Contact Form Message
 
-Hi ${fromName},
-
-I've received your message and will get back to you soon.
-
+From: ${fromName} (${fromEmail})
 ${subject ? `Subject: ${subject}\n` : ''}
-Your message:
-${message}
 
-Best regards,
-${businessName}
+Message:
+${message}
     `.trim(),
   };
 
