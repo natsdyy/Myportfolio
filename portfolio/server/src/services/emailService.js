@@ -72,10 +72,14 @@ const sendContactEmailViaResend = async ({ fromEmail, fromName, subject, message
 
   console.log('[email-service] Using Resend API to send email');
   
+  // Resend 'from' email must be from a verified domain
+  // Use onboarding@resend.dev for testing, or your verified domain for production
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  
   const emailData = {
-    from: `${businessName} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+    from: `${businessName} <${resendFromEmail}>`,
     to: [businessEmail],
-    replyTo: `${fromName} <${fromEmail}>`,
+    replyTo: `${fromName} <${fromEmail}>`, // This can be any email - recipients will reply here
     subject: subject || `New Contact Form Message from ${fromName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -115,8 +119,15 @@ This message was sent from your portfolio contact form.
     // Use Resend package if available, otherwise use HTTP API
     if (Resend) {
       const resend = new Resend(resendApiKey);
+      
+      // Resend requires verified domain for custom 'from' email
+      // Use onboarding@resend.dev for testing, or your verified domain for production
+      const fromEmailForResend = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+      
+      console.log('[email-service] Sending via Resend with from:', fromEmailForResend);
+      
       const result = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        from: fromEmailForResend,
         to: [businessEmail],
         replyTo: fromEmail,
         subject: subject || `New Contact Form Message from ${fromName}`,
