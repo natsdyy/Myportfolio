@@ -144,6 +144,14 @@ const handleSubmit = async (e) => {
       return
     }
 
+    console.log('[contact] Sending request to:', `${API_BASE_URL}/api/contact`)
+    console.log('[contact] Request payload:', {
+      hasIdToken: !!idToken.value,
+      hasRecaptchaToken: !!recaptchaToken,
+      hasMessage: !!form.value.message,
+      subject: form.value.subject
+    })
+
     const response = await fetch(`${API_BASE_URL}/api/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -155,10 +163,19 @@ const handleSubmit = async (e) => {
       })
     })
 
-    const data = await response.json().catch(() => ({}))
+    console.log('[contact] Response status:', response.status, response.statusText)
+
+    const data = await response.json().catch((parseError) => {
+      console.error('[contact] Failed to parse response:', parseError)
+      return { error: 'Invalid response from server' }
+    })
+
+    console.log('[contact] Response data:', data)
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to send message')
+      const errorMessage = data.error || `Server error: ${response.status} ${response.statusText}`
+      console.error('[contact] Request failed:', errorMessage)
+      throw new Error(errorMessage)
     }
 
     status.value.success = true
