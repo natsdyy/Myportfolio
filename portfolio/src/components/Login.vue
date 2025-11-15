@@ -172,20 +172,38 @@ const handleLogin = async (e) => {
 }
 
 const fetchAccountInfo = async (token = null) => {
+  // Check for Google idToken first (from useGoogleAuth)
+  const googleIdToken = idToken.value
   const authToken = token || localStorage.getItem('auth_token')
-  if (!authToken) return
+  
+  // If no token at all, return early
+  if (!googleIdToken && !authToken) return
   
   loading.value = true
   error.value = ''
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-    })
+    let response
+    
+    // If we have Google idToken, use POST /api/auth/me with idToken in body
+    if (googleIdToken) {
+      response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ idToken: googleIdToken })
+      })
+    } else {
+      // Otherwise use GET /api/auth/me with JWT token in Authorization header
+      response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+      })
+    }
     
     const data = await response.json()
     
@@ -194,9 +212,29 @@ const fetchAccountInfo = async (token = null) => {
     }
     
     account.value = data.account
+    
+    // If we got account info from Google sign-in, also save a JWT token if provided
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token)
+    }
   } catch (err) {
     error.value = err.message
-    localStorage.removeItem('auth_token')
+    // Only clear localStorage token if it was a JWT auth failure
+    if (!googleIdToken && authToken) {
+      localStorage.removeItem('auth_token')
+    }
+    
+    // If we have Google auth but backend failed, show basic account info from Google
+    if (googleIdToken && user.value) {
+      account.value = {
+        id: user.value.email, // Use email as temporary ID
+        name: user.value.name,
+        email: user.value.email,
+        avatar_url: user.value.picture,
+        role: { name: 'user', description: 'Regular user' }
+      }
+      error.value = 'Connected with Google, but unable to sync with server. Some features may be limited.'
+    }
   } finally {
     loading.value = false
   }
@@ -236,14 +274,16 @@ const handleSignOut = () => {
 }
 
 onMounted(() => {
-  // Check for existing token
+  // Check for existing JWT token first
   const token = localStorage.getItem('auth_token')
   if (token) {
     fetchAccountInfo(token)
-  } else if (!isAuthenticated.value) {
-    initButtons()
-  } else {
+  } else if (isAuthenticated.value) {
+    // If Google authenticated, fetch account info
     fetchAccountInfo()
+  } else {
+    // Not authenticated, show login buttons
+    initButtons()
   }
 })
 
