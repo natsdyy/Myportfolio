@@ -52,24 +52,39 @@ const verifyRecaptcha = async (token) => {
 };
 
 router.post('/contact', async (req, res) => {
+  console.log('[contact] Received request:', {
+    hasIdToken: !!req.body?.idToken,
+    hasRecaptchaToken: !!req.body?.recaptchaToken,
+    hasMessage: !!req.body?.message,
+    messageLength: req.body?.message?.length
+  });
+
   try {
     const { idToken, recaptchaToken, subject, message } = req.body || {};
 
     if (!idToken) {
+      console.error('[contact] Missing idToken');
       return res.status(400).json({ error: 'idToken is required' });
     }
     if (!recaptchaToken) {
+      console.error('[contact] Missing recaptchaToken');
       return res.status(400).json({ error: 'reCAPTCHA token is required' });
     }
     if (!message || typeof message !== 'string') {
+      console.error('[contact] Missing or invalid message');
       return res.status(400).json({ error: 'message is required' });
     }
 
+    console.log('[contact] Verifying reCAPTCHA...');
     // Verify reCAPTCHA
     await verifyRecaptcha(recaptchaToken);
+    console.log('[contact] reCAPTCHA verified successfully');
 
+    console.log('[contact] Verifying Google ID token...');
     const profile = await verifyIdToken(idToken);
+    console.log('[contact] Google ID token verified:', { email: profile.email, name: profile.name });
 
+    console.log('[contact] Saving account to database...');
     const accountResult = await pool.query(
       `
       INSERT INTO accounts (google_id, email, name, avatar_url)
@@ -103,20 +118,24 @@ router.post('/contact', async (req, res) => {
     );
 
     const savedMessage = messageResult.rows[0];
+    console.log('[contact] Message saved to database:', savedMessage.id);
 
     // Send email via SMTP
     try {
+      console.log('[contact] Sending email via SMTP...');
       await sendContactEmail({
         fromEmail: account.email,
         fromName: account.name,
         subject: subject || null,
         message: message,
       });
+      console.log('[contact] Email sent successfully');
     } catch (emailError) {
       console.error('[contact] Error sending email', emailError);
       // Don't fail the request if email fails, but log it
     }
 
+    console.log('[contact] Request completed successfully');
     res.status(201).json({
       message: 'Message received',
       data: {
@@ -128,8 +147,13 @@ router.post('/contact', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[contact] Error handling message', error);
-    res.status(500).json({ error: error.message || 'Failed to submit message' });
+    console.error('[contact] Error handling message:', error);
+    console.error('[contact] Error stack:', error.stack);
+    const statusCode = error.message?.includes('required') || error.message?.includes('verification failed') ? 400 : 500;
+    res.status(statusCode).json({ 
+      error: error.message || 'Failed to submit message',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
