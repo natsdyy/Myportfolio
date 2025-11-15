@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const { config } = require('./config');
 const { ensureTables } = require('./db');
 
@@ -49,18 +51,40 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'This is the backend API server. The frontend should be served from a different domain.',
-    endpoints: {
-      health: '/health',
-      api: '/api',
-      test: '/api/test',
-      routes: '/api/routes'
-    },
-    timestamp: new Date().toISOString() 
+// Serve static files from frontend build (if dist folder exists)
+const distPath = path.join(__dirname, '../../dist');
+const frontendExists = fs.existsSync(distPath);
+
+if (frontendExists) {
+  // Serve static files (CSS, JS, images, etc.)
+  app.use(express.static(distPath));
+  
+  // Serve frontend for all non-API routes
+  app.get('*', (req, res, next) => {
+    // Don't serve frontend for API routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    // Serve index.html for all other routes (SPA routing)
+    res.sendFile(path.join(distPath, 'index.html'));
   });
-});
+} else {
+  // If frontend not built, show API info
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Backend API server is running. Frontend will be served here once built.',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        test: '/api/test',
+        routes: '/api/routes',
+        contact: '/api/contact',
+        auth: '/api/auth/*'
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+}
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -136,14 +160,16 @@ console.log('  GET  /api/routes');
 console.log('  POST /api/contact (via router)');
 console.log('  POST /api/auth/*');
 
-// 404 handler for unmatched routes (Express 5 compatible)
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
-    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
-  }
-  next();
-});
+// 404 handler for unmatched API routes (only if frontend is not serving)
+if (!frontendExists) {
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
+      return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+    }
+    next();
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error('[server] Unexpected error', err);

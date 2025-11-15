@@ -4,7 +4,8 @@ import { LogOut, Shield, User, LogIn, UserPlus, Mail, Lock, Phone, UserCircle, E
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 import { countries, getCountryByCode } from '../data/countries'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+// If VITE_API_BASE_URL is not set, use same origin (backend serves frontend)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut, authError } = useGoogleAuth()
 const googleButtonRef = ref(null)

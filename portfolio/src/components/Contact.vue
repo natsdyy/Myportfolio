@@ -3,7 +3,8 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { Mail, Phone, MapPin, Send, Facebook, Instagram, LogOut } from 'lucide-vue-next'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+// If VITE_API_BASE_URL is not set, use same origin (backend serves frontend)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeQLw0sAAAAAJRLg2dc_KWfYx7g4KddAK-JRROi'
 
 // Debug: Log site key (first 10 chars only for security)

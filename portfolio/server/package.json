@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build": "echo 'No build step required for backend'",
+    "build": "cd .. && npm run build",
+    "build:frontend": "cd .. && npm install && npm run build",
     "set-admin": "node scripts/set-admin.js"
   },
   "keywords": [],
