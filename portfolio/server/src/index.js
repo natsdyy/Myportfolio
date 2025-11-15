@@ -2,8 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const { config } = require('./config');
 const { ensureTables } = require('./db');
-const contactRouter = require('./routes/contact');
-const authRouter = require('./routes/auth');
+
+let contactRouter, authRouter;
+try {
+  contactRouter = require('./routes/contact');
+  authRouter = require('./routes/auth');
+  console.log('[server] Routers loaded successfully:', {
+    contactRouter: !!contactRouter,
+    authRouter: !!authRouter
+  });
+} catch (error) {
+  console.error('[server] Failed to load routers:', error);
+  process.exit(1);
+}
 
 const app = express();
 
@@ -33,12 +44,42 @@ app.get('/health', (req, res) => {
 
 // Debug middleware to log all API requests
 app.use('/api', (req, res, next) => {
-  console.log(`[server] ${req.method} ${req.path}`);
+  console.log(`[server] ${req.method} ${req.path} - Body keys:`, Object.keys(req.body || {}));
   next();
+});
+
+// Test route to verify API is working
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+});
+
+// List all available routes for debugging
+app.get('/api/routes', (req, res) => {
+  res.json({
+    routes: [
+      'GET  /health',
+      'GET  /api/test',
+      'GET  /api/routes',
+      'POST /api/contact',
+      'POST /api/auth/signup',
+      'POST /api/auth/login',
+      'GET  /api/auth/me',
+      'POST /api/auth/me'
+    ],
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use('/api', contactRouter);
 app.use('/api/auth', authRouter);
+
+// Log registered routes
+console.log('[server] Routes registered:');
+console.log('  GET  /health');
+console.log('  GET  /api/test');
+console.log('  GET  /api/routes');
+console.log('  POST /api/contact');
+console.log('  POST /api/auth/*');
 
 // 404 handler for unmatched API routes
 app.use('/api/*', (req, res) => {
