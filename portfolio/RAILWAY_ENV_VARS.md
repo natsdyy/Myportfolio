@@ -23,6 +23,11 @@ SMTP_TO=businessemail.charlesalvaran@gmail.com
 SMTP_FROM=businessemail.charlesalvaran@gmail.com
 SMTP_FROM_NAME=Charles Louie Alvaran
 RECAPTCHA_SECRET_KEY=6LeQLw0sAAAAAHJQNogxlPOGcnlecMeH1sk-ad9C
+
+# OPTIONAL: Use Resend instead of SMTP (recommended for Railway)
+# Get your API key from https://resend.com/api-keys
+# RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
+# RESEND_FROM_EMAIL=noreply@yourdomain.com (or use onboarding@resend.dev for testing)
 ```
 
 ---

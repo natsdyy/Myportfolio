@@ -1,4 +1,14 @@
 const nodemailer = require('nodemailer');
+const axios = require('axios');
+
+// Try to use Resend package if available, otherwise use HTTP API
+let Resend;
+try {
+  Resend = require('resend');
+} catch (e) {
+  // Resend package not installed, will use HTTP API instead
+  Resend = null;
+}
 
 const createTransporter = () => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -50,7 +60,112 @@ const createTransporter = () => {
   return nodemailer.createTransport(transporterConfig);
 };
 
+// Try using Resend (HTTP API) first, fall back to SMTP if Resend is not configured
+const sendContactEmailViaResend = async ({ fromEmail, fromName, subject, message }) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
+
+  const businessEmail = process.env.SMTP_TO || process.env.SMTP_USER || process.env.SMTP_FROM || 'businessemail.charlesalvaran@gmail.com';
+  const businessName = process.env.SMTP_FROM_NAME || 'Charles Louie Alvaran';
+
+  console.log('[email-service] Using Resend API to send email');
+  
+  const emailData = {
+    from: `${businessName} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+    to: [businessEmail],
+    replyTo: `${fromName} <${fromEmail}>`,
+    subject: subject || `New Contact Form Message from ${fromName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb; margin-bottom: 20px;">New Contact Form Message</h2>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>From:</strong> ${fromName}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${fromEmail}</p>
+          ${subject ? `<p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>` : ''}
+          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+          <h3 style="color: #1f2937; margin-top: 0;">Message:</h3>
+          <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+        </div>
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+          <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</p>
+        </div>
+      </div>
+    `,
+    text: `
+New Contact Form Message
+
+From: ${fromName}
+Email: ${fromEmail}
+${subject ? `Subject: ${subject}\n` : ''}
+Date: ${new Date().toLocaleString()}
+
+Message:
+${message}
+
+---
+This message was sent from your portfolio contact form.
+    `.trim(),
+  };
+
+  try {
+    // Use Resend package if available, otherwise use HTTP API
+    if (Resend) {
+      const resend = new Resend(resendApiKey);
+      const result = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        to: [businessEmail],
+        replyTo: fromEmail,
+        subject: subject || `New Contact Form Message from ${fromName}`,
+        html: emailData.html,
+        text: emailData.text
+      });
+
+      console.log('[email-service] ✅ Email sent via Resend:', result);
+      return {
+        messageId: result.data?.id,
+        accepted: [businessEmail],
+        rejected: [],
+        response: 'Email sent via Resend API'
+      };
+    } else {
+      // Fallback to HTTP API
+      const response = await axios.post('https://api.resend.com/emails', emailData, {
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('[email-service] ✅ Email sent via Resend HTTP API:', response.data);
+      return {
+        messageId: response.data.id,
+        accepted: [businessEmail],
+        rejected: [],
+        response: 'Email sent via Resend HTTP API'
+      };
+    }
+  } catch (error) {
+    console.error('[email-service] Resend API error:', error.response?.data || error.message);
+    throw new Error(`Resend API error: ${error.response?.data?.message || error.message}`);
+  }
+};
+
 const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
+  // Try Resend first (HTTP API - works better with Railway)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      return await sendContactEmailViaResend({ fromEmail, fromName, subject, message });
+    } catch (resendError) {
+      console.warn('[email-service] Resend failed, falling back to SMTP:', resendError.message);
+      // Fall through to SMTP
+    }
+  }
+
+  // Fall back to SMTP
   const transporter = createTransporter();
   
   // Ensure we use SMTP_TO if set, otherwise fall back to SMTP_USER
