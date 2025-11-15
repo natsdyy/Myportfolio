@@ -321,29 +321,44 @@ const contactInfo = [
             </template>
           </div>
 
-          <label class="space-y-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
-            Subject (optional)
+          <label class="space-y-2 block">
+            <span class="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400 block mb-1.5">Subject (optional)</span>
             <input
               v-model="form.subject"
               type="text"
               placeholder="Collaboration, freelance, etc."
-              class="w-full rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
+              class="w-full rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-base font-normal text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400"
               :disabled="!isAuthenticated"
             />
           </label>
 
-          <label class="space-y-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
-            Message
+          <label class="space-y-2 block">
+            <span class="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400 block mb-1.5">Message</span>
             <textarea
               v-model="form.message"
               rows="5"
               placeholder="Tell me about your project..."
-              class="w-full resize-none rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
+              class="w-full resize-none rounded-2xl border border-blue-100 bg-white/80 px-5 py-3 text-base font-normal text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400"
               :disabled="!isAuthenticated"
               required
             ></textarea>
           </label>
 
+          <!-- reCAPTCHA v3 indicator and badge -->
+          <div v-if="isAuthenticated" class="flex flex-col gap-2 rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full" :class="recaptchaLoaded ? 'bg-green-500' : 'bg-amber-500 animate-pulse'"></div>
+              <p class="text-xs font-medium text-slate-600">
+                {{ recaptchaLoaded ? 'Protected by reCAPTCHA' : 'Loading security check...' }}
+              </p>
+            </div>
+            <!-- reCAPTCHA v3 badge (required by Google) -->
+            <div class="text-xs text-slate-500">
+              This site is protected by reCAPTCHA and the Google 
+              <a href="https://policies.google.com/privacy" target="_blank" class="text-blue-600 hover:underline">Privacy Policy</a> and 
+              <a href="https://policies.google.com/terms" target="_blank" class="text-blue-600 hover:underline">Terms of Service</a> apply.
+            </div>
+          </div>
 
           <div class="space-y-2">
             <button
