@@ -156,16 +156,24 @@ This message was sent from your portfolio contact form.
 
 const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
   // Try Resend first (HTTP API - works better with Railway)
+  console.log('[email-service] Checking email service configuration...');
+  console.log('[email-service] RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
+  
   if (process.env.RESEND_API_KEY) {
+    console.log('[email-service] ✅ Using Resend API (HTTP - works with Railway)');
     try {
       return await sendContactEmailViaResend({ fromEmail, fromName, subject, message });
     } catch (resendError) {
-      console.warn('[email-service] Resend failed, falling back to SMTP:', resendError.message);
+      console.warn('[email-service] ⚠️ Resend failed, falling back to SMTP:', resendError.message);
       // Fall through to SMTP
     }
+  } else {
+    console.warn('[email-service] ⚠️ RESEND_API_KEY not set - using SMTP (may not work on Railway)');
+    console.warn('[email-service] 💡 To fix: Add RESEND_API_KEY to Railway variables (see RESEND_SETUP.md)');
   }
 
   // Fall back to SMTP
+  console.log('[email-service] Attempting SMTP connection (may fail on Railway)...');
   const transporter = createTransporter();
   
   // Ensure we use SMTP_TO if set, otherwise fall back to SMTP_USER
