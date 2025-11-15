@@ -110,25 +110,40 @@ This message was sent from your portfolio contact form.
 
   // Verify connection before sending
   try {
-    console.log('[email-service] Verifying SMTP connection...');
+    console.log('[email-service] ========== VERIFYING SMTP CONNECTION ==========');
+    console.log('[email-service] Host:', process.env.SMTP_HOST || 'smtp.gmail.com');
+    console.log('[email-service] Port:', process.env.SMTP_PORT || '587');
+    console.log('[email-service] Secure:', process.env.SMTP_SECURE === 'true');
+    console.log('[email-service] User:', process.env.SMTP_USER);
+    console.log('[email-service] Has Password:', !!process.env.SMTP_PASS);
+    console.log('[email-service] Password length:', process.env.SMTP_PASS?.length || 0);
+    
     await transporter.verify();
-    console.log('[email-service] SMTP connection verified successfully');
+    console.log('[email-service] ✅ SMTP connection verified successfully');
+    console.log('[email-service] ===============================================');
   } catch (verifyError) {
-    console.error('[email-service] SMTP verification failed:', {
+    console.error('[email-service] ❌ SMTP VERIFICATION FAILED');
+    console.error('[email-service] Error details:', {
       message: verifyError.message,
       code: verifyError.code,
       command: verifyError.command,
       response: verifyError.response,
-      responseCode: verifyError.responseCode
+      responseCode: verifyError.responseCode,
+      errno: verifyError.errno,
+      syscall: verifyError.syscall,
+      address: verifyError.address,
+      port: verifyError.port
     });
+    console.error('[email-service] Full error:', JSON.stringify(verifyError, Object.getOwnPropertyNames(verifyError)));
+    console.error('[email-service] ===============================================');
     
     // Provide helpful error messages
     if (verifyError.code === 'EAUTH' || verifyError.responseCode === 535) {
-      throw new Error('SMTP authentication failed. Please check your SMTP_USER and SMTP_PASS. For Gmail, you need to use an App Password, not your regular password.');
+      throw new Error('SMTP authentication failed. Please check your SMTP_USER and SMTP_PASS. For Gmail, you need to use an App Password (16 characters), not your regular password. Go to https://myaccount.google.com/apppasswords to generate one.');
     } else if (verifyError.code === 'ECONNECTION' || verifyError.code === 'ETIMEDOUT') {
       throw new Error(`SMTP connection failed. Could not connect to ${process.env.SMTP_HOST || 'smtp.gmail.com'}:${process.env.SMTP_PORT || '587'}. Please check your SMTP_HOST and SMTP_PORT settings.`);
     } else {
-      throw new Error(`SMTP verification failed: ${verifyError.message}`);
+      throw new Error(`SMTP verification failed: ${verifyError.message} (Code: ${verifyError.code}, Response: ${verifyError.responseCode})`);
     }
   }
 

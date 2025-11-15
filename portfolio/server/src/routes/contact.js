@@ -156,14 +156,19 @@ router.post('/contact', async (req, res) => {
         response: emailInfo.response
       });
     } catch (emailError) {
-      console.error('[contact] Error sending email:', emailError.message);
-      console.error('[contact] Error stack:', emailError.stack);
+      // Log comprehensive error information
+      console.error('[contact] ========== EMAIL ERROR ==========');
+      console.error('[contact] Error message:', emailError.message);
       console.error('[contact] Error code:', emailError.code);
-      // Log full error for debugging
-      if (emailError.response) {
-        console.error('[contact] SMTP Response:', emailError.response);
-      }
-      // Don't fail the request if email fails, but log it
+      console.error('[contact] Error command:', emailError.command);
+      console.error('[contact] Error response:', emailError.response);
+      console.error('[contact] Error responseCode:', emailError.responseCode);
+      console.error('[contact] Error stack:', emailError.stack);
+      console.error('[contact] Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError)));
+      console.error('[contact] =================================');
+      
+      // Still return success to user, but log the error prominently
+      // This way we can see what's wrong in logs without breaking the user experience
     }
 
     console.log('[contact] Request completed successfully');

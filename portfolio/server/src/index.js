@@ -136,7 +136,7 @@ app.post('/api/test-email', async (req, res) => {
   try {
     const { sendContactEmail } = require('./services/emailService');
     
-    console.log('[test-email] Testing SMTP configuration...');
+    console.log('[test-email] ========== TESTING SMTP CONFIGURATION ==========');
     console.log('[test-email] Environment variables:', {
       SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
       SMTP_PORT: process.env.SMTP_PORT || '587',
@@ -144,8 +144,11 @@ app.post('/api/test-email', async (req, res) => {
       SMTP_USER: process.env.SMTP_USER || 'NOT SET',
       SMTP_TO: process.env.SMTP_TO || 'NOT SET',
       SMTP_FROM: process.env.SMTP_FROM || 'NOT SET',
-      hasSMTP_PASS: !!process.env.SMTP_PASS
+      SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'NOT SET',
+      hasSMTP_PASS: !!process.env.SMTP_PASS,
+      SMTP_PASS_length: process.env.SMTP_PASS?.length || 0
     });
+    console.log('[test-email] ================================================');
 
     // Send a test email
     const testEmailInfo = await sendContactEmail({
@@ -155,6 +158,7 @@ app.post('/api/test-email', async (req, res) => {
       message: 'This is a test email to verify SMTP configuration is working correctly.\n\nIf you receive this email, your SMTP setup is working!'
     });
 
+    console.log('[test-email] ✅ Test email sent successfully');
     res.json({
       success: true,
       message: 'Test email sent successfully',
@@ -167,11 +171,14 @@ app.post('/api/test-email', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('[test-email] Error:', error);
+    console.error('[test-email] ❌ ERROR:', error.message);
+    console.error('[test-email] Error code:', error.code);
+    console.error('[test-email] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message,
-      details: error.stack,
+      errorCode: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       timestamp: new Date().toISOString()
     });
   }
