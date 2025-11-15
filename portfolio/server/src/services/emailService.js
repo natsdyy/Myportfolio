@@ -70,39 +70,81 @@ const sendContactEmailViaResend = async ({ fromEmail, fromName, subject, message
   // Use onboarding@resend.dev for testing, or your verified domain for production
   const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
   
-  // Prepare email HTML and text content
+  // Prepare email HTML and text content with emojis and better design
   const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #2563eb; margin-bottom: 20px;">New Contact Form Message</h2>
-      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 5px 0;"><strong>From:</strong> ${fromName}</p>
-        <p style="margin: 5px 0;"><strong>Email:</strong> ${fromEmail}</p>
-        ${subject ? `<p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>` : ''}
-        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f9fafb;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <div style="font-size: 48px; margin-bottom: 10px;">💬</div>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">New Contact Form Message</h1>
+        <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">You've received a new message from your portfolio</p>
       </div>
-      <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <h3 style="color: #1f2937; margin-top: 0;">Message:</h3>
-        <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+      
+      <!-- Main Content -->
+      <div style="background-color: #ffffff; padding: 30px 20px;">
+        <!-- Sender Info Card -->
+        <div style="background: linear-gradient(to right, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 24px; margin-right: 10px;">👤</span>
+            <h3 style="color: #1e40af; margin: 0; font-size: 16px; font-weight: 600;">Sender Information</h3>
+          </div>
+          <div style="margin-left: 34px;">
+            <p style="margin: 8px 0; color: #1e293b;">
+              <span style="font-weight: 600;">📧 From:</span> <span style="color: #3b82f6;">${fromName}</span>
+            </p>
+            <p style="margin: 8px 0; color: #1e293b;">
+              <span style="font-weight: 600;">✉️ Email:</span> <a href="mailto:${fromEmail}" style="color: #3b82f6; text-decoration: none;">${fromEmail}</a>
+            </p>
+            ${subject ? `
+            <p style="margin: 8px 0; color: #1e293b;">
+              <span style="font-weight: 600;">📋 Subject:</span> <span style="color: #64748b;">${subject}</span>
+            </p>
+            ` : ''}
+            <p style="margin: 8px 0; color: #1e293b;">
+              <span style="font-weight: 600;">📅 Date:</span> <span style="color: #64748b;">${new Date().toLocaleString()}</span>
+            </p>
+          </div>
+        </div>
+        
+        <!-- Message Card -->
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <span style="font-size: 24px; margin-right: 10px;">💭</span>
+            <h3 style="color: #1e293b; margin: 0; font-size: 16px; font-weight: 600;">Message</h3>
+          </div>
+          <div style="background-color: #ffffff; padding: 16px; border-radius: 8px; border-left: 3px solid #8b5cf6;">
+            <p style="color: #475569; white-space: pre-wrap; line-height: 1.7; margin: 0; font-size: 15px;">${message.replace(/\n/g, '<br>')}</p>
+          </div>
+        </div>
       </div>
-      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-        <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</p>
+      
+      <!-- Footer -->
+      <div style="background-color: #ffffff; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+        <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+          <span style="font-size: 14px;">🔗</span> This message was sent from your portfolio contact form at 
+          <a href="${process.env.VITE_API_BASE_URL || 'https://cladev.up.railway.app'}" style="color: #3b82f6; text-decoration: none;">${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</a>
+        </p>
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+          <p style="color: #cbd5e1; font-size: 11px; margin: 0;">✨ Powered by Resend</p>
+        </div>
       </div>
     </div>
   `;
   
   const emailText = `
-New Contact Form Message
+💬 New Contact Form Message
 
-From: ${fromName}
-Email: ${fromEmail}
-${subject ? `Subject: ${subject}\n` : ''}
-Date: ${new Date().toLocaleString()}
+👤 From: ${fromName}
+📧 Email: ${fromEmail}
+${subject ? `📋 Subject: ${subject}\n` : ''}
+📅 Date: ${new Date().toLocaleString()}
 
-Message:
+💭 Message:
 ${message}
 
 ---
-This message was sent from your portfolio contact form.
+🔗 This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}
+✨ Powered by Resend
   `.trim();
 
   try {
