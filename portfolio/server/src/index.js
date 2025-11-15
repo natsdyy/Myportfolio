@@ -100,10 +100,13 @@ console.log('  GET  /api/routes');
 console.log('  POST /api/contact (via router)');
 console.log('  POST /api/auth/*');
 
-// 404 handler for unmatched API routes
-app.use('/api/*', (req, res) => {
-  console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
-  res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+// 404 handler for unmatched routes (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
+    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+  }
+  next();
 });
 
 app.use((err, req, res, next) => {
