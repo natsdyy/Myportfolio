@@ -7,6 +7,11 @@ const { config } = require('../config');
 
 const router = express.Router();
 
+// Handle OPTIONS for this route
+router.options('/contact', (req, res) => {
+  res.sendStatus(200);
+});
+
 const verifyRecaptcha = async (token) => {
   if (!token) {
     throw new Error('reCAPTCHA token is required');
@@ -52,6 +57,10 @@ const verifyRecaptcha = async (token) => {
 };
 
 router.post('/contact', async (req, res) => {
+  console.log('[contact] POST /contact route hit!');
+  console.log('[contact] Request method:', req.method);
+  console.log('[contact] Request path:', req.path);
+  console.log('[contact] Request body keys:', Object.keys(req.body || {}));
   console.log('[contact] Received request:', {
     hasIdToken: !!req.body?.idToken,
     hasRecaptchaToken: !!req.body?.recaptchaToken,

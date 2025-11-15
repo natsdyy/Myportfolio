@@ -38,6 +38,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Handle OPTIONS requests for CORS preflight
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
 app.get('/', (req, res) => {
   res.json({ 
     message: 'This is the backend API server. The frontend should be served from a different domain.',
@@ -60,6 +68,18 @@ app.post('/api/contact-test', (req, res) => {
   console.log('[contact-test] Direct route hit!', req.body);
   res.json({ 
     message: 'Direct route is working!', 
+    body: req.body,
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Direct POST route for /api/contact as fallback (for testing)
+app.post('/api/contact-direct', (req, res) => {
+  console.log('[contact-direct] Direct route hit!', req.method, req.path, req.body);
+  res.json({ 
+    message: 'Direct /api/contact route is working!', 
+    method: req.method,
+    path: req.path,
     body: req.body,
     timestamp: new Date().toISOString() 
   });
