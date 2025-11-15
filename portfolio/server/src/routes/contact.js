@@ -132,15 +132,37 @@ router.post('/contact', async (req, res) => {
     // Send email via SMTP
     try {
       console.log('[contact] Sending email via SMTP...');
-      await sendContactEmail({
+      console.log('[contact] SMTP Config:', {
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PORT: process.env.SMTP_PORT,
+        SMTP_SECURE: process.env.SMTP_SECURE,
+        SMTP_USER: process.env.SMTP_USER,
+        SMTP_TO: process.env.SMTP_TO,
+        SMTP_FROM: process.env.SMTP_FROM,
+        hasSMTP_PASS: !!process.env.SMTP_PASS
+      });
+      
+      const emailInfo = await sendContactEmail({
         fromEmail: account.email,
         fromName: account.name,
         subject: subject || null,
         message: message,
       });
-      console.log('[contact] Email sent successfully');
+      
+      console.log('[contact] Email sent successfully:', {
+        messageId: emailInfo.messageId,
+        accepted: emailInfo.accepted,
+        rejected: emailInfo.rejected,
+        response: emailInfo.response
+      });
     } catch (emailError) {
-      console.error('[contact] Error sending email', emailError);
+      console.error('[contact] Error sending email:', emailError.message);
+      console.error('[contact] Error stack:', emailError.stack);
+      console.error('[contact] Error code:', emailError.code);
+      // Log full error for debugging
+      if (emailError.response) {
+        console.error('[contact] SMTP Response:', emailError.response);
+      }
       // Don't fail the request if email fails, but log it
     }
 
