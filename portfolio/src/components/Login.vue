@@ -574,11 +574,22 @@ watch(activeTab, () => {
     initButtons()
     error.value = ''
     success.value = ''
+    // Reset OTP flow when switching tabs
+    if (activeTab.value !== 'signup') {
+      otpSent.value = false
+      signupForm.value.otp = ''
+    }
   }
 })
 
 watch(() => signupForm.value.phone, (newVal) => {
   signupForm.value.phone = formatPhoneInput(newVal)
+})
+
+// If the user changes email during signup, treat it as a fresh OTP flow
+watch(() => signupForm.value.email, () => {
+  otpSent.value = false
+  signupForm.value.otp = ''
 })
 
 watch(() => profileCompletionForm.value.phone, (newVal) => {

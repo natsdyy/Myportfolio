@@ -73,7 +73,7 @@ router.post('/signup', async (req, res) => {
     }
 
     if (!otp) {
-      return res.status(400).json({ error: 'Verification code is required' });
+      return res.status(400).json({ error: 'Verification code is required. First request a code, then enter it to complete sign up.' });
     }
 
     if (username.length < 3) {
