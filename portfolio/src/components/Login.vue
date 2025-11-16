@@ -6,6 +6,8 @@ import { countries, getCountryByCode } from '../data/countries'
 import cat1Image from '../assets/cat1.jpg'
 import cat2Image from '../assets/cat2.jpg'
 
+const emit = defineEmits(['auth-success'])
+
 // If VITE_API_BASE_URL is not set, use same origin (backend serves frontend)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -32,7 +34,8 @@ const signupForm = ref({
   password: '',
   confirmPassword: '',
   phone: '',
-  countryCode: 'PH'
+  countryCode: 'PH',
+  otp: ''
 })
 
 // Profile completion form for Google sign-ups
@@ -147,6 +150,8 @@ const validateProfileEdit = () => {
   return Object.keys(profileEditErrors.value).length === 0
 }
 
+const otpSent = ref(false)
+
 const handleSignup = async (e) => {
   e.preventDefault()
   error.value = ''
@@ -159,38 +164,64 @@ const handleSignup = async (e) => {
   loading.value = true
   
   try {
-    const phoneDigits = signupForm.value.phone.replace(/\D/g, '')
-    const fullPhone = `${selectedCountry.value.dialCode}${phoneDigits}`
-    
-    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: signupForm.value.username,
-        email: signupForm.value.email,
-        password: signupForm.value.password,
-        phone: fullPhone,
-        countryCode: signupForm.value.countryCode
-      }),
-    })
-    
-    const data = await response.json()
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Sign up failed')
+    if (!otpSent.value) {
+      // First step: send OTP to email
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.value.email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code')
+      }
+
+      otpSent.value = true
+      success.value = 'We sent a verification code to your email. Enter it below to complete sign up.'
+    } else {
+      // Second step: complete sign up with OTP
+      if (!signupForm.value.otp) {
+        throw new Error('Please enter the verification code sent to your email')
+      }
+
+      const phoneDigits = signupForm.value.phone.replace(/\D/g, '')
+      const fullPhone = `${selectedCountry.value.dialCode}${phoneDigits}`
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: signupForm.value.username,
+          email: signupForm.value.email,
+          password: signupForm.value.password,
+          phone: fullPhone,
+          countryCode: signupForm.value.countryCode,
+          otp: signupForm.value.otp
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Sign up failed')
+      }
+
+      success.value = 'Account created successfully! Please log in.'
+      signupForm.value = {
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        phone: '',
+        countryCode: 'PH',
+        otp: ''
+      }
+      otpSent.value = false
+      activeTab.value = 'login'
+      loginForm.value.email = data.email || signupForm.value.email
     }
-    
-    success.value = 'Account created successfully! Please log in.'
-    signupForm.value = {
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      phone: '',
-      countryCode: 'PH'
-    }
-    activeTab.value = 'login'
-    loginForm.value.email = data.email || signupForm.value.email
   } catch (err) {
     error.value = err.message
   } finally {
@@ -230,6 +261,8 @@ const handleLogin = async (e) => {
       // For now, we'll use a simple approach - in production use httpOnly cookies
       localStorage.setItem('auth_token', data.token)
       await fetchAccountInfo(data.token)
+      // Notify parent that authentication succeeded and pass account info up
+      emit('auth-success', account.value || null)
     }
   } catch (err) {
     error.value = err.message
@@ -390,6 +423,8 @@ const handleCompleteProfile = async (e) => {
       phone: '',
       countryCode: 'PH'
     }
+    // After completing profile for Google sign-up, notify parent with account
+    emit('auth-success', account.value || null)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -754,6 +789,23 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                   <p v-if="signupErrors.email" class="mt-0.5 text-xs text-red-600">{{ signupErrors.email }}</p>
                 </div>
 
+              <div v-if="otpSent">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  Email Verification Code
+                </label>
+                <div class="relative">
+                  <input
+                    v-model="signupForm.otp"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="6"
+                    placeholder="Enter 6-digit code"
+                    class="w-full px-3 py-2.5 rounded-lg border border-blue-100 bg-white/80 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 tracking-[0.3em] text-center"
+                  />
+                </div>
+                <p class="mt-0.5 text-xs text-slate-500">We sent this code to your email address.</p>
+              </div>
+
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">
@@ -861,10 +913,12 @@ watch(() => profileCompletionForm.value.phone, (newVal) => {
                 :disabled="loading"
                 class="w-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span v-if="loading">Creating account...</span>
+                <span v-if="loading">
+                  {{ otpSent ? 'Verifying...' : 'Sending code...' }}
+                </span>
                 <span v-else class="flex items-center justify-center gap-2">
                   <UserPlus :size="16" />
-                  Create Account
+                  {{ otpSent ? 'Complete Sign Up' : 'Create Account' }}
                 </span>
               </button>
 

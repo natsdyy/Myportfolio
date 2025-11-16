@@ -7,13 +7,20 @@ import Projects from './components/Projects.vue'
 import Skills from './components/Skills.vue'
 import Contact from './components/Contact.vue'
 import Login from './components/Login.vue'
+import UserDashboard from './components/UserDashboard.vue'
 import Footer from './components/Footer.vue'
 
 const currentPage = ref('home')
+const currentUser = ref(null)
 
 const navigateTo = (page) => {
   currentPage.value = page
   window.scrollTo(0, 0)
+}
+
+const handleAuthSuccess = (account) => {
+  currentUser.value = account
+  navigateTo('dashboard')
 }
 </script>
 
@@ -27,7 +34,14 @@ const navigateTo = (page) => {
       <Projects v-if="currentPage === 'projects'" />
       <Skills v-if="currentPage === 'skills'" />
       <Contact v-if="currentPage === 'contact'" />
-      <Login v-if="currentPage === 'login'" />
+      <Login
+        v-if="currentPage === 'login'"
+        @auth-success="handleAuthSuccess"
+      />
+      <UserDashboard
+        v-if="currentPage === 'dashboard'"
+        :user="currentUser"
+      />
     </main>
     
     <Footer />

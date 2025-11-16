@@ -223,7 +223,7 @@ watch(isAuthenticated, (value) => {
 
 const contactInfo = [
   { icon: Mail, label: 'Email', value: 'charleslouiealvaran@gmail.com', link: 'mailto:charleslouiealvaran@gmail.com', span: 'full' },
-  { icon: Phone, label: 'Phone', value: '+63 929 856 8415', link: 'tel:+639298568415' },
+  { icon: Phone, label: 'Phone', value: '+63 929 856 8415', link: 'tel:+639298568415', noWrap: true, span: 'full' },
   { icon: Facebook, label: 'Facebook', value: 'facebook.com/CharlesLouieAlvaran', link: 'https://www.facebook.com/CharlesLouieAlvaran/', span: 'wide' },
   { icon: Instagram, label: 'Instagram', value: '@natsdyyy', link: 'https://www.instagram.com/natsdyyy/' },
   { icon: MapPin, label: 'Location', value: 'Dasmariñas City, Cavite, Philippines', link: 'https://maps.app.goo.gl/', span: 'full' }
@@ -268,7 +268,12 @@ const contactInfo = [
                 <p class="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-blue-400">
                   {{ info.label }}
                 </p>
-                <p class="break-words text-sm font-semibold leading-snug text-slate-900 sm:text-base sm:leading-relaxed">
+                <p
+                  :class="[
+                    'text-sm font-semibold leading-snug text-slate-950 sm:text-base sm:leading-relaxed',
+                    info.noWrap ? 'whitespace-nowrap' : 'break-words'
+                  ]"
+                >
                   {{ info.value }}
                 </p>
               </div>

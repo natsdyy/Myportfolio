@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 const { config } = require('../config');
 const { verifyIdToken } = require('../services/googleAuth');
+const { sendOtpEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -26,13 +27,53 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Sign up endpoint
+// Send OTP for email verification during sign up
+router.post('/signup/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Upsert verification record
+    await pool.query(
+      `
+      INSERT INTO email_verifications (email, otp_code, expires_at, used)
+      VALUES ($1, $2, $3, FALSE)
+      ON CONFLICT (email) DO UPDATE
+        SET otp_code = EXCLUDED.otp_code,
+            expires_at = EXCLUDED.expires_at,
+            used = FALSE,
+            created_at = NOW();
+    `,
+      [email, code, expiresAt]
+    );
+
+    await sendOtpEmail({ toEmail: email, code });
+
+    res.json({ message: 'Verification code sent to email' });
+  } catch (error) {
+    console.error('[auth] Send OTP error', error);
+    res.status(500).json({ error: 'Failed to send verification code' });
+  }
+});
+
+// Sign up endpoint with OTP verification
 router.post('/signup', async (req, res) => {
   try {
-    const { username, email, password, phone, countryCode } = req.body || {};
+    const { username, email, password, phone, countryCode, otp } = req.body || {};
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    if (!otp) {
+      return res.status(400).json({ error: 'Verification code is required' });
     }
 
     if (username.length < 3) {
@@ -45,6 +86,30 @@ router.post('/signup', async (req, res) => {
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check OTP
+    const otpResult = await pool.query(
+      `SELECT id, otp_code, expires_at, used FROM email_verifications WHERE email = $1`,
+      [email]
+    );
+
+    if (otpResult.rows.length === 0) {
+      return res.status(400).json({ error: 'No verification code found for this email' });
+    }
+
+    const otpRecord = otpResult.rows[0];
+
+    if (otpRecord.used) {
+      return res.status(400).json({ error: 'Verification code has already been used' });
+    }
+
+    if (new Date(otpRecord.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Verification code has expired' });
+    }
+
+    if (otpRecord.otp_code !== otp) {
+      return res.status(400).json({ error: 'Invalid verification code' });
     }
 
     // Check if username or email already exists
@@ -78,6 +143,9 @@ router.post('/signup', async (req, res) => {
     );
 
     const account = result.rows[0];
+
+    // Mark OTP as used
+    await pool.query(`UPDATE email_verifications SET used = TRUE WHERE id = $1`, [otpRecord.id]);
 
     // Get role information
     const roleResult = await pool.query(

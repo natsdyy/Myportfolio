@@ -344,7 +344,60 @@ This message was sent from your portfolio contact form.
   }
 };
 
+// Send a one-time password (OTP) email to a user for email verification
+const sendOtpEmail = async ({ toEmail, code }) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  // Prefer Resend API if configured
+  if (resendApiKey) {
+    const resend = new Resend(resendApiKey);
+    const fromEmailForResend = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background-color: #f9fafb;">
+        <div style="background: linear-gradient(135deg, #2563eb, #4f46e5); padding: 20px 24px; border-radius: 16px 16px 0 0; text-align: center; color: #eff6ff;">
+          <h1 style="margin: 0; font-size: 20px; font-weight: 600;">Verify your email</h1>
+          <p style="margin: 8px 0 0; font-size: 14px; opacity: .9;">Use the code below to complete your sign up</p>
+        </div>
+        <div style="background-color: #ffffff; padding: 24px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
+          <p style="margin: 0 0 12px; color: #111827; font-size: 14px;">Hi,</p>
+          <p style="margin: 0 0 16px; color: #4b5563; font-size: 14px;">Enter this one-time code in the sign up form:</p>
+          <div style="display: inline-block; padding: 12px 16px; border-radius: 999px; background: #eff6ff; border: 1px solid #bfdbfe; margin: 0 0 16px;">
+            <span style="letter-spacing: .3em; font-size: 20px; font-weight: 600; color: #1d4ed8;">${code}</span>
+          </div>
+          <p style="margin: 0 0 8px; color: #6b7280; font-size: 12px;">This code will expire in 10 minutes.</p>
+          <p style="margin: 0; color: #9ca3af; font-size: 11px;">If you didn’t request this, you can safely ignore this email.</p>
+        </div>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: fromEmailForResend,
+      to: toEmail,
+      subject: 'Your verification code',
+      html,
+    });
+
+    return;
+  }
+
+  // Fallback to SMTP
+  const transporter = createTransporter();
+  const smtpUser = process.env.SMTP_USER;
+  const businessName = process.env.SMTP_FROM_NAME || 'Portfolio';
+
+  const mailOptions = {
+    from: `"${businessName}" <${smtpUser}>`,
+    to: toEmail,
+    subject: 'Your verification code',
+    text: `Your verification code is: ${code}\n\nThis code will expire in 10 minutes.`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendContactEmail,
+  sendOtpEmail,
 };
 

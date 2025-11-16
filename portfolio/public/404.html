@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Page Not Found | Portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(circle at top, #e0edff, #f4f6fb 55%);
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        width: 100%;
+        max-width: 540px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 24px;
+        padding: 32px 28px;
+        box-shadow:
+          0 24px 60px rgba(15, 23, 42, 0.12),
+          0 0 0 1px rgba(148, 163, 184, 0.15);
+        backdrop-filter: blur(16px);
+        text-align: center;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #2563eb;
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.2);
+      }
+      h1 {
+        font-size: 40px;
+        line-height: 1.1;
+        margin-bottom: 8px;
+      }
+      .code {
+        font-weight: 800;
+        color: #2563eb;
+      }
+      p {
+        font-size: 15px;
+        color: #64748b;
+        margin-bottom: 24px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+      }
+      .btn {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: transform 0.12s ease, box-shadow 0.12s ease,
+          background 0.12s ease, color 0.12s ease;
+      }
+      .btn-primary {
+        background: linear-gradient(90deg, #2563eb, #1d4ed8);
+        color: #fff;
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.35);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 40px rgba(37, 99, 235, 0.45);
+      }
+      .btn-outline {
+        background: #fff;
+        color: #1e293b;
+        border: 1px solid #cbd5f5;
+      }
+      .btn-outline:hover {
+        background: #eff6ff;
+      }
+      .hint {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #9ca3af;
+      }
+      .hint code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>Oops, page not found</span>
+      </div>
+      <h1><span class="code">404</span> Not Found</h1>
+      <p>
+        The page you’re looking for doesn’t exist or may have been moved. Check
+        the URL, or head back to the homepage to continue exploring the
+        portfolio.
+      </p>
+      <div class="actions">
+        <a href="/" class="btn btn-primary">
+          <span>Go to homepage</span>
+        </a>
+        <button class="btn btn-outline" onclick="history.back()">
+          <span>Go back</span>
+        </button>
+      </div>
+      <p class="hint">
+        If you keep seeing this page unexpectedly, make sure your deployment
+        sends unknown routes to your app’s <code>index.html</code>.
+      </p>
+    </main>
+  </body>
+  </html>
+
+
