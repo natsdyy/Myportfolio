@@ -54,39 +54,41 @@ const skills = [
             </p>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div
               v-for="(item, index) in highlights"
               :key="index"
               class="about-highlight group"
             >
-              <div class="about-highlight-icon">
-                <component :is="item.icon" :size="24" />
-              </div>
-              <div class="space-y-1">
-                <h3 class="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  {{ item.title }}
-                </h3>
-                <p class="text-sm text-slate-600">{{ item.description }}</p>
+              <div class="about-highlight-content">
+                <div class="about-highlight-icon">
+                  <component :is="item.icon" :size="22" />
+                </div>
+                <div class="space-y-1.5 flex-1">
+                  <h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                    {{ item.title }}
+                  </h3>
+                  <p class="text-sm text-slate-600 leading-relaxed">{{ item.description }}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="space-y-6">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-blue-500 uppercase tracking-[0.25em]">Core Toolkit</span>
-              <span class="h-px flex-1 bg-slate-200"></span>
+          <div class="space-y-6 pt-2">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.3em]">Core Toolkit</span>
+              <span class="h-px flex-1 bg-gradient-to-r from-slate-200 via-blue-200 to-slate-200"></span>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div
                 v-for="skillGroup in skills"
                 :key="skillGroup.category"
-                class="about-skill-card"
+                class="about-skill-card group"
               >
-                <h4 class="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
+                <h4 class="text-xs font-bold uppercase tracking-[0.3em] text-slate-500 mb-3 group-hover:text-blue-600 transition-colors">
                   {{ skillGroup.category }}
                 </h4>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2.5">
                   <span
                     v-for="skill in skillGroup.items"
                     :key="skill"
@@ -102,12 +104,18 @@ const skills = [
 
         <!-- Image -->
         <div class="relative flex justify-center lg:justify-end">
-          <div class="about-spotlight">
-            <img
-              :src="profileImage"
-              alt="Charles Louie Alvaran"
-              class="about-photo"
-            />
+          <div class="about-portrait-container">
+            <div class="about-portrait-frame">
+              <div class="about-portrait-border">
+                <img
+                  :src="profileImage"
+                  alt="Charles Louie Alvaran"
+                  class="about-photo"
+                />
+              </div>
+              <div class="about-portrait-glow"></div>
+              <div class="about-portrait-decoration"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -136,95 +144,199 @@ const skills = [
 }
 
 .about-highlight {
-  display: flex;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.85), rgba(248, 250, 252, 0.65));
-  box-shadow: 0 20px 40px -32px rgba(15, 23, 42, 0.45);
-  transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+  padding: 1.75rem;
+  border-radius: 1.5rem;
+  border: 1.5px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.8));
+  box-shadow: 
+    0 4px 20px -8px rgba(15, 23, 42, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.about-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.about-highlight:hover::before {
+  opacity: 1;
 }
 
 .about-highlight:hover {
-  transform: translateY(-6px);
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 24px 55px -25px rgba(37, 99, 235, 0.45);
+  transform: translateY(-4px);
+  border-color: rgba(37, 99, 235, 0.2);
+  box-shadow: 
+    0 12px 40px -12px rgba(37, 99, 235, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+}
+
+.about-highlight-content {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
 }
 
 .about-highlight-icon {
   display: flex;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 3rem;
+  height: 3rem;
+  min-width: 3rem;
   align-items: center;
   justify-content: center;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(59, 130, 246, 0.25));
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.2));
   color: rgb(37 99 235);
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.2);
+}
+
+.about-highlight:hover .about-highlight-icon {
+  transform: scale(1.1) rotate(5deg);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.28));
+  box-shadow: 0 6px 16px -4px rgba(37, 99, 235, 0.3);
 }
 
 .about-skill-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1.5px solid rgba(15, 23, 42, 0.06);
   border-radius: 1.25rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(6px);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.7));
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 12px -6px rgba(15, 23, 42, 0.1);
+}
+
+.about-skill-card:hover {
+  border-color: rgba(37, 99, 235, 0.15);
+  box-shadow: 0 8px 24px -8px rgba(37, 99, 235, 0.2);
+  transform: translateY(-2px);
 }
 
 .about-skill-chip {
   padding: 0.5rem 1rem;
   border-radius: 9999px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgb(37 99 235);
-  background: linear-gradient(135deg, rgba(219, 234, 254, 0.6), rgba(191, 219, 254, 0.45));
-  border: 1px solid rgba(147, 197, 253, 0.6);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.7), rgba(191, 219, 254, 0.5));
+  border: 1px solid rgba(147, 197, 253, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+  display: inline-block;
 }
 
 .about-skill-chip:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 24px -12px rgba(59, 130, 246, 0.45);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 16px -6px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.85), rgba(191, 219, 254, 0.65));
+  border-color: rgba(147, 197, 253, 0.8);
 }
 
-.about-spotlight {
+.about-portrait-container {
   position: relative;
-  width: clamp(18rem, 38vw, 26rem);
-  aspect-ratio: 3 / 4;
-  border-radius: 60% 40% 55% 45% / 55% 45% 60% 45%;
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 45%, #1d4ed8 100%);
-  padding: clamp(1.25rem, 3vw, 2.25rem);
+  width: 100%;
+  max-width: 28rem;
   display: flex;
-  align-items: flex-end;
   justify-content: center;
-  box-shadow: 0 42px 65px -32px rgba(30, 64, 175, 0.55);
+  align-items: center;
+}
+
+.about-portrait-frame {
+  position: relative;
+  width: clamp(20rem, 35vw, 28rem);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-portrait-border {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 30%, #e2e8f0 100%);
+  box-shadow: 
+    0 25px 70px -20px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 0 0 2px rgba(59, 130, 246, 0.08);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
   overflow: hidden;
 }
 
-.about-spotlight::before {
-  content: "";
-  position: absolute;
-  inset: 10%;
-  border-radius: inherit;
-  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.28), transparent 65%);
-  opacity: 0.9;
+.about-portrait-frame:hover .about-portrait-border {
+  transform: scale(1.02);
+  box-shadow: 
+    0 35px 90px -25px rgba(37, 99, 235, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset,
+    0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .about-photo {
-  position: relative;
-  width: 110%;
-  object-fit: contain;
-  transform: translateY(6%);
-  transition: transform 0.6s ease, filter 0.6s ease;
-  filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.25));
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s ease;
+  filter: brightness(1.02) contrast(1.05);
 }
 
-.about-spotlight:hover .about-photo {
-  transform: translateY(3%) scale(1.02);
-  filter: drop-shadow(0 28px 32px rgba(15, 23, 42, 0.3));
+.about-portrait-frame:hover .about-photo {
+  transform: scale(1.01);
+  filter: brightness(1.05) contrast(1.08);
+}
+
+.about-portrait-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.about-portrait-frame:hover .about-portrait-glow {
+  opacity: 1;
+}
+
+.about-portrait-decoration {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.08), transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
 }
 
 @media (max-width: 1023px) {
@@ -235,8 +347,13 @@ const skills = [
     height: 55rem;
   }
 
-  .about-spotlight {
+  .about-portrait-container {
     margin-top: 3rem;
+    margin-inline: auto;
+  }
+
+  .about-portrait-frame {
+    max-width: 24rem;
   }
 }
 </style>
