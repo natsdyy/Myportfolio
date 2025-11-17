@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Facebook, Instagram, Mail, ArrowRight, Figma, Flame, Code2, Zap, Wind } from 'lucide-vue-next'
-import heroImage from '../assets/profile-removebg-preview.png'
+import heroImage from '../assets/unnamed.jpg'
 
 const name = "CLA"
 const title = "Student Developer & Tech Enthusiast"
@@ -123,13 +123,16 @@ onMounted(() => {
 
         <!-- Right Image -->
         <div class="flex justify-center items-center">
-          <div class="relative w-full max-w-xl flex justify-end">
-            <div class="hero-spotlight">
-              <img
-                :src="heroImage"
-                alt="Charles Louie Alvaran"
-                class="hero-photo"
-              />
+          <div class="relative w-full max-w-md flex justify-center lg:justify-end">
+            <div class="hero-portrait-frame">
+              <div class="hero-portrait-border">
+                <img
+                  :src="heroImage"
+                  alt="Charles Louie Alvaran"
+                  class="hero-photo"
+                />
+              </div>
+              <div class="hero-portrait-glow"></div>
             </div>
           </div>
         </div>
@@ -205,31 +208,69 @@ onMounted(() => {
   transform: rotate(-8deg);
 }
 
-.hero-spotlight {
+.hero-portrait-frame {
   position: relative;
-  width: clamp(18rem, 40vw, 28rem);
-  aspect-ratio: 3 / 4;
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%);
-  border-radius: 55% 45% 60% 40% / 60% 45% 55% 40%;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  width: clamp(20rem, 35vw, 26rem);
+  aspect-ratio: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  box-shadow: 0 35px 60px -25px rgba(37, 99, 235, 0.45);
+}
+
+.hero-portrait-border {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 30%, #e2e8f0 100%);
+  box-shadow: 
+    0 25px 70px -20px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+    0 0 0 2px rgba(59, 130, 246, 0.08);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
   overflow: hidden;
 }
 
-.hero-photo {
-  width: 110%;
-  max-width: none;
-  object-fit: contain;
-  transform: translateY(8%);
-  transition: transform 0.6s ease, filter 0.6s ease;
+
+.hero-portrait-frame:hover .hero-portrait-border {
+  transform: scale(1.02);
+  box-shadow: 
+    0 35px 90px -25px rgba(37, 99, 235, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset,
+    0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.hero-spotlight:hover .hero-photo {
-  transform: translateY(4%) scale(1.03);
-  filter: drop-shadow(0 25px 35px rgba(15, 23, 42, 0.25));
+.hero-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s ease;
+  filter: brightness(1.02) contrast(1.05);
+}
+
+.hero-portrait-frame:hover .hero-photo {
+  transform: scale(1.01);
+  filter: brightness(1.05) contrast(1.08);
+}
+
+.hero-portrait-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero-portrait-frame:hover .hero-portrait-glow {
+  opacity: 1;
 }
 
 @media (max-width: 1023px) {
@@ -240,8 +281,9 @@ onMounted(() => {
     height: 80%;
   }
 
-  .hero-spotlight {
+  .hero-portrait-frame {
     margin-inline: auto;
+    max-width: 22rem;
   }
 }
 </style>

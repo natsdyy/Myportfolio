@@ -1,6 +1,6 @@
 <script setup>
 import { Code, BookOpen, Lightbulb, Heart } from 'lucide-vue-next'
-import profileImage from '../assets/profile-removebg-preview.png'
+import profileImage from '../assets/unnamed.jpg'
 
 const aboutText = "I'm a 4th Year BS Information Technology student with a passion for web development and technology. I love solving real-world problems through code and continuously learning new technologies. My journey has been about building practical projects while developing a strong foundation in IT fundamentals."
 
