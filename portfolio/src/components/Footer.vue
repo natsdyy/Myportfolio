@@ -8,9 +8,9 @@ const scrollToTop = () => {
 }
 
 const socialLinks = [
-  { icon: Facebook, label: 'Facebook', url: 'https://www.facebook.com/CharlesLouieAlvaran/' },
-  { icon: Instagram, label: 'Instagram', url: 'https://www.instagram.com/natsdyyy/' },
-  { icon: Mail, label: 'Email', url: 'mailto:charleslouiealvaran@gmail.com' }
+  { icon: Facebook, label: 'Facebook', url: 'https://www.facebook.com/LithauzsMart/' },
+  { icon: Instagram, label: 'Instagram', url: 'https://www.instagram.com/lithauzs.dev/' },
+  { icon: Mail, label: 'Email', url: 'mailto:lithauzs@gmail.com' }
 ]
 
 const quickLinks = [
@@ -21,9 +21,9 @@ const quickLinks = [
 ]
 
 const contactDetails = [
-  { icon: Mail, label: 'Email', value: 'charleslouiealvaran@gmail.com' },
-  { icon: Phone, label: 'Phone', value: '+63 929 856 8415' },
-  { icon: MapPin, label: 'Based In', value: 'Dasmariñas City, Cavite, Philippines' }
+  { icon: Mail, label: 'Email', value: 'lithauzs@gmail.com' },
+  { icon: Phone, label: 'Phone', value: '+63 917 543 8921' },
+  { icon: MapPin, label: 'Based In', value: 'Philippines' }
 ]
 </script>
 
@@ -47,7 +47,7 @@ const contactDetails = [
             </p>
           </div>
           <a
-            href="mailto:charleslouiealvaran@gmail.com"
+            href="mailto:lithauzs@gmail.com"
             class="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white transition hover:from-blue-600 hover:to-blue-700"
           >
             Start a conversation
@@ -70,7 +70,7 @@ const contactDetails = [
             </div>
           </div>
           <p class="max-w-md text-sm text-slate-300">
-            Showcasing the projects, processes, and ideas of Charles Louie Alvaran—student developer passionate about shipping delightful web experiences.
+            Showcasing the projects, processes, and ideas of Lithauzs Mart—student developer passionate about shipping delightful web experiences.
           </p>
           <div class="flex gap-3">
             <a

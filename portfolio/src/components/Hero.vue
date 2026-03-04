@@ -49,7 +49,7 @@ onMounted(() => {
             
             <div class="space-y-4">
               <h1 class="text-5xl lg:text-6xl xl:text-7xl font-black text-base-content leading-tight animate-fade-in-delay-1 tracking-tight">
-                Charles Louie<br />Alvaran
+                Lithauzs<br />Mart
               </h1>
             </div>
             

@@ -222,11 +222,11 @@ watch(isAuthenticated, (value) => {
 })
 
 const contactInfo = [
-  { icon: Mail, label: 'Email', value: 'charleslouiealvaran@gmail.com', link: 'mailto:charleslouiealvaran@gmail.com', span: 'full' },
-  { icon: Phone, label: 'Phone', value: '+63 929 856 8415', link: 'tel:+639298568415', noWrap: true, span: 'full' },
-  { icon: Facebook, label: 'Facebook', value: 'facebook.com/CharlesLouieAlvaran', link: 'https://www.facebook.com/CharlesLouieAlvaran/', span: 'wide' },
-  { icon: Instagram, label: 'Instagram', value: '@natsdyyy', link: 'https://www.instagram.com/natsdyyy/' },
-  { icon: MapPin, label: 'Location', value: 'Dasmariñas City, Cavite, Philippines', link: 'https://maps.app.goo.gl/', span: 'full' }
+  { icon: Mail, label: 'Email', value: 'lithauzs@gmail.com', link: 'mailto:lithauzs@gmail.com', span: 'full' },
+  { icon: Phone, label: 'Phone', value: '+63 917 543 8921', link: 'tel:+639175438921', noWrap: true, span: 'full' },
+  { icon: Facebook, label: 'Facebook', value: 'facebook.com/LithauzsMart', link: 'https://www.facebook.com/LithauzsMart/', span: 'wide' },
+  { icon: Instagram, label: 'Instagram', value: '@lithauzs.dev', link: 'https://www.instagram.com/lithauzs.dev/' },
+  { icon: MapPin, label: 'Location', value: 'Philippines', link: 'https://maps.app.goo.gl/', span: 'full' }
 ]
 </script>
 
