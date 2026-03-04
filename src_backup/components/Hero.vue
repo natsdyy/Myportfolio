@@ -128,7 +128,7 @@ onMounted(() => {
               <div class="hero-portrait-border">
                 <img
                   :src="heroImage"
-                  alt="Lithauzs Mart"
+                  alt="Charles Louie Alvaran"
                   class="hero-photo"
                 />
               </div>

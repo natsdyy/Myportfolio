@@ -109,7 +109,7 @@ const skills = [
               <div class="about-portrait-border">
                 <img
                   :src="profileImage"
-                  alt="Lithauzs Mart"
+                  alt="Charles Louie Alvaran"
                   class="about-photo"
                 />
               </div>

@@ -1,0 +1,252 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const { config } = require('./config');
+const { ensureTables } = require('./db');
+
+let contactRouter, authRouter;
+try {
+  contactRouter = require('./routes/contact');
+  authRouter = require('./routes/auth');
+  console.log('[server] Routers loaded successfully:', {
+    contactRouter: !!contactRouter,
+    authRouter: !!authRouter
+  });
+} catch (error) {
+  console.error('[server] Failed to load routers:', error);
+  process.exit(1);
+}
+
+const app = express();
+
+const allowedOrigins = config.allowedOrigins;
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (!allowedOrigins || allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Handle OPTIONS requests for CORS preflight (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Serve static files from frontend build (if dist folder exists)
+const distPath = path.join(__dirname, '../../dist');
+const frontendExists = fs.existsSync(distPath);
+
+if (frontendExists) {
+  // Serve static files (CSS, JS, images, etc.)
+  app.use(express.static(distPath));
+} else {
+  // If frontend not built, show API info
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Backend API server is running. Frontend will be served here once built.',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        test: '/api/test',
+        routes: '/api/routes',
+        contact: '/api/contact',
+        auth: '/api/auth/*'
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+}
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Direct route test (not using router) to verify server is working
+app.post('/api/contact-test', (req, res) => {
+  console.log('[contact-test] Direct route hit!', req.body);
+  res.json({ 
+    message: 'Direct route is working!', 
+    body: req.body,
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Direct POST route for /api/contact as fallback (for testing)
+app.post('/api/contact-direct', (req, res) => {
+  console.log('[contact-direct] Direct route hit!', req.method, req.path, req.body);
+  res.json({ 
+    message: 'Direct /api/contact route is working!', 
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Debug middleware to log all API requests
+app.use('/api', (req, res, next) => {
+  console.log(`[server] ${req.method} ${req.path} - Body keys:`, Object.keys(req.body || {}));
+  next();
+});
+
+// Test route to verify API is working
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+});
+
+// List all available routes for debugging
+app.get('/api/routes', (req, res) => {
+  res.json({
+    routes: [
+      'GET  /health',
+      'GET  /api/test',
+      'GET  /api/routes',
+      'POST /api/contact',
+      'POST /api/auth/signup',
+      'POST /api/auth/login',
+      'GET  /api/auth/me',
+      'POST /api/auth/me',
+      'POST /api/test-email'
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test email endpoint (for debugging SMTP configuration)
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const { sendContactEmail } = require('./services/emailService');
+    
+    console.log('[test-email] ========== TESTING SMTP CONFIGURATION ==========');
+    console.log('[test-email] Environment variables:', {
+      SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+      SMTP_PORT: process.env.SMTP_PORT || '587',
+      SMTP_SECURE: process.env.SMTP_SECURE || 'false',
+      SMTP_USER: process.env.SMTP_USER || 'NOT SET',
+      SMTP_TO: process.env.SMTP_TO || 'NOT SET',
+      SMTP_FROM: process.env.SMTP_FROM || 'NOT SET',
+      SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'NOT SET',
+      hasSMTP_PASS: !!process.env.SMTP_PASS,
+      SMTP_PASS_length: process.env.SMTP_PASS?.length || 0
+    });
+    console.log('[test-email] ================================================');
+
+    // Send a test email
+    const testEmailInfo = await sendContactEmail({
+      fromEmail: process.env.SMTP_USER || 'test@example.com',
+      fromName: 'Test Sender',
+      subject: 'Test Email from Portfolio',
+      message: 'This is a test email to verify SMTP configuration is working correctly.\n\nIf you receive this email, your SMTP setup is working!'
+    });
+
+    console.log('[test-email] ✅ Test email sent successfully');
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      details: {
+        messageId: testEmailInfo.messageId,
+        accepted: testEmailInfo.accepted,
+        rejected: testEmailInfo.rejected,
+        response: testEmailInfo.response
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[test-email] ❌ ERROR:', error.message);
+    console.error('[test-email] Error code:', error.code);
+    console.error('[test-email] Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      errorCode: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Verify routers before mounting
+if (!contactRouter) {
+  console.error('[server] ERROR: contactRouter is not defined!');
+} else {
+  console.log('[server] contactRouter type:', typeof contactRouter);
+  console.log('[server] contactRouter has post method:', typeof contactRouter.post === 'function');
+}
+
+app.use('/api', contactRouter);
+app.use('/api/auth', authRouter);
+
+// Log registered routes
+console.log('[server] Routes registered:');
+console.log('  GET  /health');
+console.log('  GET  /api/test');
+console.log('  POST /api/contact-test (direct route)');
+console.log('  GET  /api/routes');
+console.log('  POST /api/contact (via router)');
+console.log('  POST /api/auth/*');
+
+// 404 handler for unmatched API routes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.error(`[server] 404 - Route not found: ${req.method} ${req.path}`);
+    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+  }
+  next();
+});
+
+// Catch-all middleware for SPA routing (placed after all routes)
+// This serves index.html for any GET request that doesn't match API routes
+if (frontendExists) {
+  app.use((req, res, next) => {
+    // Only handle GET requests that aren't API or health check routes
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+      // Check if the request was already handled (e.g., static file was served)
+      if (!res.headersSent) {
+        res.sendFile(path.join(distPath, 'index.html'));
+      } else {
+        next();
+      }
+    } else {
+      next();
+    }
+  });
+}
+
+app.use((err, req, res, next) => {
+  console.error('[server] Unexpected error', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+async function start() {
+  try {
+    await ensureTables();
+    app.listen(config.port, () => {
+      console.log(`Server listening on port ${config.port}`);
+    });
+  } catch (error) {
+    console.error('[server] Failed to start', error);
+    process.exit(1);
+  }
+}
+
+start();
+
