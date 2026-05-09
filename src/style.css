@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+}
+
+/* Bulletproof CSS Variable Theming */
+:root {
+  --bg-app: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-main: #e2e8f0;
+  --card-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  color-scheme: light;
+}
+
+.dark {
+  --bg-app: #020617;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-main: rgba(255, 255, 255, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --header-bg: rgba(15, 23, 42, 0.8);
+  color-scheme: dark;
+}
+
+@layer base {
+  html, body {
+    @apply m-0 p-0 transition-colors duration-500;
+    background-color: var(--bg-app) !important;
+    color: var(--text-main) !important;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Inter', sans-serif;
+  }
+
+  * {
+    font-family: inherit;
+    border-color: var(--border-main);
+  }
+
+  a {
+    @apply transition-colors duration-300;
+  }
+}
+
+/* Mapping Tailwind classes to our variables for ease of use */
+@layer utilities {
+  .bg-app { background-color: var(--bg-app); }
+  .text-main { color: var(--text-main); }
+  .text-muted { color: var(--text-muted); }
+  .border-main { border-color: var(--border-main); }
+  .bg-card-custom { background-color: var(--card-bg); }
+  .bg-header-custom { background-color: var(--header-bg); }
+}
+
+@layer components {
+  .container-main {
+    @apply max-w-6xl mx-auto px-4;
+  }
+}
