@@ -9,6 +9,7 @@ import Skills from './components/sections/Skills.vue'
 import Contact from './components/sections/Contact.vue'
 import Login from './components/common/Login.vue'
 import UserDashboard from './components/common/UserDashboard.vue'
+import ChatWidget from './components/common/chat/ChatWidget.vue'
 
 const currentPage = ref('home')
 const currentUser = ref(null)
@@ -45,6 +46,7 @@ const handleAuthSuccess = (account) => {
     </main>
     
     <Footer @navigate="navigateTo" />
+    <ChatWidget />
   </div>
 </template>
 

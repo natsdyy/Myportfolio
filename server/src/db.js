@@ -1,21 +1,28 @@
 const { Pool } = require('pg');
 const { config } = require('./config');
 
-if (!config.databaseUrl) {
-  throw new Error('DATABASE_URL is not configured. Set it in your environment variables.');
+let pool = null;
+
+if (config.databaseUrl) {
+  pool = new Pool({
+    connectionString: config.databaseUrl,
+    ssl:
+      process.env.PGSSLMODE === 'disable'
+        ? false
+        : {
+            rejectUnauthorized: false,
+          },
+  });
+} else {
+  console.warn('[db] WARNING: DATABASE_URL is not configured. Database features will be disabled.');
 }
 
-const pool = new Pool({
-  connectionString: config.databaseUrl,
-  ssl:
-    process.env.PGSSLMODE === 'disable'
-      ? false
-      : {
-          rejectUnauthorized: false,
-        },
-});
-
 async function ensureTables() {
+  if (!pool) {
+    console.warn('[db] Skipping table creation — no database connection.');
+    return;
+  }
+
   // Create roles table first
   await pool.query(`
     CREATE TABLE IF NOT EXISTS roles (
@@ -89,4 +96,3 @@ module.exports = {
   pool,
   ensureTables,
 };
-

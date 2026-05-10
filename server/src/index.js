@@ -5,13 +5,15 @@ const fs = require('fs');
 const { config } = require('./config');
 const { ensureTables } = require('./db');
 
-let contactRouter, authRouter;
+let contactRouter, authRouter, aiRouter;
 try {
   contactRouter = require('./routes/contact');
   authRouter = require('./routes/auth');
+  aiRouter = require('./routes/aiRoutes');
   console.log('[server] Routers loaded successfully:', {
     contactRouter: !!contactRouter,
-    authRouter: !!authRouter
+    authRouter: !!authRouter,
+    aiRouter: !!aiRouter
   });
 } catch (error) {
   console.error('[server] Failed to load routers:', error);
@@ -194,6 +196,7 @@ if (!contactRouter) {
 
 app.use('/api', contactRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/ai', aiRouter);
 
 // Log registered routes
 console.log('[server] Routes registered:');
@@ -239,13 +242,14 @@ app.use((err, req, res, next) => {
 async function start() {
   try {
     await ensureTables();
-    app.listen(config.port, () => {
-      console.log(`Server listening on port ${config.port}`);
-    });
+    console.log('[server] Database connected and tables ensured.');
   } catch (error) {
-    console.error('[server] Failed to start', error);
-    process.exit(1);
+    console.error('[server] WARNING: Failed to connect to database. Some features may not work.', error.message);
   }
+
+  app.listen(config.port, () => {
+    console.log(`Server listening on port ${config.port}`);
+  });
 }
 
 start();

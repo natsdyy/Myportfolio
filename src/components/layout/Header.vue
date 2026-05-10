@@ -54,15 +54,15 @@ onUnmounted(() => {
 <template>
   <header 
     :class="[
-      'fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-4 pt-6',
-      isScrolled ? 'pt-4' : 'pt-6'
+      'fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-4',
+      isScrolled ? 'pt-2 md:pt-4' : 'pt-3 md:pt-6'
     ]"
   >
     <nav class="mx-auto max-w-5xl">
       <!-- Premium Glass Island -->
       <div 
         :class="[
-          'relative flex items-center justify-between px-6 py-4 rounded-3xl transition-all duration-500 backdrop-blur-2xl border border-main',
+          'relative flex items-center justify-between px-4 py-3 md:px-6 md:py-4 rounded-3xl transition-all duration-500 backdrop-blur-2xl border border-main',
           isScrolled 
             ? 'bg-header-custom shadow-[0_8px_32px_rgba(0,0,0,0.05)]' 
             : 'bg-header-custom shadow-sm'
@@ -70,15 +70,15 @@ onUnmounted(() => {
       >
         <!-- Logo Section -->
         <div 
-          class="flex items-center gap-3 group cursor-pointer"
+          class="flex items-center gap-2 md:gap-3 group cursor-pointer"
           @click="navigate('home')"
         >
           <div class="relative h-10 w-10 overflow-hidden rounded-xl bg-blue-600 flex items-center justify-center transition-transform group-hover:scale-110">
             <span class="text-white font-black text-xl tracking-tighter">C</span>
           </div>
           <div class="flex flex-col">
-            <span class="text-sm font-black tracking-[0.2em] text-main uppercase">CLA.DEV</span>
-            <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Portfolio</span>
+            <span class="text-xs md:text-sm font-black tracking-[0.15em] md:tracking-[0.2em] text-main uppercase">CLA.DEV</span>
+            <span class="hidden md:block text-[9px] font-bold text-blue-600 uppercase tracking-widest">Portfolio</span>
           </div>
         </div>
 
@@ -146,15 +146,7 @@ onUnmounted(() => {
             </button>
           </div>
           
-          <div class="mt-auto space-y-6">
-            <p class="text-xs font-black uppercase tracking-[0.4em] text-muted">Social Presence</p>
-            <div class="flex gap-6">
-              <a href="#" class="text-2xl font-bold text-main hover:text-blue-600">IN</a>
-              <a href="#" class="text-2xl font-bold text-main hover:text-blue-600">TW</a>
-              <a href="#" class="text-2xl font-bold text-main hover:text-blue-600">GH</a>
-            </div>
-          </div>
-          
+
           <button 
             @click="toggleMobileMenu"
             class="absolute top-10 right-10 h-16 w-16 flex items-center justify-center rounded-full bg-card-custom text-main font-black cursor-pointer"
