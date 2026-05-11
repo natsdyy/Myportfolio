@@ -5,11 +5,18 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-    console.warn('[supabase] WARNING: SUPABASE_URL or SUPABASE_KEY is not set.');
-}
+let supabase = null;
 
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+if (!supabaseUrl || !supabaseKey) {
+    console.warn('[supabase] WARNING: SUPABASE_URL or SUPABASE_KEY is not set. Database features will be disabled.');
+} else {
+    try {
+        supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('[supabase] ✅ Client initialized successfully');
+    } catch (err) {
+        console.error('[supabase] ❌ Failed to initialize client:', err.message);
+    }
+}
 
 /**
  * Log a chat message to Supabase
@@ -17,7 +24,7 @@ const supabase = createClient(supabaseUrl || '', supabaseKey || '');
  */
 async function logChatMessage(query, answer, sources = []) {
     try {
-        if (!supabaseUrl) return;
+        if (!supabase) return;
 
         const { error } = await supabase
             .from('chat_history')
@@ -42,7 +49,7 @@ async function logChatMessage(query, answer, sources = []) {
  */
 async function getSupabaseContext(query) {
     try {
-        if (!supabaseUrl) return null;
+        if (!supabase) return null;
 
         // Simple keyword search in a hypothetical 'knowledge' table
         const { data, error } = await supabase
@@ -63,7 +70,7 @@ async function getSupabaseContext(query) {
  */
 async function checkCachedAnswer(query) {
     try {
-        if (!supabaseUrl) return null;
+        if (!supabase) return null;
         
         const { data, error } = await supabase
             .from('chat_history')
