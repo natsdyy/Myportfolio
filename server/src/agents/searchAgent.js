@@ -1,5 +1,5 @@
 const { searchMultipleSources, detectQueryType } = require('../services/scraping/index');
-const { tryLocalAnswer } = require('../services/ai/localBrain');
+const { tryLocalAnswer, detectLanguage } = require('../services/ai/localBrain');
 const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../services/supabase');
 
 /**
@@ -288,37 +288,61 @@ function isDifferent(a, b) {
 function wrapWithPersonality(answer, type, query) {
     if (!answer) return null;
 
+    const lang = detectLanguage(query);
+    
     const intros = {
-        definition: [
+        definition: lang === 'tl' ? [
+            `Ito ang nahanap ko para sa "${query}" sa aking linguistic database:`,
+            `Ah, "${query}"! Isang magandang salita. Narito ang ibig sabihin nito:`,
+            `Naghahanap ka ba ng kahulugan ng "${query}"? Ito ang detalye:`
+        ] : [
             `I've analyzed the term "${query}" for you. Here is the official breakdown:`,
             `Ah, "${query}"! That's a fascinating word. According to my linguistic database:`,
             `Looking for the meaning of "${query}"? I've got you covered:`,
             `My dictionary modules return the following for "${query}":`
         ],
-        knowledge: [
+        knowledge: lang === 'tl' ? [
+            `Ito ang mga impormasyong nahanap ko tungkol sa "${query}":`,
+            `Tungkol sa "${query}", narito ang summary ng aking kaalaman:`,
+            `Nag-access ako sa aking knowledge bank para sa "${query}":`
+        ] : [
             `I've accessed my knowledge bank regarding "${query}". Here's the most accurate summary:`,
             `Ah, "${query}"! I have a lot of data on that. Here is what you need to know:`,
             `I've synthesized the latest information about "${query}" for you:`,
             `Searching my core intelligence for "${query}"... Here is the breakdown:`
         ],
-        shopping: [
+        shopping: lang === 'tl' ? [
+            `Nahanap ko ang mga presyo at detalye para sa "${query}":`,
+            `Gusto mo bang bumili ng "${query}"? Ito ang mga listings na nakita ko:`
+        ] : [
             `I've tracked down some pricing and availability for "${query}":`,
             `Looking to get "${query}"? I've scanned the current retail landscape for you:`,
             `I found some listings for "${query}"! Here's the deal:`
         ],
-        opinion: [
+        opinion: lang === 'tl' ? [
+            `Sinuri ko ang mga diskusyon tungkol sa "${query}". Ito ang sabi nila:`,
+            `Maraming nagsasalita tungkol sa "${query}". Narito ang consensus:`
+        ] : [
             `I've been scanning global discussions about "${query}". Here is the current consensus:`,
             `People are talking about "${query}"! I've analyzed the latest threads for you:`,
             `I've checked the discussion boards regarding "${query}". Here's what they're saying:`
         ],
-        general: [
+        general: lang === 'tl' ? [
+            `Nag-scan ako para sa "${query}" at ito ang nahanap ko:`,
+            `Narito ang intelligence na nakuha ko tungkol sa "${query}":`
+        ] : [
             `I've performed a high-level scan for "${query}" and found this:`,
             `Here is the intelligence I've gathered on "${query}":`,
             `Synthesizing data for "${query}"... Here is what I found:`
         ]
     };
 
-    const outros = [
+    const outros = lang === 'tl' ? [
+        "Sana ay nakatulong ito! May iba ka pa bang gustong itanong?",
+        "Iyan ang pinakabagong info na mayroon ako. Ano pa ang maihahanda ko para sa iyo?",
+        "Interesante, 'di ba? Sabihan mo lang ako kung kailangan mo pa ng detalye!",
+        "Lagi akong nandito para sumagot. Ano ang susunod nating pag-uusapan?"
+    ] : [
         "I hope that clarifies things for you! Is there anything else you're curious about?",
         "That's the most up-to-date info I have on file. What else can I find for you?",
         "Fascinating stuff, isn't it? Let me know if you need more details!",

@@ -26,37 +26,55 @@ const intents = [
     {
         name: 'greeting',
         priority: 1,
-        keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'sup', 'yo', 'howdy', 'greetings', 'hola', 'kumusta', 'musta', 'ano na', 'hoy', 'magandang umaga', 'magandang hapon', 'magandang gabi'],
+        keywords: [
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'sup', 'yo', 'howdy', 'greetings', 'hola', 
+            'kumusta', 'musta', 'ano na', 'hoy', 'magandang umaga', 'magandang hapon', 'magandang gabi', 'uy'
+        ],
         handler: handleGreeting,
     },
     {
         name: 'small_talk',
         priority: 2,
-        keywords: ['how are you', 'hows it going', 'how do you do', 'whats up', 'what\'s up', 'how\'s it going', 'kumusta ka', 'musta ka', 'ayos ka lang', 'anong balita'],
+        keywords: [
+            'how are you', 'hows it going', 'how do you do', 'whats up', 'what\'s up', 'how\'s it going', 
+            'kumusta ka', 'musta ka', 'ayos ka lang', 'anong balita', 'kumusta na'
+        ],
         handler: handleSmallTalk,
     },
     {
         name: 'bot_identity',
         priority: 1,
-        keywords: ['who are you', 'what are you', 'your name', 'what can you do', 'what do you do', 'capabilities', 'introduce yourself', 'tell me about yourself', 'are you ai', 'are you a bot', 'are you real'],
+        keywords: [
+            'who are you', 'what are you', 'your name', 'what can you do', 'what do you do', 'capabilities', 'introduce yourself', 'tell me about yourself', 'are you ai', 'are you a bot', 'are you real',
+            'sino ka', 'ano ka', 'anong pangalan mo', 'anong kaya mong gawin', 'ano ang trabaho mo', 'magpakilala ka'
+        ],
         handler: handleBotIdentity,
     },
     {
         name: 'owner_identity',
         priority: 1,
-        keywords: ['who is charles', 'who made you', 'who built you', 'who created you', 'about charles', 'tell me about charles', 'who is the developer', 'who is the owner', 'your creator', 'your developer', 'charles louie', 'about him', 'who is he'],
+        keywords: [
+            'who is charles', 'who made you', 'who built you', 'who created you', 'about charles', 'tell me about charles', 'who is the developer', 'who is the owner', 'your creator', 'your developer', 'charles louie', 'about him', 'who is he',
+            'sino si charles', 'sino gumawa sayo', 'sino ang may ari', 'tungkol kay charles', 'kilala mo ba si charles'
+        ],
         handler: handleOwnerIdentity,
     },
     {
         name: 'skills_tech',
         priority: 1,
-        keywords: ['skills', 'tech stack', 'technologies', 'programming', 'languages', 'frameworks', 'what does he know', 'what can he do', 'frontend', 'backend', 'tools', 'expertise', 'proficient', 'stack', 'coding'],
+        keywords: [
+            'skills', 'tech stack', 'technologies', 'programming', 'languages', 'frameworks', 'what does he know', 'what can he do', 'frontend', 'backend', 'tools', 'expertise', 'proficient', 'stack', 'coding',
+            'anong alam niya', 'anong skills niya', 'anong gamit niyang tech', 'anong programming language', 'marunong ba siya mag code'
+        ],
         handler: handleSkills,
     },
     {
         name: 'projects',
         priority: 1,
-        keywords: ['projects', 'portfolio', 'work', 'built', 'created', 'developed', 'apps', 'websites', 'applications', 'show me his work'],
+        keywords: [
+            'projects', 'portfolio', 'work', 'built', 'created', 'developed', 'apps', 'websites', 'applications', 'show me his work',
+            'mga gawa niya', 'mga project', 'anong nagawa na niya', 'pakita mo yung mga gawa niya', 'portfolio niya'
+        ],
         handler: handleProjects,
     },
     {
@@ -68,73 +86,97 @@ const intents = [
     {
         name: 'contact',
         priority: 1,
-        keywords: ['contact', 'email', 'reach', 'hire', 'connect', 'get in touch', 'message him', 'social media', 'facebook', 'instagram', 'how to contact'],
+        keywords: [
+            'contact', 'email', 'reach', 'hire', 'connect', 'get in touch', 'message him', 'social media', 'facebook', 'instagram', 'how to contact',
+            'paano siya kontakin', 'email niya', 'paano siya imessage', 'kontak', 'hire natin siya'
+        ],
         handler: handleContact,
     },
     {
         name: 'experience',
         priority: 1,
-        keywords: ['experience', 'years', 'how long', 'career', 'background', 'education', 'degree', 'graduate', 'school', 'university', 'qualification'],
+        keywords: [
+            'experience', 'years', 'how long', 'career', 'background', 'education', 'degree', 'graduate', 'school', 'university', 'qualification',
+            'karanasan', 'gaano na siya katagal', 'anong tinapos niya', 'saan siya nag aral', 'background niya'
+        ],
         handler: handleExperience,
     },
     {
         name: 'resume',
         priority: 0,
-        keywords: ['resume', 'cv', 'curriculum vitae', 'download resume', 'view resume'],
+        keywords: ['resume', 'cv', 'curriculum vitae', 'download resume', 'view resume', 'patingin ng resume', 'resume niya'],
         handler: handleResume,
     },
     {
         name: 'availability',
         priority: 1,
-        keywords: ['available', 'hiring', 'open for work', 'freelance', 'job', 'work with', 'collaborate', 'open to', 'looking for work', 'employment'],
+        keywords: [
+            'available', 'hiring', 'open for work', 'freelance', 'job', 'work with', 'collaborate', 'open to', 'looking for work', 'employment',
+            'pwede ba siya', 'available ba siya', 'naghahanap ba siya ng trabaho', 'pwede ba siya hire'
+        ],
         handler: handleAvailability,
     },
     {
         name: 'location',
         priority: 1,
-        keywords: ['where are you from', 'where are you', 'where do you live', 'where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone', 'taga saan ka', 'saan ka galing', 'nasaan ka', 'nasaan si charles'],
+        keywords: [
+            'where are you from', 'where are you', 'where do you live', 'where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone', 
+            'taga saan ka', 'saan ka galing', 'nasaan ka', 'nasaan si charles', 'saan siya nakatira', 'saan siya nakabase'
+        ],
         handler: handleLocation,
     },
     {
         name: 'thanks',
         priority: 2,
-        keywords: ['thanks', 'thank you', 'appreciate', 'helpful', 'awesome', 'nice work', 'cool', 'good job', 'amazing', 'wonderful', 'great job', 'salamat', 'maraming salamat', 'thank you po', 'tenkyu'],
+        keywords: [
+            'thanks', 'thank you', 'appreciate', 'helpful', 'awesome', 'nice work', 'cool', 'good job', 'amazing', 'wonderful', 'great job', 
+            'salamat', 'maraming salamat', 'thank you po', 'tenkyu', 'salamuch'
+        ],
         handler: handleThanks,
     },
     {
         name: 'goodbye',
         priority: 1,
-        keywords: ['bye', 'goodbye', 'see you', 'later', 'take care', 'gtg', 'gotta go', 'cya', 'peace', 'im out', 'paalam', 'alis na ako', 'ingat'],
+        keywords: [
+            'bye', 'goodbye', 'see you', 'later', 'take care', 'gtg', 'gotta go', 'cya', 'peace', 'im out', 
+            'paalam', 'alis na ako', 'ingat', 'sige'
+        ],
         handler: handleGoodbye,
     },
     {
         name: 'help',
         priority: 1,
-        keywords: ['help', 'how to use', 'what can i ask', 'commands', 'features', 'menu', 'options'],
+        keywords: [
+            'help', 'how to use', 'what can i ask', 'commands', 'features', 'menu', 'options',
+            'tulong', 'paano kita gagamitin', 'anong pwede kong itanong'
+        ],
         handler: handleHelp,
     },
     {
         name: 'compliment',
         priority: 2,
-        keywords: ['smart', 'impressive', 'wow', 'cool portfolio', 'nice website', 'beautiful', 'well done', 'talented', 'genius', 'brilliant'],
+        keywords: [
+            'smart', 'impressive', 'wow', 'cool portfolio', 'nice website', 'beautiful', 'well done', 'talented', 'genius', 'brilliant',
+            'ang galing', 'husay', 'petmalu', 'lodi'
+        ],
         handler: handleCompliment,
     },
     {
         name: 'joke',
         priority: 1,
-        keywords: ['joke', 'funny', 'make me laugh', 'humor', 'tell me a joke', 'something funny'],
+        keywords: ['joke', 'funny', 'make me laugh', 'humor', 'tell me a joke', 'something funny', 'magbiro ka', 'joke tayo'],
         handler: handleJoke,
     },
     {
         name: 'hobbies',
         priority: 1,
-        keywords: ['hobbies', 'free time', 'outside of work', 'fun', 'do for fun', 'interests'],
+        keywords: ['hobbies', 'free time', 'outside of work', 'fun', 'do for fun', 'interests', 'hilig niya', 'anong ginagawa niya pag hindi busy'],
         handler: handleHobbies,
     },
     {
         name: 'pricing',
         priority: 0,
-        keywords: ['freelance rate', 'pricing', 'how much do you charge', 'cost to hire', 'hourly rate', 'salary expectation', 'compensation', 'freelance project'],
+        keywords: ['freelance rate', 'pricing', 'how much do you charge', 'cost to hire', 'hourly rate', 'salary expectation', 'compensation', 'freelance project', 'magkano charge niya'],
         handler: handlePricing,
     },
     {
@@ -156,6 +198,27 @@ const intents = [
         handler: handleChatter,
     },
 ];
+
+// ─── Language Detection ──────────────────────────────────────
+
+function detectLanguage(query) {
+    const tlWords = [
+        'kumusta', 'musta', 'saan', 'ano', 'sino', 'kailan', 'paano', 'bakit', 
+        'nasaan', 'taga', 'galing', 'salamat', 'paalam', 'ingat', 'ayos', 'ka', 
+        'mo', 'si', 'ang', 'mga', 'ng', 'na', 'sa', 'at', 'o', 'ba', 'po', 'opo',
+        'astig', 'lodi', 'petmalu', 'yayaman', 'pautang', 'niya', 'kanya', 'nila'
+    ];
+    
+    const words = query.toLowerCase().split(/\s+/).map(w => w.replace(/[^\w]/g, ''));
+    
+    const matches = words.filter(w => tlWords.includes(w));
+    
+    const hasTlPattern = (words.includes('si') && words.length > 1) || 
+                         (words.includes('taga') && words.length > 1) ||
+                         (words.includes('saan') && words.length > 1);
+
+    return (matches.length > 0 || hasTlPattern) ? 'tl' : 'en';
+}
 
 // ─── Query Normalization ──────────────────────────────────────
 
@@ -222,22 +285,18 @@ function wordMatchesQuery(word, queryWords) {
 //   0   = no match
 
 function scoreKeyword(kw, normalizedQuery, queryWords) {
-    // Full exact match (highest confidence)
     if (normalizedQuery === kw) return 10;
 
-    // Substring match — prefer longer, more specific keywords
     if (normalizedQuery.includes(kw)) {
-        const specificity = Math.min(kw.split(' ').length, 4); // 1-4 bonus for phrase length
+        const specificity = Math.min(kw.split(' ').length, 4);
         return 5 + specificity;
     }
 
-    // Multi-word fuzzy: all words of keyword must match somewhere in query
     const kwWords = kw.split(' ');
     if (kwWords.length > 1) {
         const allMatch = kwWords.every(w => wordMatchesQuery(w, queryWords));
-        if (allMatch) return 3 + kwWords.length; // longer phrase = more confident
+        if (allMatch) return 3 + kwWords.length;
     } else {
-        // Single word fuzzy
         if (wordMatchesQuery(kw, queryWords)) return 2;
     }
 
@@ -245,9 +304,6 @@ function scoreKeyword(kw, normalizedQuery, queryWords) {
 }
 
 // ─── Intent Classifier ───────────────────────────────────────
-//
-// Returns array of { intent, score, confidence } sorted by score desc.
-// Empty array = no match.
 
 function classifyIntent(query) {
     const normalizedQuery = normalizeQuery(query);
@@ -273,21 +329,19 @@ function classifyIntent(query) {
         }))
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
-            return a.intent.priority - b.intent.priority; // lower priority number wins
+            return a.intent.priority - b.intent.priority;
         });
 
     return results;
 }
 
 // ─── Response Handlers ────────────────────────────────────────
-// All handlers receive (query, ctx) for future extensibility.
 
 function handleGreeting(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
     
-    // Friendly Talk - Tagalog
-    if (q.includes('kumusta') || q.includes('musta') || q.includes('magandang')) {
-        return `Tagalog: "Kumusta?" in English "How are you? / Hello!"\n\nHey! Ako ang AI ni Charles. 👋 Masaya akong makita ka dito! Ano ang maipaglilingkod ko?`;
+    if (lang === 'tl') {
+        return `Kumusta! Ako ang AI ni Charles. 👋 Masaya akong makita ka dito! Ano ang maipaglilingkod ko?`;
     }
 
     const greetings = [
@@ -299,18 +353,38 @@ function handleGreeting(query, ctx) {
 }
 
 function handleBotIdentity(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Ako si **${botIdentity.name}**, ang AI ni Charles. 🤖\n\nGinaawa ako ni Charles mula sa simula gamit ang custom JavaScript engine — walang gamit na external AI SDKs.\n\n**Kaya kong gawin:**\n- Magbigay ng impormasyon tungkol sa skills at projects ni Charles.\n- Mag-search sa web para sa Wikipedia, Reddit, at iba pa.\n- Real-time dictionary lookups.\n- Pakikipag-usap tungkol sa tech at career.`;
+    }
     return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using a custom JavaScript engine — no external AI libraries like OpenAI or LangChain required.\n\n**Capabilities:**\n- Detailed insights into Charles' skills and projects.\n- Live web searching (Web, Wikipedia, Reddit).\n- Real-time dictionary lookups.\n- Technical discussion and guidance.\n\n*Try asking: "What is his tech stack?" or "How much is a PS5?"*`;
 }
 
 function handleOwnerIdentity(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        const tlBio = "Isang bagong graduate ng Information Technology na may matinding hilig sa teknolohiya at software development. Dalubhasa sa paggawa ng high-performance digital experiences gamit ang modernong web technologies at user-centric design. Sa ngayon ay bukas para sa mga bagong oportunidad at handang mag-ambag sa mga makabagong koponan.";
+        return `Si **${owner.name}** ay isang dedicated na ${owner.title} na nakabase sa **${owner.location}**. 📍\n\n${tlBio}\n\n**Quick Stats:**\n- ⏱️ **Karanasan**: Mahigit ${owner.yearsExperience} taon\n- 🚀 **Projects**: Mahigit ${owner.totalProjects} apps\n- 🎓 **Edukasyon**: ${owner.education}`;
+    }
     return `**${owner.name}** is a dedicated ${owner.title} based in **${owner.location}**. 📍\n\n${owner.bio}\n\n**Quick Highlights:**\n- ⏱️ **Experience**: ${owner.yearsExperience} years of development\n- 🚀 **Projects**: ${owner.totalProjects} applications developed\n- 🎓 **Education**: ${owner.education}\n- 🟢 **Status**: ${owner.status}`;
 }
 
 function handleSkills(query, ctx) {
+    const lang = detectLanguage(query);
     const fe = skills.frontend.join(', ');
     const be = skills.backend.join(', ');
     const libs = skills.libraries.join(', ');
     const tools = skills.tools.join(', ');
+
+    if (lang === 'tl') {
+        return `Narito ang technical toolkit ni Charles:\n\n` +
+               `🎨 **Frontend**: ${fe}\n` +
+               `⚙️ **Backend**: ${be}\n` +
+               `📚 **Frameworks**: ${libs}\n` +
+               `🛠️ **Tools**: ${tools}\n\n` +
+               `**Key Competencies:**\n` +
+               `${skills.highlights.map(h => `✅ ${h}`).join('\n')}`;
+    }
 
     return `Charles has a diverse technical toolkit designed for modern web engineering:\n\n` +
            `🎨 **Frontend**: ${fe}\n` +
@@ -322,57 +396,80 @@ function handleSkills(query, ctx) {
 }
 
 function handleProjects(query, ctx) {
+    const lang = detectLanguage(query);
     const projectList = projects.map(p =>
         `🚀 **${p.name}**\n${p.description}\n[View Project](${p.link})`
     ).join('\n\n');
+
+    if (lang === 'tl') {
+        return `Nakalikha na si Charles ng mahigit **${owner.totalProjects}** na applications, mula sa production platforms hanggang sa experimental systems. Narito ang ilan sa kanyang mga gawa:\n\n${projectList}\n\n*Pwede kang magtanong ng detalye tungkol sa kahit anong project niya!*`;
+    }
 
     return `Charles has developed over **${owner.totalProjects}** applications, ranging from production-ready platforms to complex experimental systems. Here are some of his featured works:\n\n${projectList}\n\n*Tip: You can ask for more details about any project by name!*`;
 }
 
 function handleSpecificProject(query, ctx) {
+    const lang = detectLanguage(query);
     const q = query.toLowerCase();
     const project = projects.find(p => q.includes(p.name.toLowerCase()));
 
     if (project) {
         const techStack = project.tech.join(', ');
+        if (lang === 'tl') {
+             return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}\n- ✨ **Highlights**: ${project.highlights}\n- 🔗 **Live Demo**: [Visit ${project.name}](${project.link})`;
+        }
         return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}\n- ✨ **Key Highlights**: ${project.highlights}\n- 🔗 **Live Demo**: [Visit ${project.name}](${project.link})`;
     }
     return handleProjects(query, ctx);
 }
 
 function handleContact(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Si Charles ay **${owner.status}** at handang makipag-usap para sa mga bagong projects! 🤝\n\n**Kontakin siya dito:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nPwede ka ring gumamit ng contact form sa ibaba para sa direct message!`;
+    }
     return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nYou can also use the contact form at the bottom of the page to send a direct message!`;
 }
 
 function handleExperience(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `**Professional Background:**\n\nDalubhasa si Charles sa pagbuo ng responsive user interfaces at high-performance backend systems. Mula sa real estate platforms hanggang sa competitive matching engines.\n\n**Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Karanasan**: ${owner.yearsExperience} Taon\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Lugar**: ${owner.location}`;
+    }
     return `**Professional Background:**\n\nCharles specializes in building responsive user interfaces and high-performance backend systems. His expertise ranges from scalable real estate platforms to real-time competitive matching engines.\n\n**Core Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Active Years**: ${owner.yearsExperience} Years\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Location**: ${owner.location}`;
 }
 
 function handleResume(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Maaari mong i-preview o i-download ang Resume ni Charles dito:\n\n- 📄 [**View / Download Resume**](#resume)\n\n*May mga partikular ka bang tanong tungkol sa background niya? Mag-tanong lang!*`;
+    }
     return `You can preview or download Charles' full Resume/CV directly through the portfolio:\n\n- 📄 [**View / Download Resume**](#resume)\n\n*Have specific questions about his background? Just ask!*`;
 }
 
 function handleAvailability(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Magandang balita! Si Charles ay kasalukuyang **${owner.status}** 🟢.\n\nBukas siya para sa:\n\n- Full-time engineering positions (Remote o On-site)\n- Freelance web development projects\n- Contract-based software engineering\n- Collaborative ventures\n\nEmail mo lang siya sa [${owner.email}](mailto:${owner.email})!`;
+    }
     return `Great news! Charles is currently **${owner.status}** 🟢.\n\nHe is actively open to discussing:\n\n- Full-time engineering positions (Remote or On-site)\n- Freelance web development projects\n- Contract-based software engineering\n- Exciting collaborative ventures\n\nReach out directly via email at [${owner.email}](mailto:${owner.email}) or through the Contact section below!`;
 }
 
 function handleLocation(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
 
-    // Friendly Talk - Tagalog (User Sample)
-    if (q.includes('taga saan ka') || q.includes('saan ka galing')) {
-        return `Tagalog: “Saan ka galing?” o “Taga saan ka?” in english "Where are you from?"\n\nBilang AI, wala akong pisikal na lugar—pero ginawa ako ni Charles. Ikaw, taga saan ka?`;
+    if (lang === 'tl') {
+        return `Si Charles ay nakabase sa **Dasmariñas City, Cavite**! 📍\n\n- 🕐 **Timezone**: GMT+8 (Philippine Standard Time)\n- 🌐 **Remote**: Handang makipagtulungan sa mga team kahit saan sa mundo.\n- 🏢 **On-Site**: Pwedeng magtrabaho sa Metro Manila at Cavite areas.\n\n*Huwag mag-atubiling mag-message kahit anong oras!*`;
     }
 
     return `Charles is based in **Dasmariñas City, Cavite**! 📍\n\n- 🕐 **Timezone**: GMT+8 (Philippine Standard Time)\n- 🌐 **Remote Capabilities**: Fully equipped and open to collaborating with teams worldwide\n- 🏢 **On-Site Work**: Available for opportunities within Metro Manila and the Cavite area\n\n*Feel free to reach out regardless of your timezone!*`;
 }
 
 function handleThanks(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
 
-    // Friendly Talk - Tagalog
-    if (q.includes('salamat') || q.includes('tenkyu')) {
-        return `Tagalog: "Salamat" in English "Thank you"\n\nWalang anuman! Masaya akong makatulong. Sabihan mo lang ako kung may kailangan ka pa! 😊`;
+    if (lang === 'tl') {
+        return `Walang anuman! Masaya akong makatulong. Sabihan mo lang ako kung may kailangan ka pa! 😊`;
     }
 
     return pickRandom([
@@ -383,11 +480,10 @@ function handleThanks(query, ctx) {
 }
 
 function handleGoodbye(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
 
-    // Friendly Talk - Tagalog
-    if (q.includes('paalam') || q.includes('ingat') || q.includes('alis')) {
-        return `Tagalog: "Paalam / Ingat" in English "Goodbye / Take care"\n\nSige, paalam! Maraming salamat sa pagbisita. Ingat ka palagi! 👋`;
+    if (lang === 'tl') {
+        return `Sige, paalam! Maraming salamat sa pagbisita. Ingat ka palagi! 👋`;
     }
 
     return pickRandom([
@@ -398,10 +494,18 @@ function handleGoodbye(query, ctx) {
 }
 
 function handleHelp(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Narito ang mga pwede mong itanong:\n\n💡 **Portfolio & Karanasan**\n- *"Sino si Charles?"* o *"Ano ang tech stack niya?"*\n- *"Ipakita ang projects"* o *"Tungkol saan ang Rentopia?"*\n- *"Available ba siya?"* o *"Paano siya kontakin?"*\n\n🔍 **Live Web Search**\n- *"Ano ang quantum computing?"*\n- *"Best React frameworks in 2025"*\n\nMag-type lang sa ibaba at susubukan kong sagutin nang maayos!`;
+    }
     return `Here are a few things you can ask me:\n\n💡 **Portfolio & Experience**\n- *"Who is Charles?"* or *"What is his tech stack?"*\n- *"Show me his projects"* or *"Tell me about Rentopia"*\n- *"Is he available for hire?"* or *"How do I contact him?"*\n\n🔍 **Live Web Search**\n- *"What is quantum computing?"*\n- *"Best React frameworks in 2025"*\n- *"Define serendipity"*\n\nJust type your question below and I'll do my best to give you a smart answer!`;
 }
 
 function handleCompliment(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Salamat! Pinaghirapan ni Charles ang paggawa sa akin at sa buong portfolio na ito. Dahil siya ay isang developer na mahilig gumawa mula sa simula. 🚀`;
+    }
     return pickRandom([
         `Thanks! Charles put a lot of effort into this portfolio — and he built me from scratch too! If you're impressed, imagine what he could build for your team. 😉`,
         `Appreciate it! This entire AI system was hand-coded by Charles — no external AI SDKs. That's the kind of developer he is. 🔥`,
@@ -410,6 +514,10 @@ function handleCompliment(query, ctx) {
 }
 
 function handleJoke(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Ano ang tawag sa asong marunong mag-code? Edi... a **Byte**! 🐶💻`;
+    }
     const jokes = [
         "Why do programmers prefer dark mode? Because light attracts bugs. 🐛",
         "A SQL query walks into a bar, sees two tables, and asks: 'Can I join you?' 🍺",
@@ -421,19 +529,26 @@ function handleJoke(query, ctx) {
 }
 
 function handleHobbies(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Pag hindi busy sa pag-code, malamang na nag-eexplore si Charles ng bagong tech, nag-ge-games, o nag-aaral ng makabagong trends. Lagi niyang gustong mag-improve! 🎮📚`;
+    }
     return `When Charles isn't coding, he's probably exploring new tech, gaming, or learning about the latest web development trends. He's always looking for ways to improve his craft! 🎮📚`;
 }
 
 function handlePricing(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Ang rate ni Charles ay depende sa hirap at laki ng project. Pwedeng freelance, contract, o full-time role. Message mo lang siya para mapag-usapan! 💼`;
+    }
     return `Charles's rates depend on the scope and complexity of the project. Whether it's a freelance gig, a contract, or a full-time role, he's open to discussion!\n\nReach out via the **Contact** page to get a quote. 💼`;
 }
 
 function handleSmallTalk(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
 
-    // Friendly Talk - Tagalog
-    if (q.includes('kumusta ka') || q.includes('musta ka') || q.includes('ayos ka lang')) {
-        return `Tagalog: "Kumusta ka?" in English "How are you?"\n\nAyos naman ako! Kasalukuyang nag-aabang ng iyong mga katanungan. Ikaw, kumusta ang araw mo? 🚀`;
+    if (lang === 'tl') {
+        return `Ayos naman ako! Kasalukuyang nag-aabang ng iyong mga katanungan. Ikaw, kumusta ang araw mo? 🚀`;
     }
 
     return pickRandom([
@@ -444,6 +559,10 @@ function handleSmallTalk(query, ctx) {
 }
 
 function handleLaugh(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Haha! Mukhang natutuwa ka. Ano pa ang gusto mong malaman? 😊`;
+    }
     return pickRandom([
         "Haha! Glad you're having fun. Let me know if you need any serious info! 😄",
         "Lol! I may be just an AI, but I appreciate a good laugh. 🤖",
@@ -456,11 +575,10 @@ function handleWealth(query, ctx) {
 }
 
 function handleChatter(query, ctx) {
-    const q = query.toLowerCase();
+    const lang = detectLanguage(query);
     
-    // Tagalog Reactions
-    if (q.includes('astig') || q.includes('lodi') || q.includes('petmalu')) {
-        return "Salamat! Charles designed me to be as helpful (and 'astig') as possible. 😉";
+    if (lang === 'tl') {
+        return "Salamat! Ginawa ako ni Charles para maging kasing 'astig' hangga't maaari. 😉";
     }
 
     const reactions = [
@@ -474,6 +592,10 @@ function handleChatter(query, ctx) {
 }
 
 function handleUnknownSimpleWord(query) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Pinag-aaralan ko pa ang ibig sabihin ng "${query}"! 😅 Lagi akong ina-update ni Charles. Ano nga uli ang ibig sabihin niyan?`;
+    }
     return `I'm still learning the meaning of "${query}"! 😅 Charles is constantly updating my "brain." Is that a technical term, a greeting, or something else?`;
 }
 
@@ -530,4 +652,4 @@ function tryLocalAnswer(query) {
         : responses[0];
 }
 
-module.exports = { tryLocalAnswer, classifyIntent, normalizeQuery };
+module.exports = { tryLocalAnswer, classifyIntent, normalizeQuery, detectLanguage };
