@@ -116,8 +116,7 @@ const sendMessage = async () => {
   }
 
   try {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
-    const response = await axios.post(`${baseUrl}/api/ai/chat`, {
+    const response = await axios.post('/api/ai/chat', {
       query: userQuery,
       history: messages.value.slice(-5) // Send last 5 messages for context
     })

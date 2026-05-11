@@ -22,6 +22,7 @@ const config = {
 };
 
 console.log('[config] Allowed origins:', config.allowedOrigins);
+console.log('[config] Raw ALLOWED_ORIGINS env:', process.env.ALLOWED_ORIGINS);
 console.log('[config] Supabase URL set:', !!process.env.SUPABASE_URL);
 console.log('[config] Supabase Key set:', !!process.env.SUPABASE_KEY);
 

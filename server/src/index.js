@@ -22,36 +22,26 @@ try {
 
 const app = express();
 
-const allowedOrigins = config.allowedOrigins;
-const corsOptions = {
-  origin(origin, callback) {
-    if (!origin) {
+const allowedOrigins = config.allowedOrigins || [];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       return callback(null, true);
+    } else {
+      console.warn(`[cors] Blocked origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'));
     }
-    if (!allowedOrigins || allowedOrigins.length === 0) {
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
   },
   credentials: true,
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
-app.use(cors(corsOptions));
 app.use(express.json());
-
-// Handle OPTIONS requests for CORS preflight (Express 5 compatible)
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // Serve static files from frontend build (if dist folder exists)
 const distPath = path.join(__dirname, '../../dist');
