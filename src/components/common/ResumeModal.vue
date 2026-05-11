@@ -1,11 +1,11 @@
 <template>
   <Transition name="fade">
-    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" @click.self="closeModal">
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 transition-transform transform scale-100">
+    <div v-if="isOpen" class="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm" @click.self="closeModal">
+      <div class="bg-app rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden border border-main transition-transform transform scale-100">
         
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+        <div class="flex items-center justify-between p-4 border-b border-main bg-app z-10">
+          <h3 class="text-lg font-semibold text-main flex items-center gap-2">
             <FileText class="w-5 h-5 text-blue-500" />
             Charles Louie Alvaran - Resume
           </h3>
@@ -15,18 +15,18 @@
               <Download class="w-4 h-4" />
               <span class="hidden sm:inline">Download PDF</span>
             </a>
-            <button @click="closeModal" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500 dark:text-slate-400">
+            <button @click="closeModal" class="p-2 hover:bg-main/10 rounded-lg transition-colors text-muted">
               <X class="w-5 h-5" />
             </button>
           </div>
         </div>
 
         <!-- PDF Preview -->
-        <div class="flex-1 bg-slate-100 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative">
+        <div class="flex-1 bg-main/5 p-2 sm:p-4 overflow-hidden relative">
           <!-- Fallback message for mobile browsers that don't support iframe PDF rendering -->
           <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 sm:hidden pointer-events-none z-0">
-            <FileText class="w-12 h-12 text-slate-400 mb-3" />
-            <p class="text-slate-600 dark:text-slate-400 text-sm">
+            <FileText class="w-12 h-12 text-muted mb-3 opacity-50" />
+            <p class="text-muted text-sm">
               Preview might not be supported on all mobile browsers.<br/>
               Please use the download button above to view the resume.
             </p>
@@ -35,7 +35,7 @@
           <!-- The iframe will cover the fallback if it loads successfully -->
           <iframe 
             :src="pdfUrl" 
-            class="w-full h-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-inner relative z-10" 
+            class="w-full h-full rounded-lg border border-main bg-white shadow-inner relative z-10" 
             title="Resume Preview">
           </iframe>
         </div>

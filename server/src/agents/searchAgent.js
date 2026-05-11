@@ -75,7 +75,7 @@ async function processUserQuery(query, history = []) {
 
     if (hasContext) {
         console.log(`[agent] 📝 Synthesizing answer from ${searchData.resultCount} results...`);
-        finalAnswer = formatSearchAnswer(query, searchData);
+        finalAnswer = formatSearchAnswer(query, searchData, queryType);
     } else {
         console.log(`[agent] ⚠️ No info found.`);
         finalAnswer = `I couldn't find specific information about "${query}" in my knowledge base or via web search. Could you try rephrasing your question? I'm best at answering things about Charles' projects, tech topics, or word definitions!`;
@@ -96,12 +96,18 @@ async function processUserQuery(query, history = []) {
  * Local Synthesis Engine
  * Formats scraped data into a clean, readable response without using an LLM.
  */
-function formatSearchAnswer(query, searchData) {
+function formatSearchAnswer(query, searchData, queryType = 'general') {
     const { context, sources } = searchData;
     
     // Split context by the separator we used in scraper manager
     const sections = context.split('===');
-    let formatted = `I found some information regarding "**${query}**":\n\n`;
+    
+    let introText = `I found some information regarding "**${query}**":`;
+    if (queryType === 'shopping') {
+        introText = `🛒 Here are the latest price checks and shopping listings for "**${query}**":`;
+    }
+    
+    let formatted = `${introText}\n\n`;
 
     // Only take the first few relevant sections to avoid wall of text
     const relevantSections = sections.filter(s => s.trim().length > 0).slice(0, 2);

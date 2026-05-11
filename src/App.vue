@@ -33,7 +33,7 @@ const handleAuthSuccess = (account) => {
     <Header @navigate="navigateTo" :current-page="currentPage" />
     
     <main class="flex-1">
-      <Hero v-if="currentPage === 'home'" />
+      <Hero v-if="currentPage === 'home'" @navigate="navigateTo" />
       <About v-if="currentPage === 'about'" />
       <Projects v-if="currentPage === 'projects'" />
       <Skills v-if="currentPage === 'skills'" />

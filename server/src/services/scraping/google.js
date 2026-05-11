@@ -1,104 +1,86 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Initialize stealth plugin
+puppeteer.use(StealthPlugin());
 
 /**
- * Google Scraper (From Scratch — Improved)
+ * Local Search Scraper v5 (DuckDuckGo Lite Edition)
  * 
- * Fetches search results by parsing Google's HTML.
- * No API key needed. Includes retry logic and better selectors.
- */
-
-const USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-];
-
-/**
- * Scrape Google search results
- * @param {string} query - Search term
- * @param {number} maxResults - Maximum results to return
- * @returns {Array} Array of { title, link, snippet, source }
+ * Uses DuckDuckGo Lite via Puppeteer. 
+ * Extremely stable, no CAPTCHAs, and provides high-quality results
+ * for shopping and general knowledge queries.
  */
 async function scrapeGoogle(query, maxResults = 5) {
-    const attempts = 2;
-    
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-        try {
-            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en`;
-            const userAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+    console.log(`[search-scraper] Searching: "${query}"`);
+    let browser = null;
+
+    try {
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        const page = await browser.newPage();
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+
+        // Go to DDG Lite (fast, text-based)
+        await page.goto('https://lite.duckduckgo.com/lite/', { waitUntil: 'domcontentloaded' });
+
+        // Type query and submit
+        await page.type('input[name=q]', query);
+        await Promise.all([
+            page.click('input[type=submit]'),
+            page.waitForNavigation({ waitUntil: 'networkidle2' })
+        ]);
+
+        // Extract results from the table-based layout
+        const results = await page.evaluate((max) => {
+            const items = [];
+            const rows = Array.from(document.querySelectorAll('table tr'));
             
-            const response = await axios.get(searchUrl, {
-                headers: {
-                    'User-Agent': userAgent,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Connection': 'keep-alive',
-                },
-                timeout: 8000
-            });
+            // DDG Lite results are structured in groups of rows
+            // Row 1: Title & Link
+            // Row 2: Snippet
+            // Row 3: URL text
+            for (let i = 0; i < rows.length; i++) {
+                if (items.length >= max) break;
 
-            const $ = cheerio.load(response.data);
-            const results = [];
-
-            // Try multiple CSS selectors (Google changes these frequently)
-            const selectors = ['.g', '.tF2Cxc', 'div[data-sokoban-container]', '.v7W49e', '.MjjYud'];
-            
-            // Check for Featured Snippet (Instant Answer)
-            const featuredSnippet = $('.LGOjbe, .hgK6M, .Z0LcW, .kp-blk').first().text();
-            if (featuredSnippet) {
-                results.push({
-                    source: 'google-featured',
-                    title: 'Featured Snippet',
-                    link: searchUrl,
-                    snippet: featuredSnippet.trim()
-                });
-            }
-
-            for (const selector of selectors) {
-                $(selector).each((i, element) => {
-                    if (results.length >= maxResults) return false;
+                const linkEl = rows[i].querySelector('a.result-link');
+                if (linkEl) {
+                    const title = linkEl.innerText.trim();
+                    const link = linkEl.href;
                     
-                    const title = $(element).find('h3').first().text();
-                    const link = $(element).find('a').first().attr('href');
-                    const snippet = $(element).find('.VwiC3b').text() 
-                        || $(element).find('.st').text()
-                        || $(element).find('[data-sncf]').text()
-                        || $(element).find('.IsZvec').text()
-                        || '';
-
-                    if (title && link && link.startsWith('http')) {
-                        // Avoid duplicate links
-                        if (!results.some(r => r.link === link)) {
-                            results.push({
-                                source: 'google',
-                                title,
-                                link,
-                                snippet: snippet.trim().substring(0, 300)
-                            });
-                        }
+                    // The snippet is usually in the next row's .result-snippet
+                    let snippet = '';
+                    if (rows[i + 1] && rows[i + 1].querySelector('.result-snippet')) {
+                        snippet = rows[i + 1].querySelector('.result-snippet').innerText.trim();
                     }
-                });
 
-                if (results.length > 0) break; // Found results, stop trying selectors
+                    if (title && link) {
+                        items.push({
+                            source: 'web-search',
+                            title: title,
+                            link: link,
+                            snippet: snippet.substring(0, 300)
+                        });
+                        // Skip the next two rows as we've already processed them (snippet and URL)
+                        i += 2;
+                    }
+                }
             }
+            return items;
+        }, maxResults);
 
-            if (results.length > 0) {
-                console.log(`[google] Found ${results.length} results (attempt ${attempt})`);
-                return results;
-            }
-            
-            console.warn(`[google] No results found with selectors (attempt ${attempt})`);
-        } catch (error) {
-            console.error(`[google] Attempt ${attempt} failed:`, error.message);
-            if (attempt < attempts) {
-                await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
-            }
-        }
+        console.log(`[search-scraper] ✅ Found ${results.length} results.`);
+        return results;
+
+    } catch (error) {
+        console.error(`[search-scraper] ❌ Error:`, error.message);
+        return [];
+    } finally {
+        if (browser) await browser.close();
     }
-
-    return [];
 }
 
 module.exports = { scrapeGoogle };

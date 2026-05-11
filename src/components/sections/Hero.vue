@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { Facebook, Instagram, Mail, ArrowRight } from 'lucide-vue-next'
 import heroImage from '../../assets/profile.png'
 
+const emit = defineEmits(['navigate'])
+
 const title = "IT Graduate & Tech Enthusiast"
 const description = "Crafting high-performance digital experiences with modern web technologies. Specializing in full-stack development and user-centric design."
 
@@ -67,7 +69,7 @@ const stats = [
 
           <!-- CTA & Socials -->
           <div class="flex flex-col sm:flex-row items-center gap-6 pt-4">
-            <button class="group relative px-8 py-4 w-full sm:w-auto font-black uppercase tracking-widest text-xs text-white overflow-hidden rounded-2xl bg-blue-600 shadow-2xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
+            <button @click="emit('navigate', 'projects')" class="group relative px-8 py-4 w-full sm:w-auto font-black uppercase tracking-widest text-xs text-white overflow-hidden rounded-2xl bg-blue-600 shadow-2xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
               <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 transition-transform duration-500 group-hover:scale-110"></div>
               <span class="relative flex items-center justify-center gap-3">
                 Explore Projects <ArrowRight :size="16" class="group-hover:translate-x-1 transition-transform" />

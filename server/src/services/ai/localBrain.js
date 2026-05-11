@@ -98,13 +98,18 @@ const intents = [
     },
     {
         name: 'pricing',
-        keywords: ['rate', 'pricing', 'how much', 'cost', 'charge', 'salary', 'compensation'],
+        keywords: ['freelance rate', 'pricing', 'how much do you charge', 'cost to hire', 'hourly rate', 'salary expectation', 'compensation', 'freelance project'],
         handler: handlePricing,
     },
     {
         name: 'small_talk',
         keywords: ['how are you', 'hows it going', 'how do you do', 'whats up'],
         handler: handleSmallTalk,
+    },
+    {
+        name: 'laugh',
+        keywords: ['haha', 'hehe', 'lol', 'lmao', 'rofl', 'hihi'],
+        handler: handleLaugh,
     },
 ];
 
@@ -125,12 +130,26 @@ function classifyIntent(query) {
                 continue;
             }
 
-            // Fuzzy: check if all words of the keyword exist in query
+            // Fuzzy: check if all words of the keyword exist in query (with typo support)
             const kwWords = kw.split(' ');
             const queryWords = normalizedQuery.split(/\s+/);
+            
             const allWordsMatch = kwWords.every(w => 
-                queryWords.some(qw => qw === w || (qw.length > 3 && qw.includes(w)) || (w.length > 3 && w.includes(qw)))
+                queryWords.some(qw => {
+                    // Exact match
+                    if (qw === w) return true;
+                    // Substring match (e.g. project vs projects)
+                    if (qw.length > 3 && (qw.includes(w) || w.includes(qw))) return true;
+                    // True Typo match (Levenshtein distance)
+                    if (w.length > 3 && qw.length > 3) {
+                        const distance = getEditDistance(w, qw);
+                        // Allow 1 typo for words 4-5 chars, 2 typos for 6+ chars
+                        return distance <= (w.length > 5 ? 2 : 1);
+                    }
+                    return false;
+                })
             );
+
             if (allWordsMatch && kwWords.length > 1) {
                 score += kw.length;
             }
@@ -268,9 +287,48 @@ function handleSmallTalk() {
     ]);
 }
 
+function handleLaugh() {
+    return pickRandom([
+        "Haha! Glad you're having fun. Let me know if you need any serious info! 😄",
+        "Lol! I may be just an AI, but I appreciate a good laugh. 🤖",
+        "Hehe! What's so funny? Ask me a question if you're ready to get back to business!"
+    ]);
+}
+
 // ─── Utility ──────────────────────────────────────────────────
 function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Levenshtein Distance for typo detection
+function getEditDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    Math.min(
+                        matrix[i][j - 1] + 1, // insertion
+                        matrix[i - 1][j] + 1  // deletion
+                    )
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
 }
 
 // ─── Main Export ──────────────────────────────────────────────

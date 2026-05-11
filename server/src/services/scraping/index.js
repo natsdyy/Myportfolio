@@ -45,7 +45,7 @@ function detectQueryType(query) {
     }
 
     // Shopping / products
-    if (/\b(price|cost|buy|cheap|expensive|shop|shopee|lazada|amazon|product|deal|discount)\b/.test(q)) {
+    if (/\b(how much|price|cost|buy|cheap|expensive|shop|shopee|lazada|amazon|product|deal|discount)\b/.test(q)) {
         return 'shopping';
     }
 
@@ -103,8 +103,34 @@ async function searchMultipleSources(query, queryType = null) {
     const tasks = [];
 
     if (sourcesToUse.includes('google')) {
+        let googleQuery = query;
+        
+        // ── SHOPPING INTENT OVERRIDE ──
+        if (type === 'shopping') {
+            let item = query.toLowerCase()
+                .replace(/how much is (a|an|the)?\s*/g, '')
+                .replace(/what is the price of (a|an|the)?\s*/g, '')
+                .replace(/price of (a|an|the)?\s*/g, '')
+                .replace(/cost of (a|an|the)?\s*/g, '')
+                .replace(/how much does (a|an|the)?\s*/g, '')
+                .replace(/how much/g, '')
+                .replace(/ cost/g, '')
+                .replace(/ price/g, '')
+                .replace(/[^a-zA-Z0-9 ]/g, '') // Remove punctuation
+                .trim();
+            
+            const platforms = [];
+            if (!item.includes('shopee')) platforms.push('site:shopee.ph');
+            if (!item.includes('lazada')) platforms.push('site:lazada.com.ph');
+            if (!item.includes('amazon')) platforms.push('site:amazon.com');
+            
+            const siteModifiers = platforms.length > 0 ? platforms.join(' OR ') : '';
+            googleQuery = `${item} price ${siteModifiers}`.trim();
+            console.log(`[scraper-manager] 🛒 Modified shopping query: "${googleQuery}"`);
+        }
+
         tasks.push(
-            scrapeGoogle(query)
+            scrapeGoogle(googleQuery)
                 .then(results => ({ source: 'google', results }))
                 .catch(() => ({ source: 'google', results: [] }))
         );
