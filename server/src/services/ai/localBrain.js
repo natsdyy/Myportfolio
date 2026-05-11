@@ -48,8 +48,13 @@ const intents = [
     },
     {
         name: 'experience',
-        keywords: ['experience', 'years', 'how long', 'career', 'background', 'education', 'degree', 'graduate', 'school', 'university', 'qualification', 'resume', 'cv'],
+        keywords: ['experience', 'years', 'how long', 'career', 'background', 'education', 'degree', 'graduate', 'school', 'university', 'qualification'],
         handler: handleExperience,
+    },
+    {
+        name: 'resume',
+        keywords: ['resume', 'cv', 'curriculum vitae', 'download resume', 'view resume'],
+        handler: handleResume,
     },
     {
         name: 'availability',
@@ -58,7 +63,7 @@ const intents = [
     },
     {
         name: 'location',
-        keywords: ['where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone'],
+        keywords: ['where are you from', 'where are you', 'where do you live', 'where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone'],
         handler: handleLocation,
     },
     {
@@ -174,7 +179,7 @@ function handleProjects() {
         `- **${p.name}** — ${p.description} ([Live Link](${p.link}))`
     ).join('\n');
 
-    return `Charles has developed **${owner.totalProjects}** diverse applications. Here is a look at his featured work:\n\n${projectList}\n\n*If you want to know the tech stack for a specific project, just ask me by its name!*`;
+    return `Charles has developed **${owner.totalProjects}** diverse applications (including 7+ private/undeployed projects). Here is a look at his featured live work:\n\n${projectList}\n\n*If you want to know the tech stack for a specific project, just ask me by its name!*`;
 }
 
 function handleSpecificProject(query) {
@@ -193,7 +198,11 @@ function handleContact() {
 }
 
 function handleExperience() {
-    return `**Professional Background for ${owner.name}:**\n\n- 🎓 **Education**: ${owner.education}\n- ⏱️ **Experience**: ${owner.yearsExperience} years of full-stack engineering\n- 💼 **Portfolio**: ${owner.totalProjects} successful projects deployed\n- 📍 **Location**: ${owner.location}\n\nCharles specializes in building responsive user interfaces and robust, real-time backend systems. His work ranges from scalable real estate platforms to high-performance competitive matching engines.`;
+    return `**Professional Background for ${owner.name}:**\n\n- 🎓 **Education**: ${owner.education}\n- ⏱️ **Experience**: ${owner.yearsExperience} years of full-stack engineering\n- 💼 **Portfolio**: ${owner.totalProjects} projects developed\n- 📍 **Location**: ${owner.location}\n\nCharles specializes in building responsive user interfaces and robust, real-time backend systems. His work ranges from scalable real estate platforms to high-performance competitive matching engines.`;
+}
+
+function handleResume() {
+    return `You can preview or download my full Resume/CV directly through the portfolio! Click the link below to open it:\n\n- 📄 [**View / Download Resume**](#resume)\n\n*If you have any specific questions about my experience or background, feel free to ask!*`;
 }
 
 function handleAvailability() {
@@ -201,7 +210,7 @@ function handleAvailability() {
 }
 
 function handleLocation() {
-    return `Charles is based in **${owner.location}** 📍\n\n🕐 Timezone: GMT+8 (Philippine Standard Time)\n🌐 Open to remote work worldwide\n🏢 Also open to on-site in Metro Manila & Cavite area`;
+    return `I am from **Dasmariñas City, Cavite**! 📍\n\nHere are a few details regarding my location and availability:\n\n- 🕐 **Timezone**: GMT+8 (Philippine Standard Time)\n- 🌐 **Remote Capabilities**: Fully equipped and open to collaborating with teams worldwide\n- 🏢 **On-Site Work**: Available for opportunities within Metro Manila and the Cavite area\n\n*Feel free to reach out through the Contact page regardless of your timezone!*`;
 }
 
 function handleThanks() {

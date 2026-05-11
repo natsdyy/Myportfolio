@@ -12,6 +12,7 @@ import UserDashboard from './components/common/UserDashboard.vue'
 import ChatWidget from './components/common/chat/ChatWidget.vue'
 import NotFound from './components/common/error/NotFound.vue'
 import ServerError from './components/common/error/ServerError.vue'
+import ResumeModal from './components/common/ResumeModal.vue'
 
 const currentPage = ref('home')
 const currentUser = ref(null)
@@ -65,6 +66,7 @@ const handleAuthSuccess = (account) => {
     
     <Footer @navigate="navigateTo" />
     <ChatWidget />
+    <ResumeModal />
   </div>
 </template>
 

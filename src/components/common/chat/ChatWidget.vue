@@ -4,6 +4,9 @@ import { MessageSquare, X, Send, Loader2, Search, Sparkles, Trash2 } from 'lucid
 import axios from 'axios'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { useResumeModal } from '../../../composables/useResumeModal'
+
+const { openModal } = useResumeModal()
 
 const isOpen = ref(false)
 const query = ref('')
@@ -60,6 +63,14 @@ const usePrompt = (prompt) => {
 const renderMarkdown = (text) => {
   const rawHtml = marked.parse(text)
   return DOMPurify.sanitize(rawHtml)
+}
+
+const handleMarkdownClick = (e) => {
+  const target = e.target.closest('a')
+  if (target && target.getAttribute('href') === '#resume') {
+    e.preventDefault()
+    openModal()
+  }
 }
 
 const sendMessage = async () => {
@@ -151,7 +162,7 @@ const sendMessage = async () => {
               ]"
             >
               <div v-if="msg.role === 'user'" class="whitespace-pre-wrap">{{ msg.content }}</div>
-              <div v-else class="markdown-body text-sm leading-relaxed" v-html="renderMarkdown(msg.content)"></div>
+              <div v-else class="markdown-body text-sm leading-relaxed" v-html="renderMarkdown(msg.content)" @click="handleMarkdownClick"></div>
               
               <!-- Source Tags -->
               <div v-if="msg.sources && msg.sources.length" class="mt-3 pt-3 border-t border-main/10 flex flex-wrap gap-2">
