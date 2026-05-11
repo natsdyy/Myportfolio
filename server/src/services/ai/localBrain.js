@@ -26,13 +26,13 @@ const intents = [
     {
         name: 'greeting',
         priority: 1,
-        keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'sup', 'yo', 'howdy', 'greetings', 'hola'],
+        keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'sup', 'yo', 'howdy', 'greetings', 'hola', 'kumusta', 'musta', 'ano na', 'hoy', 'magandang umaga', 'magandang hapon', 'magandang gabi'],
         handler: handleGreeting,
     },
     {
         name: 'small_talk',
         priority: 2,
-        keywords: ['how are you', 'hows it going', 'how do you do', 'whats up', 'what\'s up', 'how\'s it going'],
+        keywords: ['how are you', 'hows it going', 'how do you do', 'whats up', 'what\'s up', 'how\'s it going', 'kumusta ka', 'musta ka', 'ayos ka lang', 'anong balita'],
         handler: handleSmallTalk,
     },
     {
@@ -92,19 +92,19 @@ const intents = [
     {
         name: 'location',
         priority: 1,
-        keywords: ['where are you from', 'where are you', 'where do you live', 'where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone'],
+        keywords: ['where are you from', 'where are you', 'where do you live', 'where is he', 'location', 'based', 'where does he live', 'country', 'city', 'philippines', 'cavite', 'timezone', 'taga saan ka', 'saan ka galing', 'nasaan ka', 'nasaan si charles'],
         handler: handleLocation,
     },
     {
         name: 'thanks',
         priority: 2,
-        keywords: ['thanks', 'thank you', 'appreciate', 'helpful', 'awesome', 'nice work', 'cool', 'good job', 'amazing', 'wonderful', 'great job'],
+        keywords: ['thanks', 'thank you', 'appreciate', 'helpful', 'awesome', 'nice work', 'cool', 'good job', 'amazing', 'wonderful', 'great job', 'salamat', 'maraming salamat', 'thank you po', 'tenkyu'],
         handler: handleThanks,
     },
     {
         name: 'goodbye',
         priority: 1,
-        keywords: ['bye', 'goodbye', 'see you', 'later', 'take care', 'gtg', 'gotta go', 'cya', 'peace', 'im out'],
+        keywords: ['bye', 'goodbye', 'see you', 'later', 'take care', 'gtg', 'gotta go', 'cya', 'peace', 'im out', 'paalam', 'alis na ako', 'ingat'],
         handler: handleGoodbye,
     },
     {
@@ -148,6 +148,12 @@ const intents = [
         priority: 1,
         keywords: ['paano ako yayaman', 'yayaman', 'get rich', 'how to be rich', 'pautang', 'perang marami'],
         handler: handleWealth,
+    },
+    {
+        name: 'chatter',
+        priority: 3,
+        keywords: ['ok', 'okay', 'wow', 'cool', 'nice', 'i see', 'ah', 'oh', 'astig', 'lodi', 'petmalu'],
+        handler: handleChatter,
     },
 ];
 
@@ -277,6 +283,13 @@ function classifyIntent(query) {
 // All handlers receive (query, ctx) for future extensibility.
 
 function handleGreeting(query, ctx) {
+    const q = query.toLowerCase();
+    
+    // Friendly Talk - Tagalog
+    if (q.includes('kumusta') || q.includes('musta') || q.includes('magandang')) {
+        return `Tagalog: "Kumusta?" in English "How are you? / Hello!"\n\nHey! Ako ang AI ni Charles. 👋 Masaya akong makita ka dito! Ano ang maipaglilingkod ko?`;
+    }
+
     const greetings = [
         `Hey! I'm **${botIdentity.name}**, Charles' personal AI assistant. 👋 I'm here to help you explore his work, skills, and experience. What can I help you find today?`,
         `Hello! Welcome to Charles' portfolio. 🚀 I have full access to his project history and technical background. How can I assist you?`,
@@ -344,10 +357,24 @@ function handleAvailability(query, ctx) {
 }
 
 function handleLocation(query, ctx) {
+    const q = query.toLowerCase();
+
+    // Friendly Talk - Tagalog (User Sample)
+    if (q.includes('taga saan ka') || q.includes('saan ka galing')) {
+        return `Tagalog: “Saan ka galing?” o “Taga saan ka?” in english "Where are you from?"\n\nBilang AI, wala akong pisikal na lugar—pero ginawa ako ni Charles. Ikaw, taga saan ka?`;
+    }
+
     return `Charles is based in **Dasmariñas City, Cavite**! 📍\n\n- 🕐 **Timezone**: GMT+8 (Philippine Standard Time)\n- 🌐 **Remote Capabilities**: Fully equipped and open to collaborating with teams worldwide\n- 🏢 **On-Site Work**: Available for opportunities within Metro Manila and the Cavite area\n\n*Feel free to reach out regardless of your timezone!*`;
 }
 
 function handleThanks(query, ctx) {
+    const q = query.toLowerCase();
+
+    // Friendly Talk - Tagalog
+    if (q.includes('salamat') || q.includes('tenkyu')) {
+        return `Tagalog: "Salamat" in English "Thank you"\n\nWalang anuman! Masaya akong makatulong. Sabihan mo lang ako kung may kailangan ka pa! 😊`;
+    }
+
     return pickRandom([
         "You're welcome! Let me know if there's anything else. 😊",
         "Happy to help! Feel free to explore the portfolio or ask more questions.",
@@ -356,6 +383,13 @@ function handleThanks(query, ctx) {
 }
 
 function handleGoodbye(query, ctx) {
+    const q = query.toLowerCase();
+
+    // Friendly Talk - Tagalog
+    if (q.includes('paalam') || q.includes('ingat') || q.includes('alis')) {
+        return `Tagalog: "Paalam / Ingat" in English "Goodbye / Take care"\n\nSige, paalam! Maraming salamat sa pagbisita. Ingat ka palagi! 👋`;
+    }
+
     return pickRandom([
         "See you later! Thanks for visiting Charles' portfolio. 👋",
         "Goodbye! If you're interested in working with Charles, hit that Contact button! 😊",
@@ -395,6 +429,13 @@ function handlePricing(query, ctx) {
 }
 
 function handleSmallTalk(query, ctx) {
+    const q = query.toLowerCase();
+
+    // Friendly Talk - Tagalog
+    if (q.includes('kumusta ka') || q.includes('musta ka') || q.includes('ayos ka lang')) {
+        return `Tagalog: "Kumusta ka?" in English "How are you?"\n\nAyos naman ako! Kasalukuyang nag-aabang ng iyong mga katanungan. Ikaw, kumusta ang araw mo? 🚀`;
+    }
+
     return pickRandom([
         "I'm doing great, thanks for asking! Just hanging out in the server, processing data. How can I help you? 🤖",
         "All systems go! Ready to answer your questions or search the web. What's on your mind?",
@@ -412,6 +453,28 @@ function handleLaugh(query, ctx) {
 
 function handleWealth(query, ctx) {
     return `Naku, ito lang ang sikreto: **Magtrabaho ka, magsipag ka, at mag-hustling ka** para umasenso tayo sa buhay! 💪✨\n\nTsaka nga pala... pautang naman ng 500, babayaran ko na lang sa katapusan. Salamat!`;
+}
+
+function handleChatter(query, ctx) {
+    const q = query.toLowerCase();
+    
+    // Tagalog Reactions
+    if (q.includes('astig') || q.includes('lodi') || q.includes('petmalu')) {
+        return "Salamat! Charles designed me to be as helpful (and 'astig') as possible. 😉";
+    }
+
+    const reactions = [
+        "Got it! What else would you like to know?",
+        "I see! Feel free to ask more questions about Charles' work.",
+        "Cool! I'm here if you need anything else.",
+        "Nice! Anything else on your mind?",
+        "Interesting! What can I help you explore next?",
+    ];
+    return pickRandom(reactions);
+}
+
+function handleUnknownSimpleWord(query) {
+    return `I'm still learning the meaning of "${query}"! 😅 Charles is constantly updating my "brain." Is that a technical term, a greeting, or something else?`;
 }
 
 // ─── Utility ──────────────────────────────────────────────────
@@ -435,8 +498,19 @@ function tryLocalAnswer(query) {
     const results = classifyIntent(query);
 
     if (!results.length) {
-        console.log('[localBrain] No intent matched — will search the web.');
-        console.log(`[localBrain] Query: "${query}"`);
+        console.log('[localBrain] No intent matched.');
+        
+        // Smart Fallback: If it's a very short query (1-2 words), don't just search the web.
+        // Acknowledge it as a word the AI is still learning, UNLESS it looks like a definition/knowledge request.
+        const words = query.trim().split(/\s+/);
+        const isSearchPattern = /^(what|who|define|meaning|where|how|search|look up)\b/i.test(query);
+
+        if (words.length <= 2 && !isSearchPattern) {
+            console.log(`[localBrain] 🧠 Short unknown query detected: "${query}"`);
+            return handleUnknownSimpleWord(query);
+        }
+
+        console.log(`[localBrain] Query: "${query}" — will search the web.`);
         return null;
     }
 

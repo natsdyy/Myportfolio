@@ -58,7 +58,8 @@ async function processUserQuery(query, history = []) {
 
     if (hasResults) {
         console.log(`[agent] 📝 Synthesizing from ${searchData.resultCount} results...`);
-        finalAnswer = synthesizeAnswer(query, searchData.structured, queryType);
+        const rawAnswer = synthesizeAnswer(query, searchData.structured, queryType);
+        finalAnswer = wrapWithPersonality(rawAnswer, queryType, query);
     }
 
     if (!finalAnswer) {
@@ -276,6 +277,63 @@ function finalize(text) {
 function isDifferent(a, b) {
     if (!b || b.length < 40) return false;
     return a.substring(0, 80).toLowerCase() !== b.substring(0, 80).toLowerCase();
+}
+
+/**
+ * wrapWithPersonality
+ * 
+ * Adds a knowledgeable, human-like persona to the raw data.
+ * Makes the AI sound like it "knows all" as requested.
+ */
+function wrapWithPersonality(answer, type, query) {
+    if (!answer) return null;
+
+    const intros = {
+        definition: [
+            `I've analyzed the term "${query}" for you. Here is the official breakdown:`,
+            `Ah, "${query}"! That's a fascinating word. According to my linguistic database:`,
+            `Looking for the meaning of "${query}"? I've got you covered:`,
+            `My dictionary modules return the following for "${query}":`
+        ],
+        knowledge: [
+            `I've accessed my knowledge bank regarding "${query}". Here's the most accurate summary:`,
+            `Ah, "${query}"! I have a lot of data on that. Here is what you need to know:`,
+            `I've synthesized the latest information about "${query}" for you:`,
+            `Searching my core intelligence for "${query}"... Here is the breakdown:`
+        ],
+        shopping: [
+            `I've tracked down some pricing and availability for "${query}":`,
+            `Looking to get "${query}"? I've scanned the current retail landscape for you:`,
+            `I found some listings for "${query}"! Here's the deal:`
+        ],
+        opinion: [
+            `I've been scanning global discussions about "${query}". Here is the current consensus:`,
+            `People are talking about "${query}"! I've analyzed the latest threads for you:`,
+            `I've checked the discussion boards regarding "${query}". Here's what they're saying:`
+        ],
+        general: [
+            `I've performed a high-level scan for "${query}" and found this:`,
+            `Here is the intelligence I've gathered on "${query}":`,
+            `Synthesizing data for "${query}"... Here is what I found:`
+        ]
+    };
+
+    const outros = [
+        "I hope that clarifies things for you! Is there anything else you're curious about?",
+        "That's the most up-to-date info I have on file. What else can I find for you?",
+        "Fascinating stuff, isn't it? Let me know if you need more details!",
+        "I'm always here if you have more questions. What's next on your mind?",
+        "I've got plenty more data if you need it. Just ask!"
+    ];
+
+    const intro = pickRandom(intros[type] || intros.general);
+    const outro = pickRandom(outros);
+
+    return `${intro}\n\n${answer}\n\n${outro}`;
+}
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
 }
 
 module.exports = { processUserQuery };
