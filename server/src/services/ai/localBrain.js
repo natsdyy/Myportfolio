@@ -111,6 +111,11 @@ const intents = [
         keywords: ['haha', 'hehe', 'lol', 'lmao', 'rofl', 'hihi'],
         handler: handleLaugh,
     },
+    {
+        name: 'wealth',
+        keywords: ['paano ako yayaman', 'yayaman', 'get rich', 'how to be rich', 'pautang', 'perang marami'],
+        handler: handleWealth,
+    },
 ];
 
 // ─── Fuzzy Intent Classifier ─────────────────────────────────
@@ -252,6 +257,10 @@ function handleGoodbye() {
         "Goodbye! If you're interested in working with Charles, hit that Contact button! 😊",
         "Take care! Come back anytime — I'm always here. ✌️",
     ]);
+}
+
+function handleWealth() {
+   return `Naku, ito lang ang sikreto: **Magtrabaho ka, magsipag ka, at mag-hustling ka** para umasenso tayo sa buhay! 💪✨\n\nTsaka nga pala... pautang naman ng 500, babayaran ko na lang sa katapusan. Salamat!`;
 }
 
 function handleHelp() {
