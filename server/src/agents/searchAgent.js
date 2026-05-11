@@ -1,23 +1,34 @@
 const { searchMultipleSources, detectQueryType } = require('../services/scraping/index');
 const { tryLocalAnswer, detectLanguage } = require('../services/ai/localBrain');
+const { resolveFollowUp } = require('../services/ai/conversationContext');
 const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../services/supabase');
 
 /**
  * Search Agent v4 — Structured Synthesis (100% Local, No API)
  *
  * Flow:
- * 0. Check SUPABASE CACHE (long-term memory)
+ * 0a. CONTEXT RESOLUTION (detect follow-ups, enrich query with history)
+ * 0b. Check SUPABASE CACHE (long-term memory)
  * 1. Try LOCAL BRAIN (instant, hardcoded portfolio data)
  * 2. Try SUPABASE KNOWLEDGE (custom cloud-stored info)
  * 3. Try MULTI-SOURCE SCRAPING (Wikipedia, Reddit, Dictionary, Google)
  * 4. SYNTHESIZE from structured data (no string parsing, no regex hacks)
  * 5. LOG to Supabase for future learning
  */
-async function processUserQuery(query, history = []) {
+async function processUserQuery(rawQuery, history = []) {
+    let query = rawQuery;
     console.log(`\n[agent] ════════════════════════════════════`);
     console.log(`[agent] Processing: "${query}"`);
 
-    // ── Step 0: Supabase Cache ────────────────────────────
+    // ── Step 0a: Context Resolution ──────────────────────
+    // Detect if this is a follow-up and enrich the query with conversation context
+    const context = resolveFollowUp(query, history);
+    if (context.wasFollowUp) {
+        console.log(`[agent] 🔗 Follow-up detected! "${context.originalQuery}" → "${context.resolved}" (topic: ${context.topic})`);
+        query = context.resolved;
+    }
+
+    // ── Step 0b: Supabase Cache ──────────────────────────
     const cachedAnswer = await checkCachedAnswer(query);
     if (cachedAnswer) {
         console.log(`[agent] ✅ Remembered from memory`);
