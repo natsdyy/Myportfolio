@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { Mail, Phone, MapPin, Facebook, Instagram } from 'lucide-vue-next'
+import { Mail, Phone, Facebook } from 'lucide-vue-next'
 import { useGoogleAuth } from '../../composables/useGoogleAuth'
+import axios from 'axios'
 
 const { user, idToken, isAuthenticated, renderGoogleButton, signOut } = useGoogleAuth()
 const googleButtonRef = ref(null)
@@ -15,14 +16,71 @@ const contactInfo = [
   { icon: Facebook, label: 'Facebook', value: 'facebook.com/CharlesLouieAlvaran', link: 'https://www.facebook.com/CharlesLouieAlvaran/' }
 ]
 
+// Load reCAPTCHA
+onMounted(() => {
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+  if (siteKey) {
+    const script = document.createElement('script')
+    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`
+    script.async = true
+    script.defer = true
+    document.head.appendChild(script)
+  }
+})
+
 const handleSubmit = async (e) => {
   e.preventDefault()
+  if (!isAuthenticated.value) {
+    status.value.error = 'Please sign in with Google first.'
+    return
+  }
+
   status.value.loading = true
-  setTimeout(() => {
-    status.value.loading = false
+  status.value.error = ''
+  status.value.success = false
+
+  try {
+    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+    if (!siteKey) throw new Error('reCAPTCHA site key not configured')
+
+    // Get reCAPTCHA token
+    const recaptchaToken = await new Promise((resolve, reject) => {
+      if (!window.grecaptcha) {
+        reject(new Error('reCAPTCHA not loaded yet. Please wait.'))
+        return
+      }
+      window.grecaptcha.ready(async () => {
+        try {
+          const token = await window.grecaptcha.execute(siteKey, { action: 'submit' })
+          resolve(token)
+        } catch (err) {
+          reject(err)
+        }
+      })
+    })
+
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+    await axios.post(`${baseUrl}/api/contact`, {
+      idToken: idToken.value,
+      recaptchaToken,
+      subject: form.value.subject,
+      message: form.value.message
+    })
+
     status.value.success = true
     form.value = { subject: '', message: '' }
-  }, 1500)
+    
+    // Reset success after 5 seconds
+    setTimeout(() => {
+      status.value.success = false
+    }, 5000)
+    
+  } catch (err) {
+    console.error('Submission error:', err)
+    status.value.error = err.response?.data?.error || err.message || 'Failed to send message. Please try again.'
+  } finally {
+    status.value.loading = false
+  }
 }
 
 const initGoogleButton = async () => {
@@ -131,6 +189,10 @@ watch(isAuthenticated, (val) => { if (!val) initGoogleButton() })
                   required
                 ></textarea>
               </div>
+            </div>
+
+            <div v-if="status.error" class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-pulse">
+              {{ status.error }}
             </div>
 
             <button
