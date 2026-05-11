@@ -169,19 +169,19 @@ function classifyIntent(query) {
 
 function handleGreeting() {
     const greetings = [
-        `Hey there! 👋 I'm ${botIdentity.name}, Charles' AI assistant. Ask me about his projects, skills, or anything else — I can even search the web for you!`,
-        `Hello! Welcome to Charles' portfolio. I know his tech stack, projects, and background inside-out. What would you like to know?`,
-        `Hi! I'm here to help. I can answer questions about Charles, look up definitions, search Reddit, Wikipedia, and more. Fire away! 🚀`,
+        `Hey! I'm **${botIdentity.name}**, Charles' personal AI assistant. 👋 I'm here to help you explore his work, skills, and experience. What can I help you find today?`,
+        `Hello! Welcome to Charles' portfolio. 🚀 I have full access to his project history and technical background. How can I assist you?`,
+        `Hi there! I'm Charles' AI. I can answer questions about his tech stack, provide his resume, or even search the web for you. What's on your mind?`,
     ];
     return pickRandom(greetings);
 }
 
 function handleBotIdentity() {
-    return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using a custom JavaScript engine—without relying on any external AI libraries like OpenAI or LangChain.\n\nHere is what I am capable of:\n\n- Answering detailed questions about Charles' skills, past projects, and professional experience.\n- Searching **Google, Wikipedia, and Reddit** to provide live information from the web.\n- Looking up definitions from a real-time dictionary API.\n- Discussing various technology trends and topics.\n\n*Try asking me: "What is machine learning?" or "Tell me about Rentopia".*`;
+    return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using a custom JavaScript engine—no external AI libraries like OpenAI or LangChain required.\n\n**Capabilities:**\n- Detailed insights into Charles' skills and projects.\n- Live web searching (Web, Wikipedia, Reddit).\n- Real-time dictionary lookups.\n- Technical discussion and guidance.\n\n*Try asking: "What is his tech stack?" or "How much is a PS5?"*`;
 }
 
 function handleOwnerIdentity() {
-    return `**${owner.name}** is a highly driven ${owner.title} based in ${owner.location}.\n\n${owner.bio}\n\n📊 **Professional Overview:**\n\n- ⏱️ **Experience**: ${owner.yearsExperience} years of hands-on development\n- 🚀 **Projects Delivered**: ${owner.totalProjects} completed works\n- 🎓 **Education**: ${owner.education}\n- 🟢 **Current Status**: ${owner.status}`;
+    return `**${owner.name}** is a dedicated ${owner.title} based in **${owner.location}**. 📍\n\n${owner.bio}\n\n**Quick Highlights:**\n- ⏱️ **Experience**: ${owner.yearsExperience} years of development\n- 🚀 **Projects**: ${owner.totalProjects} applications developed\n- 🎓 **Education**: ${owner.education}\n- 🟢 **Status**: ${owner.status}`;
 }
 
 function handleSkills() {
@@ -190,15 +190,21 @@ function handleSkills() {
     const libs = skills.libraries.join(', ');
     const tools = skills.tools.join(', ');
 
-    return `Here is a comprehensive breakdown of Charles' technical stack:\n\n- 🎨 **Frontend Development**: ${fe}\n- ⚙️ **Backend Architecture**: ${be}\n- 📚 **Frameworks & Libraries**: ${libs}\n- 🛠️ **Development Tools**: ${tools}\n\n🔥 **Core Competencies:**\n\n${skills.highlights.map(h => `- ${h}`).join('\n')}`;
+    return `Charles has a diverse technical toolkit designed for modern web engineering:\n\n` +
+           `🎨 **Frontend**: ${fe}\n` +
+           `⚙️ **Backend**: ${be}\n` +
+           `📚 **Frameworks**: ${libs}\n` +
+           `🛠️ **Tools**: ${tools}\n\n` +
+           `**Key Competencies:**\n` +
+           `${skills.highlights.map(h => `✅ ${h}`).join('\n')}`;
 }
 
 function handleProjects() {
     const projectList = projects.map((p, i) => 
-        `- **${p.name}** — ${p.description} ([Live Link](${p.link}))`
-    ).join('\n');
+        `🚀 **${p.name}**\n${p.description}\n[View Project](${p.link})`
+    ).join('\n\n');
 
-    return `Charles has developed **${owner.totalProjects}** diverse applications (including 7+ private/undeployed projects). Here is a look at his featured live work:\n\n${projectList}\n\n*If you want to know the tech stack for a specific project, just ask me by its name!*`;
+    return `Charles has developed over **${owner.totalProjects}** applications, ranging from production-ready platforms to complex experimental systems. Here are some of his featured works:\n\n${projectList}\n\n*Tip: You can ask for more details about any project by name!*`;
 }
 
 function handleSpecificProject(query) {
@@ -213,11 +219,11 @@ function handleSpecificProject(query) {
 }
 
 function handleContact() {
-    return `I would love to connect with you! Here is how you can reach Charles directly:\n\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles' Profile](${owner.socials.facebook})\n- 📸 **Instagram**: [Charles' Instagram](${owner.socials.instagram})\n\nHe is currently **${owner.status}** and actively looking for new opportunities. Feel free to use the Contact form on this portfolio to send him a direct message! 🤝`;
+    return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nYou can also use the contact form at the bottom of the page to send a direct message!`;
 }
 
 function handleExperience() {
-    return `**Professional Background for ${owner.name}:**\n\n- 🎓 **Education**: ${owner.education}\n- ⏱️ **Experience**: ${owner.yearsExperience} years of full-stack engineering\n- 💼 **Portfolio**: ${owner.totalProjects} projects developed\n- 📍 **Location**: ${owner.location}\n\nCharles specializes in building responsive user interfaces and robust, real-time backend systems. His work ranges from scalable real estate platforms to high-performance competitive matching engines.`;
+    return `**Professional Background:**\n\nCharles specializes in building responsive user interfaces and high-performance backend systems. His expertise ranges from scalable real estate platforms to real-time competitive matching engines.\n\n**Core Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Active Years**: ${owner.yearsExperience} Years\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Location**: ${owner.location}`;
 }
 
 function handleResume() {

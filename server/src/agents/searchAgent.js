@@ -100,27 +100,39 @@ function formatSearchAnswer(query, searchData, queryType = 'general') {
     const { context, sources } = searchData;
     
     // Split context by the separator we used in scraper manager
-    const sections = context.split('===');
+    const sections = context.split('===').filter(s => s.trim().length > 0);
     
-    let introText = `I found some information regarding "**${query}**":`;
+    // Extract the very first result from the first section to use as a "Primary Answer"
+    const firstSection = sections[1] || "";
+    const resultsInFirstSection = firstSection.trim().split('\n\n');
+    const primaryAnswer = resultsInFirstSection[0] || "";
+    const otherResults = resultsInFirstSection.slice(1).join('\n\n');
+
+    let formatted = "";
+
     if (queryType === 'shopping') {
-        introText = `🛒 Here are the latest price checks and shopping listings for "**${query}**":`;
+        formatted += `### 🛍️ Price Summary for "${query}"\n${primaryAnswer}\n\n---\n\n`;
+        formatted += `**Additional Listings:**\n${otherResults}\n\n`;
+    } else {
+        formatted += `### 🔍 Key Insight\n${primaryAnswer}\n\n`;
+        if (otherResults || sections.length > 2) {
+            formatted += `---\n**Related Information:**\n\n`;
+            
+            // Process remaining sections
+            for (let i = 0; i < sections.length; i += 2) {
+                const header = sections[i].trim();
+                const content = sections[i+1]?.trim();
+                
+                // If it's the first section, we already used the first result, so skip it if needed
+                // But for simplicity, we can just list the sources
+                if (header && content) {
+                    formatted += `#### 📍 From ${header}\n${i === 0 ? otherResults : content}\n\n`;
+                }
+            }
+        }
     }
-    
-    let formatted = `${introText}\n\n`;
 
-    // Only take the first few relevant sections to avoid wall of text
-    const relevantSections = sections.filter(s => s.trim().length > 0).slice(0, 2);
-
-    relevantSections.forEach(section => {
-        const lines = section.trim().split('\n');
-        const header = lines[0].trim();
-        const content = lines.slice(1).join('\n').trim();
-        
-        formatted += `### 📍 From ${header}\n${content}\n\n`;
-    });
-
-    formatted += `*Note: I am running in Local Intelligence mode.*`;
+    formatted += `\n*Note: Synthesized from [${sources.join(', ')}] via Local Intelligence.*`;
 
     return formatted;
 }

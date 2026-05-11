@@ -176,25 +176,25 @@ async function searchMultipleSources(query, queryType = null) {
         totalResults += results.length;
 
         if (source === 'google') {
-            context += `\n\n=== GOOGLE SEARCH RESULTS ===\n`;
+            context += `\n\n=== WEB SEARCH RESULTS ===\n`;
             for (const r of results) {
-                context += `Title: ${r.title}\nSnippet: ${r.snippet}\nLink: ${r.link}\n\n`;
+                context += `[${r.title}](${r.link})\n${r.snippet}\n\n`;
             }
         }
 
         if (source === 'wikipedia') {
             context += `\n\n=== WIKIPEDIA ===\n`;
             for (const r of results) {
-                context += `Article: ${r.title}\n${r.extract}\nSource: ${r.link}\n\n`;
+                context += `**${r.title}**\n${r.extract}\n[View Article](${r.link})\n\n`;
             }
         }
 
         if (source === 'reddit') {
-            context += `\n\n=== REDDIT DISCUSSIONS ===\n`;
+            context += `\n\n=== COMMUNITY DISCUSSIONS (REDDIT) ===\n`;
             for (const r of results) {
-                context += `[${r.subreddit}] ${r.title} (Score: ${r.score}, ${r.comments} comments)\n`;
-                if (r.body) context += `${r.body.substring(0, 300)}\n`;
-                context += `Link: ${r.link}\n\n`;
+                context += `**[r/${r.subreddit}] ${r.title}**\n`;
+                if (r.body) context += `${r.body.substring(0, 250)}...\n`;
+                context += `[Join Discussion](${r.link})\n\n`;
             }
         }
 

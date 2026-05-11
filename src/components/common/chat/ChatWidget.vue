@@ -11,10 +11,39 @@ const { openModal } = useResumeModal()
 const isOpen = ref(false)
 const query = ref('')
 const isLoading = ref(false)
+const loadingMessage = ref('Thinking...')
 const defaultMessage = { role: 'assistant', content: "Hi! I'm Charles' personal AI. You can ask me about his tech stack, his projects, or I can even help you search for live info on the web. How can I help you today?" }
 const messages = ref([defaultMessage])
 const scrollContainer = ref(null)
 const textareaRef = ref(null)
+
+const loadingMessages = [
+  'Searching the web...',
+  'Analyzing sources...',
+  'Reading content...',
+  'Synthesizing answer...',
+  'Finalizing response...'
+]
+
+let loadingInterval = null
+
+function startLoading() {
+  isLoading.value = true
+  let index = 0
+  loadingMessage.value = loadingMessages[0]
+  loadingInterval = setInterval(() => {
+    index = (index + 1) % loadingMessages.length
+    loadingMessage.value = loadingMessages[index]
+  }, 1500)
+}
+
+function stopLoading() {
+  isLoading.value = false
+  if (loadingInterval) {
+    clearInterval(loadingInterval)
+    loadingInterval = null
+  }
+}
 
 const suggestedPrompts = [
   "What is your tech stack?",
@@ -79,7 +108,7 @@ const sendMessage = async () => {
   const userQuery = query.value
   messages.value.push({ role: 'user', content: userQuery })
   query.value = ''
-  isLoading.value = true
+  startLoading()
   scrollToBottom()
   
   if (textareaRef.value) {
@@ -105,7 +134,7 @@ const sendMessage = async () => {
       content: "I'm having a bit of trouble processing that right now. Could you try rephrasing your question?" 
     })
   } finally {
-    isLoading.value = false
+    stopLoading()
     scrollToBottom()
     nextTick(() => { if (textareaRef.value) textareaRef.value.focus() })
   }
@@ -174,9 +203,12 @@ const sendMessage = async () => {
           </div>
           
           <div v-if="isLoading" class="flex items-start">
-            <div class="bg-main/5 border border-main p-4 rounded-3xl rounded-tl-none flex items-center gap-2">
-              <Loader2 class="animate-spin text-blue-600" :size="16" />
-              <span class="text-xs text-muted font-bold tracking-widest uppercase italic">Thinking...</span>
+            <div class="bg-main/5 border border-main p-4 rounded-3xl rounded-tl-none flex items-center gap-3">
+              <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+              </div>
+              <span class="text-[10px] text-blue-600 font-black tracking-[0.2em] uppercase italic">{{ loadingMessage }}</span>
             </div>
           </div>
         </div>
