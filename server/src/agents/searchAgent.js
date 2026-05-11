@@ -111,7 +111,7 @@ function formatSearchAnswer(query, searchData) {
         const header = lines[0].trim();
         const content = lines.slice(1).join('\n').trim();
         
-        formatted += `📍 **From ${header}**\n${content}\n\n`;
+        formatted += `### 📍 From ${header}\n${content}\n\n`;
     });
 
     formatted += `*Note: I am running in Local Intelligence mode.*`;

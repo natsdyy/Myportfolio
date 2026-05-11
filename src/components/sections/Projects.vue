@@ -2,6 +2,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ExternalLink, ArrowLeft, ArrowRight } from 'lucide-vue-next'
 
+import vibebuildsImg from '../../assets/Vibebuilds.png'
+import dynboothImg from '../../assets/DynBooth.png'
+import ismeyeImg from '../../assets/ismeye.png'
+import altermatchImg from '../../assets/Altermatch.png'
+
 const projects = [
   {
     id: 1,
@@ -16,7 +21,7 @@ const projects = [
     title: "VibeBuilds",
     description: "A high-performance PC configuration platform and community hub for tech enthusiasts, featuring real-time component validation.",
     tags: ["React TS", "Node.js", "Libraries"],
-    image: "./src/assets/Vibebuilds.png",
+    image: vibebuildsImg,
     link: "https://www.vibebuilds.site"
   },
   {
@@ -24,7 +29,7 @@ const projects = [
     title: "Dynbooth",
     description: "Dynamic digital photo booth ecosystem with cloud-based asset management and real-time social sharing capabilities.",
     tags: ["React TS", "Node.js", "Firebase"],
-    image: "./src/assets/Dynbooth.png",
+    image: dynboothImg,
     link: "https://dynbooth.vercel.app"
   },
   {
@@ -32,7 +37,7 @@ const projects = [
     title: "Ismeye",
     description: "Innovative visual identity and social networking platform designed for seamless personal branding and professional networking.",
     tags: ["React TS", "Node.js", "Firebase"],
-    image: "./src/assets/Ismeye.png",
+    image: ismeyeImg,
     link: "https://www.ismeye.site"
   },
   {
@@ -40,7 +45,7 @@ const projects = [
     title: "Altermatch",
     description: "Advanced competitive matching engine utilizing real-time data synchronization for high-fidelity user interactions.",
     tags: ["React TS", "Supabase", "Turbo"],
-    image: "./src/assets/Altermatch.png",
+    image: altermatchImg,
     link: "https://altermatch.vercel.app"
   }
 ]

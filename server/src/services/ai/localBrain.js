@@ -86,6 +86,21 @@ const intents = [
         keywords: ['joke', 'funny', 'make me laugh', 'humor', 'tell me a joke', 'something funny'],
         handler: handleJoke,
     },
+    {
+        name: 'hobbies',
+        keywords: ['hobbies', 'free time', 'outside of work', 'fun', 'do for fun', 'interests'],
+        handler: handleHobbies,
+    },
+    {
+        name: 'pricing',
+        keywords: ['rate', 'pricing', 'how much', 'cost', 'charge', 'salary', 'compensation'],
+        handler: handlePricing,
+    },
+    {
+        name: 'small_talk',
+        keywords: ['how are you', 'hows it going', 'how do you do', 'whats up'],
+        handler: handleSmallTalk,
+    },
 ];
 
 // ─── Fuzzy Intent Classifier ─────────────────────────────────
@@ -109,7 +124,7 @@ function classifyIntent(query) {
             const kwWords = kw.split(' ');
             const queryWords = normalizedQuery.split(/\s+/);
             const allWordsMatch = kwWords.every(w => 
-                queryWords.some(qw => qw.includes(w) || w.includes(qw))
+                queryWords.some(qw => qw === w || (qw.length > 3 && qw.includes(w)) || (w.length > 3 && w.includes(qw)))
             );
             if (allWordsMatch && kwWords.length > 1) {
                 score += kw.length;
@@ -138,11 +153,11 @@ function handleGreeting() {
 }
 
 function handleBotIdentity() {
-    return `I'm **${botIdentity.name}** — ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using custom JavaScript — no external AI libraries!\n\nHere's what I can do:\n• Answer questions about Charles' skills, projects & experience\n• Search **Google, Wikipedia, and Reddit** for live info\n• Look up **word definitions** from a dictionary API\n• Have conversations about tech topics\n\nTry asking: *"What is machine learning?"* or *"Define eloquent"* or *"Tell me about Rentopia"*`;
+    return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using a custom JavaScript engine—without relying on any external AI libraries like OpenAI or LangChain.\n\nHere is what I am capable of:\n\n- Answering detailed questions about Charles' skills, past projects, and professional experience.\n- Searching **Google, Wikipedia, and Reddit** to provide live information from the web.\n- Looking up definitions from a real-time dictionary API.\n- Discussing various technology trends and topics.\n\n*Try asking me: "What is machine learning?" or "Tell me about Rentopia".*`;
 }
 
 function handleOwnerIdentity() {
-    return `**${owner.name}** is a ${owner.title} based in ${owner.location}.\n\n${owner.bio}\n\n📊 **Quick Stats:**\n• ${owner.yearsExperience} years of experience\n• ${owner.totalProjects} projects completed\n• Education: ${owner.education}\n• Status: 🟢 ${owner.status}`;
+    return `**${owner.name}** is a highly driven ${owner.title} based in ${owner.location}.\n\n${owner.bio}\n\n📊 **Professional Overview:**\n\n- ⏱️ **Experience**: ${owner.yearsExperience} years of hands-on development\n- 🚀 **Projects Delivered**: ${owner.totalProjects} completed works\n- 🎓 **Education**: ${owner.education}\n- 🟢 **Current Status**: ${owner.status}`;
 }
 
 function handleSkills() {
@@ -151,15 +166,15 @@ function handleSkills() {
     const libs = skills.libraries.join(', ');
     const tools = skills.tools.join(', ');
 
-    return `Here's Charles' full tech stack:\n\n🎨 **Frontend:** ${fe}\n⚙️ **Backend:** ${be}\n📚 **Libraries:** ${libs}\n🛠️ **Tools:** ${tools}\n\n**Key Strengths:**\n${skills.highlights.map(h => `• ${h}`).join('\n')}`;
+    return `Here is a comprehensive breakdown of Charles' technical stack:\n\n- 🎨 **Frontend Development**: ${fe}\n- ⚙️ **Backend Architecture**: ${be}\n- 📚 **Frameworks & Libraries**: ${libs}\n- 🛠️ **Development Tools**: ${tools}\n\n🔥 **Core Competencies:**\n\n${skills.highlights.map(h => `- ${h}`).join('\n')}`;
 }
 
 function handleProjects() {
     const projectList = projects.map((p, i) => 
-        `**${i + 1}. ${p.name}** — ${p.description}\n   🔗 ${p.link}`
-    ).join('\n\n');
+        `- **${p.name}** — ${p.description} ([Live Link](${p.link}))`
+    ).join('\n');
 
-    return `Charles has built **${owner.totalProjects}** projects. Here are his featured ones:\n\n${projectList}\n\nWant details on a specific project? Just ask by name!`;
+    return `Charles has developed **${owner.totalProjects}** diverse applications. Here is a look at his featured work:\n\n${projectList}\n\n*If you want to know the tech stack for a specific project, just ask me by its name!*`;
 }
 
 function handleSpecificProject(query) {
@@ -168,21 +183,21 @@ function handleSpecificProject(query) {
     
     if (project) {
         const techStack = project.tech.join(', ');
-        return `**${project.name}** 🚀\n\n${project.description}\n\n🛠️ **Tech Stack:** ${techStack}\n✨ **Highlights:** ${project.highlights}\n🔗 **Live:** ${project.link}`;
+        return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack Built With**: ${techStack}\n- ✨ **Key Highlights**: ${project.highlights}\n- 🔗 **Live Demo**: [Visit ${project.name}](${project.link})`;
     }
     return handleProjects();
 }
 
 function handleContact() {
-    return `You can reach Charles through:\n\n📧 **Email:** ${owner.email}\n📘 **Facebook:** ${owner.socials.facebook}\n📸 **Instagram:** ${owner.socials.instagram}\n\nOr use the **Contact** section on this portfolio. He's currently **${owner.status}** and would love to hear from you! 🤝`;
+    return `I would love to connect with you! Here is how you can reach Charles directly:\n\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles' Profile](${owner.socials.facebook})\n- 📸 **Instagram**: [Charles' Instagram](${owner.socials.instagram})\n\nHe is currently **${owner.status}** and actively looking for new opportunities. Feel free to use the Contact form on this portfolio to send him a direct message! 🤝`;
 }
 
 function handleExperience() {
-    return `**${owner.name}**\n\n🎓 **Education:** ${owner.education}\n⏱️ **Experience:** ${owner.yearsExperience} years of hands-on development\n💼 **Projects Completed:** ${owner.totalProjects}\n📍 **Location:** ${owner.location}\n\nHe's worked across the full stack — from responsive UIs to real-time backends — building everything from real estate platforms to competitive matching engines.`;
+    return `**Professional Background for ${owner.name}:**\n\n- 🎓 **Education**: ${owner.education}\n- ⏱️ **Experience**: ${owner.yearsExperience} years of full-stack engineering\n- 💼 **Portfolio**: ${owner.totalProjects} successful projects deployed\n- 📍 **Location**: ${owner.location}\n\nCharles specializes in building responsive user interfaces and robust, real-time backend systems. His work ranges from scalable real estate platforms to high-performance competitive matching engines.`;
 }
 
 function handleAvailability() {
-    return `Great news! Charles is currently **${owner.status}** 🟢\n\nHe's open to:\n• Full-time positions (remote or on-site)\n• Freelance projects\n• Contract work\n• Collaborative opportunities\n\nReach out at **${owner.email}** or use the Contact section!`;
+    return `Great news! Charles is currently **${owner.status}** 🟢.\n\nHe is actively open to discussing:\n\n- Full-time engineering positions (Remote or On-site)\n- Freelance web development projects\n- Contract-based software engineering\n- Exciting collaborative ventures\n\nYou can reach out directly via email at [${owner.email}](mailto:${owner.email}) or through the Contact section below!`;
 }
 
 function handleLocation() {
@@ -206,7 +221,7 @@ function handleGoodbye() {
 }
 
 function handleHelp() {
-    return `Here's what you can ask me:\n\n💡 **About Charles:**\n• "Who is Charles?" / "What's his tech stack?"\n• "Show me his projects" / "Tell me about Rentopia"\n• "Is he available for hire?" / "How to contact him?"\n\n🔍 **Web Search:**\n• "What is quantum computing?" (Wikipedia + Google)\n• "Best React frameworks 2024" (Reddit + Google)\n• "Define serendipity" (Dictionary)\n• "Latest tech news" (Google)\n\n💬 **Chat:**\n• Say hi, ask for a joke, or just have a conversation!`;
+    return `I am here to help you navigate Charles' portfolio and search the web. Here are a few things you can ask me:\n\n💡 **Portfolio & Experience**\n- *"Who is Charles?"* or *"What is his tech stack?"*\n- *"Show me his projects"* or *"Tell me about Rentopia"*\n- *"Is he available for hire?"* or *"How do I contact him?"*\n\n🔍 **Live Web Search**\n- *"What is quantum computing?"* (Searches Wikipedia & Google)\n- *"Best React frameworks in 2024"* (Searches Reddit)\n- *"Define serendipity"* (Searches Dictionary API)\n\nJust type your question below and I'll do my best to give you a smart answer!`;
 }
 
 function handleCompliment() {
@@ -226,6 +241,22 @@ function handleJoke() {
         "What's a programmer's favorite hangout? Foo Bar. 🍔",
     ];
     return pickRandom(jokes);
+}
+
+function handleHobbies() {
+    return `When Charles isn't coding, he's probably exploring new tech, gaming, or learning about the latest web development trends. He's always looking for ways to improve his craft! 🎮📚`;
+}
+
+function handlePricing() {
+    return `Charles's rates depend on the scope and complexity of the project. Whether it's a freelance gig, a contract, or a full-time role, he's open to discussion!\n\nReach out to him via the **Contact** page to get a quote. 💼`;
+}
+
+function handleSmallTalk() {
+    return pickRandom([
+        "I'm doing great, thanks for asking! Just hanging out in the server, processing data. How can I help you? 🤖",
+        "All systems go! Ready to answer your questions or search the web. What's on your mind?",
+        "I'm just a bunch of code, so I don't have feelings, but if I did, I'd say I'm feeling fantastic! 🚀"
+    ]);
 }
 
 // ─── Utility ──────────────────────────────────────────────────

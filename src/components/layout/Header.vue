@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Sun, Moon } from 'lucide-vue-next'
+import { Sun, Moon, X } from 'lucide-vue-next'
 import { useTheme } from '../../composables/useTheme'
 
 const props = defineProps({
@@ -120,11 +120,11 @@ onUnmounted(() => {
           <!-- Mobile Toggle -->
           <button 
             @click="toggleMobileMenu"
-            class="md:hidden flex flex-col gap-1.5 p-2 group cursor-pointer"
+            class="md:hidden h-10 w-10 flex flex-col items-center justify-center gap-1 rounded-xl border border-main bg-card-custom text-muted hover:text-blue-600 transition-all cursor-pointer"
           >
-            <span class="h-0.5 w-6 bg-slate-900 dark:bg-white transition-all" :class="isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''"></span>
-            <span class="h-0.5 w-6 bg-slate-900 dark:bg-white transition-all" :class="isMobileMenuOpen ? 'opacity-0' : ''"></span>
-            <span class="h-0.5 w-6 bg-slate-900 dark:bg-white transition-all" :class="isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''"></span>
+            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''"></span>
+            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? 'opacity-0' : ''"></span>
+            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''"></span>
           </button>
         </div>
       </div>
@@ -149,9 +149,9 @@ onUnmounted(() => {
 
           <button 
             @click="toggleMobileMenu"
-            class="absolute top-10 right-10 h-16 w-16 flex items-center justify-center rounded-full bg-card-custom text-main font-black cursor-pointer"
+            class="absolute top-8 right-8 h-12 w-12 flex items-center justify-center rounded-2xl bg-card-custom border border-main text-main transition-all hover:rotate-90 cursor-pointer"
           >
-            CLOSE
+            <X :size="24" />
           </button>
         </div>
       </div>

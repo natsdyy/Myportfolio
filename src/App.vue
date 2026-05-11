@@ -10,6 +10,8 @@ import Contact from './components/sections/Contact.vue'
 import Login from './components/common/Login.vue'
 import UserDashboard from './components/common/UserDashboard.vue'
 import ChatWidget from './components/common/chat/ChatWidget.vue'
+import NotFound from './components/common/error/NotFound.vue'
+import ServerError from './components/common/error/ServerError.vue'
 
 const currentPage = ref('home')
 const currentUser = ref(null)
@@ -42,6 +44,22 @@ const handleAuthSuccess = (account) => {
       <UserDashboard
         v-if="currentPage === 'dashboard'"
         :user="currentUser"
+      />
+
+      <!-- Error Pages -->
+      <NotFound 
+        v-if="currentPage === '404'" 
+        @navigate="navigateTo" 
+      />
+      <ServerError 
+        v-if="currentPage === '500'" 
+        @navigate="navigateTo" 
+      />
+
+      <!-- Fallback for unknown pages (404) -->
+      <NotFound 
+        v-if="!['home', 'about', 'projects', 'skills', 'contact', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
+        @navigate="navigateTo" 
       />
     </main>
     
