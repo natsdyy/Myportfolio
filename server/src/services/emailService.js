@@ -122,7 +122,7 @@ const sendContactEmailViaResend = async ({ fromEmail, fromName, subject, message
       <div style="background-color: #ffffff; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
         <p style="color: #94a3b8; font-size: 12px; margin: 0;">
           <span style="font-size: 14px;">🔗</span> This message was sent from your portfolio contact form at 
-          <a href="${process.env.VITE_API_BASE_URL || 'https://cladev.up.railway.app'}" style="color: #3b82f6; text-decoration: none;">${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</a>
+          <a href="${process.env.VITE_API_BASE_URL || 'https://cladev.vercel.app'}" style="color: #3b82f6; text-decoration: none;">${process.env.VITE_API_BASE_URL || 'cladev.vercel.app'}</a>
         </p>
         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
           <p style="color: #cbd5e1; font-size: 11px; margin: 0;">✨ Powered by Resend</p>
@@ -143,7 +143,7 @@ ${subject ? `📋 Subject: ${subject}\n` : ''}
 ${message}
 
 ---
-🔗 This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}
+🔗 This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.vercel.app'}
 ✨ Powered by Resend
   `.trim();
 
@@ -257,7 +257,7 @@ const sendContactEmail = async ({ fromEmail, fromName, subject, message }) => {
           <p style="color: #4b5563; white-space: pre-wrap; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.up.railway.app'}</p>
+          <p>This message was sent from your portfolio contact form at ${process.env.VITE_API_BASE_URL || 'cladev.vercel.app'}</p>
         </div>
       </div>
     `,

@@ -13,6 +13,6 @@ export default defineConfig({
     }
   },
   preview: {
-    allowedHosts: ['cladev.up.railway.app'],
+    allowedHosts: ['myportfolio-production-0a5b.up.railway.app'],
   },
 })
