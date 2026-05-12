@@ -6,7 +6,7 @@ import vibebuildsImg from '../../assets/Vibebuilds.png'
 import dynboothImg from '../../assets/DynBooth.png'
 import ismeyeImg from '../../assets/ismeye.png'
 import altermatchImg from '../../assets/Altermatch.png'
-import CountrysideImg from '../../assets/countryside.png'
+import CountrysideImg from '../../assets/Countryside.png'
 
 const projects = [
   {
