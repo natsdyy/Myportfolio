@@ -13,6 +13,7 @@
  */
 
 const { owner, skills, projects, botIdentity } = require('../../data/knowledgeBase');
+const { generateSmartSummary } = require('./conversationContext');
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -610,35 +611,19 @@ function handleChatter(query, ctx) {
 
 function handleUnknownSimpleWord(query) {
     const lang = detectLanguage(query);
+    // Rule 7: Ask clarifying questions instead of guessing
     if (lang === 'tl') {
-        return `Pinag-aaralan ko pa ang ibig sabihin ng "${query}"! 😅 Lagi akong ina-update ni Charles. Ano nga uli ang ibig sabihin niyan?`;
+        return `Hindi ako sigurado kung ano ang ibig mong sabihin sa "${query}" — tungkol ba ito kay Charles, isang tech topic, o ibang bagay? Paki-clarify lang para matulungan kita nang maayos! 😊`;
     }
-    return `I'm still learning the meaning of "${query}"! 😅 Charles is constantly updating my "brain." Is that a technical term, a greeting, or something else?`;
+    return `I want to make sure I help you correctly — when you say "${query}", are you asking about Charles' work, a tech topic, or something else entirely? Just a quick clarification and I'll get you the best answer! 😊`;
 }
 
 function handleSummary(query, ctx) {
     const lang = detectLanguage(query);
     const history = ctx.history || [];
     
-    if (history.length === 0) {
-        if (lang === 'tl') return `Wala pa tayong napapag-usapan! Ano ang gusto mong malaman?`;
-        return `We haven't talked about anything yet! What would you like to know?`;
-    }
-
-    // Grab the last 10 user queries
-    const recentQueries = history
-        .filter(msg => msg.role === 'user')
-        .slice(-10)
-        .map(msg => `"${msg.content}"`);
-    
-    // Deduplicate simple ones
-    const uniqueTopics = [...new Set(recentQueries)];
-    
-    if (lang === 'tl') {
-        return `**Narito ang buod ng ating pag-uusap:**\n\nNatanong mo na ako tungkol sa:\n- ${uniqueTopics.join('\n- ')}\n\nAno ang susunod na gusto mong pag-usapan?`;
-    }
-    
-    return `**Here is a recap of our conversation:**\n\nYou recently asked me about:\n- ${uniqueTopics.join('\n- ')}\n\nWhat would you like to dive into next?`;
+    // Rule 5: Use intelligent grouped summary instead of raw query list
+    return generateSmartSummary(history, lang);
 }
 
 // ─── Utility ──────────────────────────────────────────────────
@@ -708,16 +693,43 @@ function evaluateMath(expr, query) {
 function detectSentiment(query) {
     const q = query.toLowerCase();
     
-    if (/\b(angry|frustrated|annoyed|stupid|bad|hate|ugh|nonsense|useless|terrible|wrong|mali|bobo|tanga|panget|nakakainis|walang kwenta)\b/i.test(q)) {
+    // Expanded to 8 emotional states for deeper persona intelligence
+    // Priority: specific emotions match first
+    
+    if (/\b(angry|furious|ridiculous|stupid|idiot|dumb|trash|garbage|worst|terrible|awful|horrible|sucks|useless|waste|scam|pathetic|bobo|tanga|gago|panget|basura|walang kwenta|punyeta)\b/i.test(q)) {
+        return 'angry';
+    }
+    
+    if (/\b(sad|depressed|lonely|miss|crying|cry|heartbroken|lost|grief|mourning|pain|hurts|suffering|hopeless|helpless|malungkot|lungkot|nalulungkot|masakit|nakakalungkot)\b/i.test(q)) {
+        return 'sad';
+    }
+    
+    if (/\b(stressed|overwhelmed|pressure|deadline|burned out|burnout|exhausted|tired|drained|anxiety|anxious|panic|worried|sobrang pagod|di ko na kaya|nakakapagod|pressured)\b/i.test(q)) {
+        return 'stressed';
+    }
+    
+    if (/\b(frustrated|annoyed|ugh|come on|not working|broken|wrong|bad|doesn't work|can't|won't|fail|stuck|impossible|nakakainis|ayaw|hindi gumagana|mali|nakakabwisit|hay nako)\b/i.test(q)) {
         return 'frustrated';
     }
     
-    if (/\b(happy|great|love|awesome|amazing|fantastic|excellent|good|best|wow|salamat|galing|astig|husay|nice|cool)\b/i.test(q)) {
-        return 'happy';
+    if (/\b(confused|don't understand|what do you mean|unclear|lost|makes no sense|huh|help me understand|naguguluhan|di ko gets|ano daw|di ko maintindihan)\b/i.test(q)) {
+        return 'confused';
     }
     
-    if (/\b(confused|don't understand|what do you mean|help|lost|how|why|bakit|paano|ano daw|di ko gets|naguguluhan)\b/i.test(q)) {
-        return 'confused';
+    if (/\b(curious|wondering|interested|tell me more|how does|what if|is it true|fascinated|intrigued|nagtataka|gusto kong malaman|interesante)\b/i.test(q)) {
+        return 'curious';
+    }
+    
+    if (/\b(thanks|thank you|appreciate|grateful|helpful|you're the best|lifesaver|saved me|perfect answer|salamat|maraming salamat|tenkyu|salamuch|naiappreciate)\b/i.test(q)) {
+        return 'grateful';
+    }
+    
+    if (/\b(excited|amazing|awesome|incredible|fantastic|love it|perfect|brilliant|genius|wow|omg|can't wait|thrilled|mind blown|sobrang galing|grabeng|ang husay|lupet|petmalu|sheesh)\b/i.test(q)) {
+        return 'excited';
+    }
+    
+    if (/\b(happy|great|good|nice|cool|love|wonderful|sweet|yay|excellent|best|masaya|maganda|ayos|saya|galing|astig|husay)\b/i.test(q)) {
+        return 'happy';
     }
     
     return 'neutral';

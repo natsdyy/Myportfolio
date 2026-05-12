@@ -1,19 +1,23 @@
 const { searchMultipleSources, detectQueryType } = require('../services/scraping/index');
-const { tryLocalAnswer, detectLanguage, detectSentiment } = require('../services/ai/localBrain');
-const { resolveFollowUp } = require('../services/ai/conversationContext');
+const { tryLocalAnswer, classifyIntent, detectLanguage, detectSentiment } = require('../services/ai/localBrain');
+const { resolveFollowUp, buildConversationProfile } = require('../services/ai/conversationContext');
+const { applyPersona, shouldClarify, analyzeTone } = require('../services/ai/personaEngine');
 const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../services/supabase');
 
 /**
- * Search Agent v4 — Structured Synthesis (100% Local, No API)
+ * Search Agent v5 — Persona-Enhanced Intelligence (100% Local, No API)
  *
  * Flow:
  * 0a. CONTEXT RESOLUTION (detect follow-ups, enrich query with history)
- * 0b. Check SUPABASE CACHE (long-term memory)
- * 1. Try LOCAL BRAIN (instant, hardcoded portfolio data)
- * 2. Try SUPABASE KNOWLEDGE (custom cloud-stored info)
- * 3. Try MULTI-SOURCE SCRAPING (Wikipedia, Reddit, Dictionary, Google)
- * 4. SYNTHESIZE from structured data (no string parsing, no regex hacks)
- * 5. LOG to Supabase for future learning
+ * 0b. BUILD CONVERSATION PROFILE (topics, mood, entities, turn count)
+ * 0c. Check SUPABASE CACHE (long-term memory)
+ * 1. CLARIFICATION CHECK (Rule 7 — ask before assuming)
+ * 2. Try LOCAL BRAIN (instant, hardcoded portfolio data)
+ * 3. Try SUPABASE KNOWLEDGE (custom cloud-stored info)
+ * 4. Try MULTI-SOURCE SCRAPING (Wikipedia, Reddit, Dictionary, Google)
+ * 5. SYNTHESIZE from structured data
+ * 6. APPLY PERSONA ENGINE (all 20 behavioral rules)
+ * 7. LOG to Supabase for future learning
  */
 async function processUserQuery(rawQuery, history = []) {
     let query = rawQuery;
@@ -21,50 +25,65 @@ async function processUserQuery(rawQuery, history = []) {
     console.log(`[agent] Processing: "${query}"`);
 
     // ── Step 0a: Context Resolution ──────────────────────
-    // Detect if this is a follow-up and enrich the query with conversation context
     const context = resolveFollowUp(query, history);
     if (context.wasFollowUp) {
         console.log(`[agent] 🔗 Follow-up detected! "${context.originalQuery}" → "${context.resolved}" (topic: ${context.topic})`);
         query = context.resolved;
     }
 
-    // ── Step 0b: Supabase Cache ──────────────────────────
+    // ── Step 0b: Build Conversation Profile ──────────────
+    const profile = buildConversationProfile(history);
+    console.log(`[agent] 👤 Profile: ${profile.turnCount} turns | mood: ${profile.userMood} | topics: [${profile.topicsDiscussed.slice(0, 3).join(', ')}]`);
+
+    // ── Step 0c: Supabase Cache ──────────────────────────
     const cachedAnswer = await checkCachedAnswer(query);
     if (cachedAnswer) {
         console.log(`[agent] ✅ Remembered from memory`);
-        return { answer: cachedAnswer, searched: false, sources: ['Memory (Supabase)'], mode: 'memory' };
+        const finalCached = applyPersona(cachedAnswer, query, history, { intent: null, profile, mode: 'memory' });
+        return { answer: finalCached, searched: false, sources: ['Memory (Supabase)'], mode: 'memory' };
     }
 
-    // ── Step 1: Local Brain ───────────────────────────────
+    // ── Step 1: Clarification Check (Rule 7) ─────────────
+    const intentResults = classifyIntent(query);
+    const clarification = shouldClarify(query, intentResults, profile);
+    if (clarification) {
+        console.log(`[agent] ❓ Clarification needed for: "${query}"`);
+        await logChatMessage(query, clarification, ['clarification']);
+        return { answer: clarification, searched: false, sources: ['Clarification'], mode: 'local' };
+    }
+
+    // ── Step 2: Local Brain ───────────────────────────────
     const localAnswer = tryLocalAnswer(query, history);
     if (localAnswer) {
-        console.log(`[agent] ✅ Answered via Local Brain`);
-        
-        let finalLocalAnswer = localAnswer;
-        const sentiment = detectSentiment(rawQuery);
-        const lang = detectLanguage(query);
+        // Determine the matched intent name for proactive suggestions
+        const topIntent = intentResults.length > 0 ? intentResults[0].intent.name : null;
+        console.log(`[agent] ✅ Answered via Local Brain (intent: ${topIntent})`);
 
-        if (sentiment === 'frustrated') {
-            finalLocalAnswer = (lang === 'tl' ? "Naiintindihan ko na medyo nakakainis ito. " : "I completely understand how that can be frustrating. ") + finalLocalAnswer;
-        } else if (sentiment === 'happy') {
-            finalLocalAnswer = (lang === 'tl' ? "Ang saya naman! 🚀 " : "Awesome! 🚀 I'm glad you're feeling good. ") + finalLocalAnswer;
-        } else if (sentiment === 'confused') {
-            finalLocalAnswer = (lang === 'tl' ? "Huwag mag-alala, ipapaliwanag ko nang mas malinaw. " : "Don't worry, let's break this down simply. ") + finalLocalAnswer;
-        }
+        const finalLocalAnswer = applyPersona(localAnswer, rawQuery, history, {
+            intent: topIntent,
+            profile,
+            mode: 'local',
+            intentResults,
+        });
 
         await logChatMessage(query, finalLocalAnswer, ['local-brain']);
         return { answer: finalLocalAnswer, searched: false, sources: ['Local Brain'], mode: 'local' };
     }
 
-    // ── Step 2: Supabase Knowledge ────────────────────────
+    // ── Step 3: Supabase Knowledge ────────────────────────
     const supabaseContext = await getSupabaseContext(query);
     if (supabaseContext) {
         console.log(`[agent] ✅ Answered via Supabase`);
-        await logChatMessage(query, supabaseContext, ['supabase']);
-        return { answer: supabaseContext, searched: true, sources: ['Supabase DB'], mode: 'local' };
+        const finalSupabase = applyPersona(supabaseContext, rawQuery, history, {
+            intent: null,
+            profile,
+            mode: 'local',
+        });
+        await logChatMessage(query, finalSupabase, ['supabase']);
+        return { answer: finalSupabase, searched: true, sources: ['Supabase DB'], mode: 'local' };
     }
 
-    // ── Step 3: Multi-Source Scraping ─────────────────────
+    // ── Step 4: Multi-Source Scraping ─────────────────────
     console.log(`[agent] Searching multiple sources...`);
     const queryType = detectQueryType(query);
     let searchData = { context: '', structured: {}, sources: [], resultCount: 0 };
@@ -77,21 +96,36 @@ async function processUserQuery(rawQuery, history = []) {
 
     const hasResults = searchData.resultCount > 0;
 
-    // ── Step 4: Synthesize ────────────────────────────────
+    // ── Step 5: Synthesize ────────────────────────────────
     let finalAnswer = '';
 
     if (hasResults) {
         console.log(`[agent] 📝 Synthesizing from ${searchData.resultCount} results...`);
         const rawAnswer = synthesizeAnswer(query, searchData.structured, queryType);
-        const sentiment = detectSentiment(rawQuery);
-        finalAnswer = wrapWithPersonality(rawAnswer, queryType, query, history, sentiment);
+        if (rawAnswer) {
+            // ── Step 6: Apply Persona Engine ─────────────
+            finalAnswer = applyPersona(rawAnswer, rawQuery, history, {
+                intent: queryType,
+                profile,
+                mode: 'search',
+                intentResults,
+            });
+        }
     }
 
     if (!finalAnswer) {
-        finalAnswer = `I couldn't find specific details about "${query}" right now. I'm best at answering things about Charles' projects, tech topics, or word definitions — maybe try rephrasing?`;
+        const lang = detectLanguage(query);
+        const fallback = lang === 'tl'
+            ? `Hindi ko mahanap ang eksaktong detalye tungkol sa "${query}" ngayon. Mas magaling ako sa mga tanong tungkol sa projects ni Charles, tech topics, o kahulugan ng mga salita — subukan mong i-rephrase?`
+            : `I couldn't find specific details about "${query}" right now. I'm best at answering things about Charles' projects, tech topics, or word definitions — maybe try rephrasing?`;
+        finalAnswer = applyPersona(fallback, rawQuery, history, {
+            intent: null,
+            profile,
+            mode: 'local',
+        });
     }
 
-    // ── Step 5: Log ───────────────────────────────────────
+    // ── Step 7: Log ───────────────────────────────────────
     await logChatMessage(query, finalAnswer, searchData.sources);
 
     return {
@@ -329,115 +363,6 @@ function finalize(text) {
 function isDifferent(a, b) {
     if (!b || b.length < 40) return false;
     return a.substring(0, 80).toLowerCase() !== b.substring(0, 80).toLowerCase();
-}
-
-/**
- * wrapWithPersonality
- * 
- * Adds a knowledgeable, human-like persona to the raw data.
- * Adjusts tone based on sentiment and drops formal intros if history is long.
- */
-function wrapWithPersonality(answer, type, query, history = [], sentiment = 'neutral') {
-    if (!answer) return null;
-
-    const lang = detectLanguage(query);
-    const isLongConversation = history.length >= 4;
-
-    let intro = '';
-    
-    // 1. Handle Sentiment Overrides first
-    if (sentiment === 'frustrated') {
-        intro = lang === 'tl' 
-            ? "Naiintindihan ko na medyo nakakainis ito. Narito ang direktang sagot na makakatulong:" 
-            : "I completely understand how that can be frustrating. Let's get straight to the facts:";
-    } else if (sentiment === 'happy') {
-        intro = lang === 'tl' 
-            ? "Ang saya naman! 🚀 Narito ang nahanap ko para sa iyo:" 
-            : "Awesome! 🚀 I'm glad you're feeling good. Here's what I found for you:";
-    } else if (sentiment === 'confused') {
-        intro = lang === 'tl' 
-            ? "Huwag mag-alala, ipapaliwanag ko nang mas malinaw. Narito ang detalye:" 
-            : "Don't worry, let's break this down simply. Here is the information you need:";
-    } 
-    // 2. Handle Continuity (Short, natural intros for long conversations)
-    else if (isLongConversation) {
-        const shortIntros = lang === 'tl' ? [
-            "Kaugnay diyan:", "Narito:", "Siyanga pala,", "Ayon sa datos,"
-        ] : [
-            "Regarding that:", "Here you go:", "Also,", "Moving on to that,"
-        ];
-        intro = pickRandom(shortIntros);
-    } 
-    // 3. Default Formal Intros
-    else {
-        const intros = {
-            definition: lang === 'tl' ? [
-                `Ito ang nahanap ko para sa "${query}" sa aking linguistic database:`,
-                `Ah, "${query}"! Isang magandang salita. Narito ang ibig sabihin nito:`,
-                `Naghahanap ka ba ng kahulugan ng "${query}"? Ito ang detalye:`
-            ] : [
-                `I've analyzed the term "${query}" for you. Here is the official breakdown:`,
-                `Ah, "${query}"! That's a fascinating word. According to my linguistic database:`,
-                `Looking for the meaning of "${query}"? I've got you covered:`,
-                `My dictionary modules return the following for "${query}":`
-            ],
-            knowledge: lang === 'tl' ? [
-                `Ito ang mga impormasyong nahanap ko tungkol sa "${query}":`,
-                `Tungkol sa "${query}", narito ang summary ng aking kaalaman:`,
-                `Nag-access ako sa aking knowledge bank para sa "${query}":`
-            ] : [
-                `I've accessed my knowledge bank regarding "${query}". Here's the most accurate summary:`,
-                `Ah, "${query}"! I have a lot of data on that. Here is what you need to know:`,
-                `I've synthesized the latest information about "${query}" for you:`,
-                `Searching my core intelligence for "${query}"... Here is the breakdown:`
-            ],
-            shopping: lang === 'tl' ? [
-                `Nahanap ko ang mga presyo at detalye para sa "${query}":`,
-                `Gusto mo bang bumili ng "${query}"? Ito ang mga listings na nakita ko:`
-            ] : [
-                `I've tracked down some pricing and availability for "${query}":`,
-                `Looking to get "${query}"? I've scanned the current retail landscape for you:`,
-                `I found some listings for "${query}"! Here's the deal:`
-            ],
-            opinion: lang === 'tl' ? [
-                `Sinuri ko ang mga diskusyon tungkol sa "${query}". Ito ang sabi nila:`,
-                `Maraming nagsasalita tungkol sa "${query}". Narito ang consensus:`
-            ] : [
-                `I've been scanning global discussions about "${query}". Here is the current consensus:`,
-                `People are talking about "${query}"! I've analyzed the latest threads for you:`,
-                `I've checked the discussion boards regarding "${query}". Here's what they're saying:`
-            ],
-            general: lang === 'tl' ? [
-                `Nag-scan ako para sa "${query}" at ito ang nahanap ko:`,
-                `Narito ang intelligence na nakuha ko tungkol sa "${query}":`
-            ] : [
-                `I've performed a high-level scan for "${query}" and found this:`,
-                `Here is the intelligence I've gathered on "${query}":`,
-                `Synthesizing data for "${query}"... Here is what I found:`
-            ]
-        };
-        intro = pickRandom(intros[type] || intros.general);
-    }
-
-    // 4. Handle Outros
-    let outro = '';
-    if (!isLongConversation) {
-        const outros = lang === 'tl' ? [
-            "Sana ay nakatulong ito! May iba ka pa bang gustong itanong?",
-            "Iyan ang pinakabagong info na mayroon ako. Ano pa ang maihahanda ko para sa iyo?",
-            "Interesante, 'di ba? Sabihan mo lang ako kung kailangan mo pa ng detalye!",
-            "Lagi akong nandito para sumagot. Ano ang susunod nating pag-uusapan?"
-        ] : [
-            "I hope that clarifies things for you! Is there anything else you're curious about?",
-            "That's the most up-to-date info I have on file. What else can I find for you?",
-            "Fascinating stuff, isn't it? Let me know if you need more details!",
-            "I'm always here if you have more questions. What's next on your mind?",
-            "I've got plenty more data if you need it. Just ask!"
-        ];
-        outro = pickRandom(outros);
-    }
-
-    return `${intro}\n\n${answer}${outro ? '\n\n' + outro : ''}`;
 }
 
 function pickRandom(arr) {

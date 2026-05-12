@@ -108,6 +108,17 @@ const sendMessage = async () => {
   const userQuery = query.value
   messages.value.push({ role: 'user', content: userQuery })
   query.value = ''
+
+  // Mood-aware loading messages (Rule 2, 10)
+  const frustrationWords = /\b(frustrated|angry|annoyed|ugh|broken|wrong|bad|stupid|nakakainis|bobo|mali)\b/i
+  const confusedWords = /\b(confused|don't understand|help|lost|unclear|naguguluhan|di ko gets)\b/i
+
+  if (frustrationWords.test(userQuery)) {
+    loadingMessage.value = 'Let me help with that...'
+  } else if (confusedWords.test(userQuery)) {
+    loadingMessage.value = 'Breaking it down for you...'
+  }
+
   startLoading()
   scrollToBottom()
   
@@ -118,7 +129,7 @@ const sendMessage = async () => {
   try {
     const response = await axios.post('/api/ai/chat', {
       query: userQuery,
-      history: messages.value.slice(-5) // Send last 5 messages for context
+      history: messages.value.slice(-10) // Increased from 5 to 10 for deeper context (Rules 1, 3, 5, 6)
     })
 
     messages.value.push({ 
