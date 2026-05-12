@@ -47,7 +47,7 @@ function stopLoading() {
 
 const suggestedPrompts = [
   "What is your tech stack?",
-  "Tell me about Rentopia",
+  "Tell me about Countryside Steakhouse",
   "Are you available for hire?",
   "What is your latest project?"
 ]

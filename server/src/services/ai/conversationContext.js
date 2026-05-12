@@ -293,7 +293,7 @@ function buildConversationProfile(history) {
 
     // ── Entity Extraction (names, projects, tech) ─────────
     const knownEntities = [
-        'charles', 'rentopia', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch',
+        'charles', 'countryside steakhouse', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch',
         'react', 'vue', 'node', 'express', 'supabase', 'firebase', 'javascript', 'typescript',
         'tailwind', 'html', 'css', 'docker', 'git', 'figma', 'vite',
     ];

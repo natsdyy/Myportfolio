@@ -81,7 +81,7 @@ const intents = [
     {
         name: 'specific_project',
         priority: 0, // highest — very specific signals
-        keywords: ['rentopia', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch'],
+        keywords: ['countryside steakhouse', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch'],
         handler: handleSpecificProject,
     },
     {
@@ -514,9 +514,9 @@ function handleGoodbye(query, ctx) {
 function handleHelp(query, ctx) {
     const lang = detectLanguage(query);
     if (lang === 'tl') {
-        return `Narito ang mga pwede mong itanong:\n\n💡 **Portfolio & Karanasan**\n- *"Sino si Charles?"* o *"Ano ang tech stack niya?"*\n- *"Ipakita ang projects"* o *"Tungkol saan ang Rentopia?"*\n- *"Available ba siya?"* o *"Paano siya kontakin?"*\n\n🔍 **Live Web Search**\n- *"Ano ang quantum computing?"*\n- *"Best React frameworks in 2025"*\n\nMag-type lang sa ibaba at susubukan kong sagutin nang maayos!`;
+        return `Narito ang mga pwede mong itanong:\n\n💡 **Portfolio & Karanasan**\n- *"Sino si Charles?"* o *"Ano ang tech stack niya?"*\n- *"Ipakita ang projects"* o *"Tungkol saan ang Countryside Steakhouse?"*\n- *"Available ba siya?"* o *"Paano siya kontakin?"*\n\n🔍 **Live Web Search**\n- *"Ano ang quantum computing?"*\n- *"Best React frameworks in 2025"*\n\nMag-type lang sa ibaba at susubukan kong sagutin nang maayos!`;
     }
-    return `Here are a few things you can ask me:\n\n💡 **Portfolio & Experience**\n- *"Who is Charles?"* or *"What is his tech stack?"*\n- *"Show me his projects"* or *"Tell me about Rentopia"*\n- *"Is he available for hire?"* or *"How do I contact him?"*\n\n🔍 **Live Web Search**\n- *"What is quantum computing?"*\n- *"Best React frameworks in 2025"*\n- *"Define serendipity"*\n\nJust type your question below and I'll do my best to give you a smart answer!`;
+    return `Here are a few things you can ask me:\n\n💡 **Portfolio & Experience**\n- *"Who is Charles?"* or *"What is his tech stack?"*\n- *"Show me his projects"* or *"Tell me about Countryside Steakhouse"*\n- *"Is he available for hire?"* or *"How do I contact him?"*\n\n🔍 **Live Web Search**\n- *"What is quantum computing?"*\n- *"Best React frameworks in 2025"*\n- *"Define serendipity"*\n\nJust type your question below and I'll do my best to give you a smart answer!`;
 }
 
 function handleCompliment(query, ctx) {

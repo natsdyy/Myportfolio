@@ -45,8 +45,8 @@ async function test() {
         { role: 'assistant', content: 'Hi!' },
         { role: 'user', content: 'What is his tech stack?' },
         { role: 'assistant', content: 'React, Node...' },
-        { role: 'user', content: 'Tell me about Rentopia' },
-        { role: 'assistant', content: 'Rentopia is...' },
+        { role: 'user', content: 'Tell me about Countryside Steakhouse' },
+        { role: 'assistant', content: 'Countryside Steakhouse is...' },
     ];
     const r5 = await sa.processUserQuery('summarize our conversation', history);
     console.log('Answer:', r5.answer.substring(0, 400));

@@ -38,11 +38,11 @@ const skills = {
 
 const projects = [
     {
-        name: "Rentopia",
-        description: "A specialized real estate marketplace connecting academic communities with verified dormitory providers through secure booking flows.",
-        tech: ["PHP Native", "Firebase", "Real Estate"],
-        link: "https://www.rentopia.online",
-        highlights: "Secure booking system, verified providers, academic-focused marketplace.",
+        name: "Countryside Steakhouse",
+        description: "A comprehensive ERP system featuring specialized modules for finance, inventory, CRM, payroll, branches, POS, job hiring, and more.",
+        tech: ["ERP", "Management", "Business"],
+        link: "https://www.countryside-steakhouse.site/",
+        highlights: "Finance, Inventory, CRM, Payroll, Branches, POS, Job Hiring.",
     },
     {
         name: "VibeBuilds",

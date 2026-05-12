@@ -10,11 +10,11 @@ import altermatchImg from '../../assets/Altermatch.png'
 const projects = [
   {
     id: 1,
-    title: "Rentopia",
-    description: "A specialized real estate marketplace connecting academic communities with verified dormitory providers through secure booking flows.",
-    tags: ["PHP Native", "Firebase", "Real Estate"],
-    image: "https://www.rentopia.online/assets/img/aboutus.png",
-    link: "https://www.rentopia.online"
+    title: "Countryside Steakhouse",
+    description: "A comprehensive ERP system featuring specialized modules for finance, inventory, CRM, payroll, branches, POS, job hiring, and more.",
+    tags: ["ERP", "Management", "Business"],
+    image: "https://www.countryside-steakhouse.site/assets/img/aboutus.png",
+    link: "https://www.countryside-steakhouse.site/"
   },
   {
     id: 2,
