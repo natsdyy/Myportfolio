@@ -6,6 +6,7 @@ import vibebuildsImg from '../../assets/Vibebuilds.png'
 import dynboothImg from '../../assets/DynBooth.png'
 import ismeyeImg from '../../assets/ismeye.png'
 import altermatchImg from '../../assets/Altermatch.png'
+import CountrysideImg from '../../assets/countryside.png'
 
 const projects = [
   {
@@ -13,7 +14,7 @@ const projects = [
     title: "Countryside Steakhouse",
     description: "A comprehensive ERP system featuring specialized modules for finance, inventory, CRM, payroll, branches, POS, job hiring, and more.",
     tags: ["ERP", "Management", "Business"],
-    image: Countryside.png,
+    image: CountrysideImg,
     link: "https://www.countryside-steakhouse.site/"
   },
   {
