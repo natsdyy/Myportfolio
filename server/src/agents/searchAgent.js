@@ -1,5 +1,5 @@
 const { searchMultipleSources, detectQueryType } = require('../services/scraping/index');
-const { tryLocalAnswer, detectLanguage } = require('../services/ai/localBrain');
+const { tryLocalAnswer, detectLanguage, detectSentiment } = require('../services/ai/localBrain');
 const { resolveFollowUp } = require('../services/ai/conversationContext');
 const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../services/supabase');
 
@@ -36,11 +36,24 @@ async function processUserQuery(rawQuery, history = []) {
     }
 
     // ── Step 1: Local Brain ───────────────────────────────
-    const localAnswer = tryLocalAnswer(query);
+    const localAnswer = tryLocalAnswer(query, history);
     if (localAnswer) {
         console.log(`[agent] ✅ Answered via Local Brain`);
-        await logChatMessage(query, localAnswer, ['local-brain']);
-        return { answer: localAnswer, searched: false, sources: ['Local Brain'], mode: 'local' };
+        
+        let finalLocalAnswer = localAnswer;
+        const sentiment = detectSentiment(rawQuery);
+        const lang = detectLanguage(query);
+
+        if (sentiment === 'frustrated') {
+            finalLocalAnswer = (lang === 'tl' ? "Naiintindihan ko na medyo nakakainis ito. " : "I completely understand how that can be frustrating. ") + finalLocalAnswer;
+        } else if (sentiment === 'happy') {
+            finalLocalAnswer = (lang === 'tl' ? "Ang saya naman! 🚀 " : "Awesome! 🚀 I'm glad you're feeling good. ") + finalLocalAnswer;
+        } else if (sentiment === 'confused') {
+            finalLocalAnswer = (lang === 'tl' ? "Huwag mag-alala, ipapaliwanag ko nang mas malinaw. " : "Don't worry, let's break this down simply. ") + finalLocalAnswer;
+        }
+
+        await logChatMessage(query, finalLocalAnswer, ['local-brain']);
+        return { answer: finalLocalAnswer, searched: false, sources: ['Local Brain'], mode: 'local' };
     }
 
     // ── Step 2: Supabase Knowledge ────────────────────────
@@ -70,7 +83,8 @@ async function processUserQuery(rawQuery, history = []) {
     if (hasResults) {
         console.log(`[agent] 📝 Synthesizing from ${searchData.resultCount} results...`);
         const rawAnswer = synthesizeAnswer(query, searchData.structured, queryType);
-        finalAnswer = wrapWithPersonality(rawAnswer, queryType, query);
+        const sentiment = detectSentiment(rawQuery);
+        finalAnswer = wrapWithPersonality(rawAnswer, queryType, query, history, sentiment);
     }
 
     if (!finalAnswer) {
@@ -321,77 +335,109 @@ function isDifferent(a, b) {
  * wrapWithPersonality
  * 
  * Adds a knowledgeable, human-like persona to the raw data.
- * Makes the AI sound like it "knows all" as requested.
+ * Adjusts tone based on sentiment and drops formal intros if history is long.
  */
-function wrapWithPersonality(answer, type, query) {
+function wrapWithPersonality(answer, type, query, history = [], sentiment = 'neutral') {
     if (!answer) return null;
 
     const lang = detectLanguage(query);
+    const isLongConversation = history.length >= 4;
+
+    let intro = '';
     
-    const intros = {
-        definition: lang === 'tl' ? [
-            `Ito ang nahanap ko para sa "${query}" sa aking linguistic database:`,
-            `Ah, "${query}"! Isang magandang salita. Narito ang ibig sabihin nito:`,
-            `Naghahanap ka ba ng kahulugan ng "${query}"? Ito ang detalye:`
+    // 1. Handle Sentiment Overrides first
+    if (sentiment === 'frustrated') {
+        intro = lang === 'tl' 
+            ? "Naiintindihan ko na medyo nakakainis ito. Narito ang direktang sagot na makakatulong:" 
+            : "I completely understand how that can be frustrating. Let's get straight to the facts:";
+    } else if (sentiment === 'happy') {
+        intro = lang === 'tl' 
+            ? "Ang saya naman! 🚀 Narito ang nahanap ko para sa iyo:" 
+            : "Awesome! 🚀 I'm glad you're feeling good. Here's what I found for you:";
+    } else if (sentiment === 'confused') {
+        intro = lang === 'tl' 
+            ? "Huwag mag-alala, ipapaliwanag ko nang mas malinaw. Narito ang detalye:" 
+            : "Don't worry, let's break this down simply. Here is the information you need:";
+    } 
+    // 2. Handle Continuity (Short, natural intros for long conversations)
+    else if (isLongConversation) {
+        const shortIntros = lang === 'tl' ? [
+            "Kaugnay diyan:", "Narito:", "Siyanga pala,", "Ayon sa datos,"
         ] : [
-            `I've analyzed the term "${query}" for you. Here is the official breakdown:`,
-            `Ah, "${query}"! That's a fascinating word. According to my linguistic database:`,
-            `Looking for the meaning of "${query}"? I've got you covered:`,
-            `My dictionary modules return the following for "${query}":`
-        ],
-        knowledge: lang === 'tl' ? [
-            `Ito ang mga impormasyong nahanap ko tungkol sa "${query}":`,
-            `Tungkol sa "${query}", narito ang summary ng aking kaalaman:`,
-            `Nag-access ako sa aking knowledge bank para sa "${query}":`
-        ] : [
-            `I've accessed my knowledge bank regarding "${query}". Here's the most accurate summary:`,
-            `Ah, "${query}"! I have a lot of data on that. Here is what you need to know:`,
-            `I've synthesized the latest information about "${query}" for you:`,
-            `Searching my core intelligence for "${query}"... Here is the breakdown:`
-        ],
-        shopping: lang === 'tl' ? [
-            `Nahanap ko ang mga presyo at detalye para sa "${query}":`,
-            `Gusto mo bang bumili ng "${query}"? Ito ang mga listings na nakita ko:`
-        ] : [
-            `I've tracked down some pricing and availability for "${query}":`,
-            `Looking to get "${query}"? I've scanned the current retail landscape for you:`,
-            `I found some listings for "${query}"! Here's the deal:`
-        ],
-        opinion: lang === 'tl' ? [
-            `Sinuri ko ang mga diskusyon tungkol sa "${query}". Ito ang sabi nila:`,
-            `Maraming nagsasalita tungkol sa "${query}". Narito ang consensus:`
-        ] : [
-            `I've been scanning global discussions about "${query}". Here is the current consensus:`,
-            `People are talking about "${query}"! I've analyzed the latest threads for you:`,
-            `I've checked the discussion boards regarding "${query}". Here's what they're saying:`
-        ],
-        general: lang === 'tl' ? [
-            `Nag-scan ako para sa "${query}" at ito ang nahanap ko:`,
-            `Narito ang intelligence na nakuha ko tungkol sa "${query}":`
-        ] : [
-            `I've performed a high-level scan for "${query}" and found this:`,
-            `Here is the intelligence I've gathered on "${query}":`,
-            `Synthesizing data for "${query}"... Here is what I found:`
-        ]
-    };
+            "Regarding that:", "Here you go:", "Also,", "Moving on to that,"
+        ];
+        intro = pickRandom(shortIntros);
+    } 
+    // 3. Default Formal Intros
+    else {
+        const intros = {
+            definition: lang === 'tl' ? [
+                `Ito ang nahanap ko para sa "${query}" sa aking linguistic database:`,
+                `Ah, "${query}"! Isang magandang salita. Narito ang ibig sabihin nito:`,
+                `Naghahanap ka ba ng kahulugan ng "${query}"? Ito ang detalye:`
+            ] : [
+                `I've analyzed the term "${query}" for you. Here is the official breakdown:`,
+                `Ah, "${query}"! That's a fascinating word. According to my linguistic database:`,
+                `Looking for the meaning of "${query}"? I've got you covered:`,
+                `My dictionary modules return the following for "${query}":`
+            ],
+            knowledge: lang === 'tl' ? [
+                `Ito ang mga impormasyong nahanap ko tungkol sa "${query}":`,
+                `Tungkol sa "${query}", narito ang summary ng aking kaalaman:`,
+                `Nag-access ako sa aking knowledge bank para sa "${query}":`
+            ] : [
+                `I've accessed my knowledge bank regarding "${query}". Here's the most accurate summary:`,
+                `Ah, "${query}"! I have a lot of data on that. Here is what you need to know:`,
+                `I've synthesized the latest information about "${query}" for you:`,
+                `Searching my core intelligence for "${query}"... Here is the breakdown:`
+            ],
+            shopping: lang === 'tl' ? [
+                `Nahanap ko ang mga presyo at detalye para sa "${query}":`,
+                `Gusto mo bang bumili ng "${query}"? Ito ang mga listings na nakita ko:`
+            ] : [
+                `I've tracked down some pricing and availability for "${query}":`,
+                `Looking to get "${query}"? I've scanned the current retail landscape for you:`,
+                `I found some listings for "${query}"! Here's the deal:`
+            ],
+            opinion: lang === 'tl' ? [
+                `Sinuri ko ang mga diskusyon tungkol sa "${query}". Ito ang sabi nila:`,
+                `Maraming nagsasalita tungkol sa "${query}". Narito ang consensus:`
+            ] : [
+                `I've been scanning global discussions about "${query}". Here is the current consensus:`,
+                `People are talking about "${query}"! I've analyzed the latest threads for you:`,
+                `I've checked the discussion boards regarding "${query}". Here's what they're saying:`
+            ],
+            general: lang === 'tl' ? [
+                `Nag-scan ako para sa "${query}" at ito ang nahanap ko:`,
+                `Narito ang intelligence na nakuha ko tungkol sa "${query}":`
+            ] : [
+                `I've performed a high-level scan for "${query}" and found this:`,
+                `Here is the intelligence I've gathered on "${query}":`,
+                `Synthesizing data for "${query}"... Here is what I found:`
+            ]
+        };
+        intro = pickRandom(intros[type] || intros.general);
+    }
 
-    const outros = lang === 'tl' ? [
-        "Sana ay nakatulong ito! May iba ka pa bang gustong itanong?",
-        "Iyan ang pinakabagong info na mayroon ako. Ano pa ang maihahanda ko para sa iyo?",
-        "Interesante, 'di ba? Sabihan mo lang ako kung kailangan mo pa ng detalye!",
-        "Lagi akong nandito para sumagot. Ano ang susunod nating pag-uusapan?"
-    ] : [
-        "I hope that clarifies things for you! Is there anything else you're curious about?",
-        "That's the most up-to-date info I have on file. What else can I find for you?",
-        "Fascinating stuff, isn't it? Let me know if you need more details!",
-        "I'm always here if you have more questions. What's next on your mind?",
-        "I've got plenty more data if you need it. Just ask!"
-    ];
+    // 4. Handle Outros
+    let outro = '';
+    if (!isLongConversation) {
+        const outros = lang === 'tl' ? [
+            "Sana ay nakatulong ito! May iba ka pa bang gustong itanong?",
+            "Iyan ang pinakabagong info na mayroon ako. Ano pa ang maihahanda ko para sa iyo?",
+            "Interesante, 'di ba? Sabihan mo lang ako kung kailangan mo pa ng detalye!",
+            "Lagi akong nandito para sumagot. Ano ang susunod nating pag-uusapan?"
+        ] : [
+            "I hope that clarifies things for you! Is there anything else you're curious about?",
+            "That's the most up-to-date info I have on file. What else can I find for you?",
+            "Fascinating stuff, isn't it? Let me know if you need more details!",
+            "I'm always here if you have more questions. What's next on your mind?",
+            "I've got plenty more data if you need it. Just ask!"
+        ];
+        outro = pickRandom(outros);
+    }
 
-    const intro = pickRandom(intros[type] || intros.general);
-    const outro = pickRandom(outros);
-
-    return `${intro}\n\n${answer}\n\n${outro}`;
+    return `${intro}\n\n${answer}${outro ? '\n\n' + outro : ''}`;
 }
 
 function pickRandom(arr) {

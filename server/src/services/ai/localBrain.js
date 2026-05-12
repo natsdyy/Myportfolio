@@ -197,6 +197,15 @@ const intents = [
         keywords: ['ok', 'okay', 'wow', 'cool', 'nice', 'i see', 'ah', 'oh', 'astig', 'lodi', 'petmalu'],
         handler: handleChatter,
     },
+    {
+        name: 'summary',
+        priority: 1,
+        keywords: [
+            'summarize', 'summary', 'recap', 'what did we talk about', 'what were we talking about', 'remind me', 
+            'anong pinag usapan natin', 'paki summarize', 'anong topic natin'
+        ],
+        handler: handleSummary,
+    },
 ];
 
 // ─── Language Detection ──────────────────────────────────────
@@ -607,6 +616,31 @@ function handleUnknownSimpleWord(query) {
     return `I'm still learning the meaning of "${query}"! 😅 Charles is constantly updating my "brain." Is that a technical term, a greeting, or something else?`;
 }
 
+function handleSummary(query, ctx) {
+    const lang = detectLanguage(query);
+    const history = ctx.history || [];
+    
+    if (history.length === 0) {
+        if (lang === 'tl') return `Wala pa tayong napapag-usapan! Ano ang gusto mong malaman?`;
+        return `We haven't talked about anything yet! What would you like to know?`;
+    }
+
+    // Grab the last 10 user queries
+    const recentQueries = history
+        .filter(msg => msg.role === 'user')
+        .slice(-10)
+        .map(msg => `"${msg.content}"`);
+    
+    // Deduplicate simple ones
+    const uniqueTopics = [...new Set(recentQueries)];
+    
+    if (lang === 'tl') {
+        return `**Narito ang buod ng ating pag-uusap:**\n\nNatanong mo na ako tungkol sa:\n- ${uniqueTopics.join('\n- ')}\n\nAno ang susunod na gusto mong pag-usapan?`;
+    }
+    
+    return `**Here is a recap of our conversation:**\n\nYou recently asked me about:\n- ${uniqueTopics.join('\n- ')}\n\nWhat would you like to dive into next?`;
+}
+
 // ─── Utility ──────────────────────────────────────────────────
 
 function pickRandom(arr) {
@@ -669,6 +703,26 @@ function evaluateMath(expr, query) {
     return null;
 }
 
+// ─── Sentiment Analysis ───────────────────────────────────────
+
+function detectSentiment(query) {
+    const q = query.toLowerCase();
+    
+    if (/\b(angry|frustrated|annoyed|stupid|bad|hate|ugh|nonsense|useless|terrible|wrong|mali|bobo|tanga|panget|nakakainis|walang kwenta)\b/i.test(q)) {
+        return 'frustrated';
+    }
+    
+    if (/\b(happy|great|love|awesome|amazing|fantastic|excellent|good|best|wow|salamat|galing|astig|husay|nice|cool)\b/i.test(q)) {
+        return 'happy';
+    }
+    
+    if (/\b(confused|don't understand|what do you mean|help|lost|how|why|bakit|paano|ano daw|di ko gets|naguguluhan)\b/i.test(q)) {
+        return 'confused';
+    }
+    
+    return 'neutral';
+}
+
 // ─── Main Export ──────────────────────────────────────────────
 
 /**
@@ -680,7 +734,7 @@ function evaluateMath(expr, query) {
  * For compound queries (e.g. "skills and projects"), combines
  * all matched intents above threshold into a single response.
  */
-function tryLocalAnswer(query) {
+function tryLocalAnswer(query, history = []) {
     // ─── Try Math First ──────────────────────────────────────────
     const mathMatch = extractMathExpression(query);
     if (mathMatch) {
@@ -719,11 +773,11 @@ function tryLocalAnswer(query) {
 
     // For compound queries, join up to 2 responses
     const topResults = results.slice(0, 2);
-    const responses = topResults.map(r => r.intent.handler(query, {}));
+    const responses = topResults.map(r => r.intent.handler(query, { history }));
 
     return responses.length > 1
         ? responses.join('\n\n---\n\n')
         : responses[0];
 }
 
-module.exports = { tryLocalAnswer, classifyIntent, normalizeQuery, detectLanguage };
+module.exports = { tryLocalAnswer, classifyIntent, normalizeQuery, detectLanguage, detectSentiment };
