@@ -14,7 +14,7 @@ const { lookupWord, formatDefinition } = require('./dictionary');
 const SOURCE_ROUTES = {
     knowledge:  ['wikipedia', 'google'],
     opinion:    ['reddit', 'google'],
-    definition: ['dictionary'],
+    definition: ['dictionary', 'wikipedia', 'google'],
     shopping:   ['google'],
     news:       ['google'],
     general:    ['google', 'wikipedia'],
@@ -23,19 +23,19 @@ const SOURCE_ROUTES = {
 function detectQueryType(query) {
     const q = query.toLowerCase();
 
-    if (/\b(define|definition|meaning of|what does .+ mean|vocabulary|synonym|antonym|word meaning)\b/.test(q))
+    if (/\b(define|definition|meaning of|what does .+ mean|vocabulary|synonym|antonym|word meaning|ibig sabihin ng|ano meaning ng)\b/.test(q))
         return 'definition';
 
-    if (/\b(reddit|opinion|review|recommend|should i|worth it|best|worst|experience with|thoughts on)\b/.test(q))
+    if (/\b(reddit|opinion|review|recommend|should i|worth it|best|worst|experience with|thoughts on|anong masasabi|maganda ba|review ng)\b/.test(q))
         return 'opinion';
 
-    if (/\b(how much|price|cost|buy|cheap|expensive|shop|shopee|lazada|amazon|product|deal|discount)\b/.test(q))
+    if (/\b(how much|price|cost|buy|cheap|expensive|shop|shopee|lazada|amazon|product|deal|discount|magkano|presyo|saan makakabili)\b/.test(q))
         return 'shopping';
 
-    if (/\b(news|latest|today|breaking|current|happening|update|trending)\b/.test(q))
+    if (/\b(news|latest|today|breaking|current|happening|update|trending|balita|anong bago)\b/.test(q))
         return 'news';
 
-    if (/\b(what is|who is|who was|explain|how does|why does|tell me about|history of|science|theory)\b/.test(q))
+    if (/\b(what is|who is|who was|explain|how does|why does|tell me about|history of|science|theory|sino si|ano ang|sino ang|ano ba ang|tungkol kay|tungkol sa|sino ba si)\b/.test(q))
         return 'knowledge';
 
     return 'general';

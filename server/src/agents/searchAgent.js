@@ -114,36 +114,63 @@ function synthesizeAnswer(query, structured, queryType) {
 // ── Definition ────────────────────────────────────────────────
 
 function synthesizeDefinition(structured) {
+    let answer = '';
+    
+    // 1. Dictionary Result
     const dict = structured.dictionary?.[0];
-    if (!dict) return null;
+    if (dict) {
+        const word = dict.word || '';
+        const phonetic = dict.phonetic ? ` (${dict.phonetic})` : '';
+        const meanings = dict.meanings || [];
+        
+        if (meanings.length > 0) {
+            answer += `**${word}**${phonetic}\n\n`;
+            let shown = 0;
+            for (const meaning of meanings) {
+                if (shown >= 3) break;
+                const pos = meaning.partOfSpeech || '';
+                const defs = meaning.definitions || [];
+                if (defs.length === 0) continue;
 
-    const word = dict.word || '';
-    const phonetic = dict.phonetic ? ` (${dict.phonetic})` : '';
-    const meanings = dict.meanings || [];
-    if (meanings.length === 0) return null;
-
-    let answer = `**${word}**${phonetic}\n\n`;
-
-    let shown = 0;
-    for (const meaning of meanings) {
-        if (shown >= 3) break;
-        const pos = meaning.partOfSpeech || '';
-        const defs = meaning.definitions || [];
-        if (defs.length === 0) continue;
-
-        answer += `*${pos}*\n`;
-        answer += `${defs[0].definition}\n`;
-        if (defs[0].example) answer += `> "${defs[0].example}"\n`;
-        answer += '\n';
-        shown++;
+                answer += `*${pos}*\n`;
+                answer += `${defs[0].definition}\n`;
+                if (defs[0].example) answer += `> "${defs[0].example}"\n`;
+                answer += '\n';
+                shown++;
+            }
+            const synonyms = meanings[0]?.synonyms?.slice(0, 5) || [];
+            if (synonyms.length > 0) {
+                answer += `**Synonyms:** ${synonyms.join(', ')}\n\n`;
+            }
+        }
     }
 
-    const synonyms = meanings[0]?.synonyms?.slice(0, 5) || [];
-    if (synonyms.length > 0) {
-        answer += `**Synonyms:** ${synonyms.join(', ')}`;
+    // 2. Wikipedia (especially useful for concepts/names not in standard dictionaries)
+    const wiki = structured.wikipedia?.[0];
+    if (wiki?.extract) {
+        const wikiText = trimToSentence(wiki.extract, 300);
+        if (!answer) {
+            answer += `**${wiki.title}** (Wikipedia)\n\n${wikiText}\n\n`;
+        } else if (isDifferent(answer, wikiText)) {
+            answer += `**Additional Context (Wikipedia):**\n${wikiText}\n\n`;
+        }
     }
 
-    return answer.trim();
+    // 3. Google (for Merriam-Webster snippets, slang, or phrases)
+    const googleResults = structured.google || [];
+    const merriam = googleResults.find(r => r.link && r.link.includes('merriam-webster.com'));
+    const topSnippet = merriam || googleResults[0];
+
+    if (topSnippet?.snippet) {
+        const googleText = trimToSentence(topSnippet.snippet, 250);
+        if (!answer) {
+            answer += `**From the Web${merriam ? ' (Merriam-Webster)' : ''}:**\n${googleText}\n\n`;
+        } else if (isDifferent(answer, googleText)) {
+            answer += `**From the Web${merriam ? ' (Merriam-Webster)' : ''}:**\n${googleText}\n\n`;
+        }
+    }
+
+    return answer ? answer.trim() : null;
 }
 
 // ── Shopping ──────────────────────────────────────────────────

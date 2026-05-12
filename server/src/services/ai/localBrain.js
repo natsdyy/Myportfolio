@@ -267,7 +267,8 @@ function getEditDistance(a, b) {
 function wordMatchesQuery(word, queryWords) {
     return queryWords.some(qw => {
         if (qw === word) return true;
-        if (qw.length > 3 && (qw.includes(word) || word.includes(qw))) return true;
+        // Don't do substring matches for very short words to avoid false positives (e.g., "oh" in "john")
+        if (word.length > 3 && qw.length > 3 && (qw.includes(word) || word.includes(qw))) return true;
         if (word.length > 3 && qw.length > 3) {
             const dist = getEditDistance(word, qw);
             return dist <= (word.length > 5 ? 2 : 1);
@@ -287,17 +288,24 @@ function wordMatchesQuery(word, queryWords) {
 function scoreKeyword(kw, normalizedQuery, queryWords) {
     if (normalizedQuery === kw) return 10;
 
-    if (normalizedQuery.includes(kw)) {
-        const specificity = Math.min(kw.split(' ').length, 4);
-        return 5 + specificity;
-    }
-
     const kwWords = kw.split(' ');
+    
     if (kwWords.length > 1) {
+        // Multi-word phrase
+        if (normalizedQuery.includes(kw)) {
+            const specificity = Math.min(kwWords.length, 4);
+            return 5 + specificity;
+        }
+        
+        // Try word-by-word fuzzy match
         const allMatch = kwWords.every(w => wordMatchesQuery(w, queryWords));
         if (allMatch) return 3 + kwWords.length;
     } else {
-        if (wordMatchesQuery(kw, queryWords)) return 2;
+        // Single word keyword
+        if (queryWords.includes(kw)) {
+            return 6; // Exact single-word match
+        }
+        if (wordMatchesQuery(kw, queryWords)) return 2; // Fuzzy single-word match
     }
 
     return 0;
@@ -605,6 +613,62 @@ function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// ─── Math Evaluation ──────────────────────────────────────────
+
+function extractMathExpression(query) {
+    const isMathWord = /\b(calculate|compute|solve|math|equation)\b/i.test(query);
+    const exprRegex = /(?:[\d]+(?:\.\d+)?)\s*(?:[+\-*/^]|plus|minus|times|divided by)\s*(?:[\d]+(?:\.\d+)?|\()/i;
+    const directRegex = /^[.\d\s+\-*/^()]+$/;
+
+    if (isMathWord || exprRegex.test(query) || directRegex.test(query)) {
+        let clean = query.toLowerCase()
+            .replace(/what is|what's|calculate|compute|solve|the|value|of|math|equation|equals|equal|is/gi, '')
+            .replace(/plus/gi, '+')
+            .replace(/minus/gi, '-')
+            .replace(/times|multiplied by/gi, '*')
+            .replace(/divided by/gi, '/')
+            .trim();
+            
+        const matches = clean.match(/[.\d\s+\-*/^()]+/g);
+        if (matches) {
+            const mathOnly = matches.find(m => /\d/.test(m) && /[+\-*/^]/.test(m));
+            if (mathOnly) {
+                return mathOnly.trim();
+            }
+        }
+    }
+    return null;
+}
+
+function evaluateMath(expr, query) {
+    try {
+        let jsExpr = expr.replace(/\^/g, '**');
+        
+        // Remove trailing/leading operators before checking
+        jsExpr = jsExpr.replace(/^[+*/-]+|[+*/-]+$/g, '').trim();
+
+        if (/[^.\d\s+\-*/()**]/.test(jsExpr)) {
+            return null;
+        }
+        
+        const result = new Function('return (' + jsExpr + ')')();
+        
+        if (typeof result === 'number' && !isNaN(result)) {
+            const lang = detectLanguage(query);
+            // Format to 4 decimal places max if it's a float
+            const formattedResult = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
+            
+            if (lang === 'tl') {
+                return `Ang sagot sa **${expr.replace(/\*\*/g, '^')}** ay **${formattedResult}**. 🧮`;
+            }
+            return `The answer to **${expr.replace(/\*\*/g, '^')}** is **${formattedResult}**. 🧮`;
+        }
+    } catch (e) {
+        console.error("[localBrain] Math eval error:", e.message);
+    }
+    return null;
+}
+
 // ─── Main Export ──────────────────────────────────────────────
 
 /**
@@ -617,6 +681,16 @@ function pickRandom(arr) {
  * all matched intents above threshold into a single response.
  */
 function tryLocalAnswer(query) {
+    // ─── Try Math First ──────────────────────────────────────────
+    const mathMatch = extractMathExpression(query);
+    if (mathMatch) {
+        const mathAnswer = evaluateMath(mathMatch, query);
+        if (mathAnswer) {
+            console.log(`[localBrain] 🧮 Math evaluated: "${mathMatch}" -> Answered locally.`);
+            return mathAnswer;
+        }
+    }
+
     const results = classifyIntent(query);
 
     if (!results.length) {
