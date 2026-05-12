@@ -13,7 +13,7 @@ const projects = [
     title: "Countryside Steakhouse",
     description: "A comprehensive ERP system featuring specialized modules for finance, inventory, CRM, payroll, branches, POS, job hiring, and more.",
     tags: ["ERP", "Management", "Business"],
-    image: "https://www.countryside-steakhouse.site/assets/img/aboutus.png",
+    image: Countryside.png,
     link: "https://www.countryside-steakhouse.site/"
   },
   {
