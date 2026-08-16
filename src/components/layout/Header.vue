@@ -161,14 +161,14 @@ onUnmounted(() => {
     <!-- Mobile Menu Overlay -->
     <Transition name="fade">
       <div v-if="isMobileMenuOpen" class="fixed inset-0 z-[110] bg-app md:hidden">
-        <div class="flex flex-col h-full p-10 pt-32">
-          <div class="space-y-8">
+        <div class="flex flex-col h-full p-6 sm:p-10 pt-24 sm:pt-32">
+          <div class="space-y-5 sm:space-y-8">
             <button
               v-for="(item, index) in navItems"
               :key="item.id"
               @click="navigate(item.id)"
               :class="[
-                'block w-full text-left text-5xl font-black tracking-tighter transition-colors cursor-pointer',
+                'block w-full text-left text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter transition-colors cursor-pointer',
                 activeSection === item.id && props.currentPage === 'home'
                   ? 'text-blue-600'
                   : 'text-muted hover:text-blue-600'
@@ -182,7 +182,7 @@ onUnmounted(() => {
 
           <button 
             @click="toggleMobileMenu"
-            class="absolute top-8 right-8 h-12 w-12 flex items-center justify-center rounded-2xl bg-card-custom border border-main text-main transition-all hover:rotate-90 cursor-pointer"
+            class="absolute top-5 right-5 sm:top-8 sm:right-8 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-xl sm:rounded-2xl bg-card-custom border border-main text-main transition-all hover:rotate-90 cursor-pointer"
           >
             <X :size="24" />
           </button>

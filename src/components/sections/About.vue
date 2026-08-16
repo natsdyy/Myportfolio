@@ -19,16 +19,16 @@ const highlights = [
 </script>
 
 <template>
-  <section id="about" class="relative py-32 px-4 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="about" class="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Abstract background elements -->
     <div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[40rem] h-[40rem] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none"></div>
     <div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[30rem] h-[30rem] rounded-full bg-indigo-600/5 blur-[100px] pointer-events-none"></div>
 
     <div class="container-main relative mx-auto max-w-7xl">
-      <div class="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-12 lg:gap-20 items-start">
+      <div class="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-10 md:gap-12 lg:gap-20 items-start">
         
         <!-- Visual Side (Left) -->
-        <div class="relative hidden lg:flex justify-start w-full">
+        <div class="relative hidden md:flex justify-start w-full">
           <div class="relative w-full max-w-[32rem]">
             <div class="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-blue-600/20 to-indigo-600/20 opacity-50 blur-2xl transition-opacity duration-700"></div>
             <div class="relative z-10 rounded-[2.5rem] overflow-hidden border-2 border-slate-200 dark:border-slate-800 bg-card-custom p-2 shadow-2xl transition-transform duration-700 hover:rotate-1">
@@ -42,29 +42,29 @@ const highlights = [
         </div>
 
         <!-- Content Side (Right) -->
-        <div class="space-y-12 pt-4">
+        <div class="space-y-8 sm:space-y-10 lg:space-y-12 pt-0 md:pt-4">
           <div class="space-y-6">
             <div class="inline-flex items-center gap-3">
               <span class="h-px w-8 bg-blue-600"></span>
               <span class="text-xs font-black uppercase tracking-[0.4em] text-blue-600">About Me</span>
             </div>
 
-            <h2 class="text-5xl lg:text-7xl font-black text-main leading-[1] tracking-tighter">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-main leading-[1] tracking-tighter">
               Turning Ideas into <br />
               <span class="text-blue-600">Simple</span> Digital Solutions.
             </h2>
 
-            <p class="text-lg text-muted leading-relaxed font-medium max-w-xl">
+            <p class="text-sm sm:text-base lg:text-lg text-muted leading-relaxed font-medium max-w-xl">
               {{ aboutText }}
             </p>
           </div>
 
           <!-- Feature Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div
               v-for="(item, index) in highlights"
               :key="index"
-              class="group p-8 rounded-[2rem] bg-card-custom border border-main transition-all hover:-translate-y-1 hover:border-blue-600/30 hover:shadow-xl"
+              class="group p-5 sm:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] bg-card-custom border border-main transition-all hover:-translate-y-1 hover:border-blue-600/30 hover:shadow-xl"
             >
               <div class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/10 dark:bg-blue-600/20 border border-blue-600/10 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600">
                 <component :is="item.icon" :size="24" />

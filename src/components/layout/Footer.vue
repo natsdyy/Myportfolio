@@ -14,12 +14,12 @@ const scrollToTop = () => {
 </script>
 
 <template>
-  <footer class="relative py-20 px-4 bg-app border-t border-main transition-colors duration-500 overflow-hidden">
+  <footer class="relative py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-app border-t border-main transition-colors duration-500 overflow-hidden">
     <!-- Subtle Background Glow -->
     <div class="absolute top-0 right-0 w-[30rem] h-[30rem] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none"></div>
 
     <div class="container-main relative">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr] gap-16 items-start">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr] gap-10 sm:gap-12 lg:gap-16 items-start">
         <!-- Brand Side -->
         <div class="space-y-8">
           <div class="flex items-center gap-3">
@@ -63,7 +63,7 @@ const scrollToTop = () => {
         </div>
       </div>
 
-      <div class="mt-20 pt-10 border-t border-main flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div class="mt-12 sm:mt-16 lg:mt-20 pt-6 sm:pt-8 lg:pt-10 border-t border-main flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
         <p class="text-[10px] font-bold uppercase tracking-widest text-muted">
           © 2026 Charles Louie Alvaran. All Rights Reserved.
         </p>

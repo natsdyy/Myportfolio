@@ -129,29 +129,29 @@ const goToPage = (page) => {
 </script>
 
 <template>
-  <section id="projects" class="relative py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="projects" class="relative py-20 sm:py-24 lg:py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Background Accents -->
     <div class="absolute top-0 right-0 w-[50rem] h-[50rem] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
 
-    <div class="px-4 mb-16">
-      <div class="container-main flex flex-col xl:flex-row xl:items-center justify-between gap-6 w-full text-left">
+    <div class="px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12 lg:mb-16">
+      <div class="container-main flex flex-col gap-6 w-full text-left">
         <div class="space-y-3 text-left">
           <div class="inline-flex items-center gap-3">
             <span class="h-px w-8 bg-blue-600"></span>
             <span class="text-xs font-black uppercase tracking-[0.4em] text-blue-600">The Portfolio</span>
           </div>
-          <h2 class="text-4xl sm:text-5xl lg:text-6xl font-black text-main tracking-tighter leading-tight">
+          <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-main tracking-tighter leading-tight">
             Selected <span class="text-blue-600">Creations.</span>
           </h2>
         </div>
         
         <!-- Controls: Category Tabs on Left, Page Nav directly to its Right (Strictly Horizontal) -->
-        <div class="flex items-center gap-3 flex-nowrap">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <!-- Category Tabs Pill -->
-          <div class="flex items-center p-1.5 rounded-2xl bg-card-custom border border-main shadow-sm gap-1 flex-shrink-0">
+          <div class="flex items-center p-1.5 rounded-2xl bg-card-custom border border-main shadow-sm gap-1 overflow-x-auto max-w-full scrollbar-hide">
             <button 
               @click="activeTab = 'system'"
-              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'system' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
               <Monitor :size="14" />
@@ -159,7 +159,7 @@ const goToPage = (page) => {
             </button>
             <button 
               @click="activeTab = 'figma'"
-              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'figma' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
               <Layers :size="14" />
@@ -167,7 +167,7 @@ const goToPage = (page) => {
             </button>
             <button 
               @click="activeTab = 'extensions'"
-              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'extensions' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
               <Puzzle :size="14" />
@@ -175,7 +175,7 @@ const goToPage = (page) => {
             </button>
             <button 
               @click="activeTab = 'bots'"
-              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'bots' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
               <Bot :size="14" />
@@ -220,13 +220,13 @@ const goToPage = (page) => {
     </div>
 
     <!-- Grid Container (Max 4 items per page) -->
-    <div class="container-main grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
+    <div class="container-main px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 lg:gap-16">
       <article
         v-for="(project, idx) in paginatedProjects"
         :key="project.id"
         class="group relative flex flex-col gap-8 w-full"
       >
-        <div class="relative aspect-[16/10] w-full overflow-hidden rounded-[3rem] bg-card-custom border border-main shadow-xl transition-all duration-700 group-hover:shadow-blue-600/10 group-hover:border-blue-600/40">
+        <div class="relative aspect-[16/10] w-full overflow-hidden rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-card-custom border border-main shadow-xl transition-all duration-700 group-hover:shadow-blue-600/10 group-hover:border-blue-600/40">
           <img
             :src="project.image"
             :alt="project.title"
@@ -245,19 +245,19 @@ const goToPage = (page) => {
           </div>
         </div>
 
-        <div class="px-2 lg:px-4 space-y-4">
+        <div class="px-1 sm:px-2 lg:px-4 space-y-3 sm:space-y-4">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">
               Project 0{{ (currentPage - 1) * itemsPerPage + idx + 1 }}
             </span>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="tech in project.tags" :key="tech" class="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-card-custom text-muted border border-main">
+            <div class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span v-for="tech in project.tags" :key="tech" class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-card-custom text-muted border border-main">
                 {{ tech }}
               </span>
             </div>
           </div>
-          <h3 class="text-3xl lg:text-4xl font-black text-main group-hover:text-blue-600 transition-colors tracking-tighter">{{ project.title }}</h3>
-          <p class="text-lg text-muted font-medium leading-relaxed max-w-xl">
+          <h3 class="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-main group-hover:text-blue-600 transition-colors tracking-tighter">{{ project.title }}</h3>
+          <p class="text-sm sm:text-base lg:text-lg text-muted font-medium leading-relaxed max-w-xl">
             {{ project.description }}
           </p>
         </div>

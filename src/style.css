@@ -57,10 +57,19 @@
   .border-main { border-color: var(--border-main); }
   .bg-card-custom { background-color: var(--card-bg); }
   .bg-header-custom { background-color: var(--header-bg); }
+
+  /* Hide scrollbar for horizontal-scrollable elements */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer components {
   .container-main {
-    @apply max-w-6xl mx-auto px-4;
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
