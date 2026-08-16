@@ -19,7 +19,7 @@ const systemProjects = [
     description: "A comprehensive ERP system featuring specialized modules for finance, inventory, CRM, payroll, branches, POS, job hiring, and more.",
     tags: ["ERP", "Management", "Business"],
     image: CountrysideImg,
-    link: "https://www.countryside-steakhouse.site/"
+    link: ""
   },
   {
     id: 2,
@@ -27,7 +27,7 @@ const systemProjects = [
     description: "A high-performance PC configuration platform and community hub for tech enthusiasts, featuring real-time component validation.",
     tags: ["React TS", "Node.js", "Libraries"],
     image: vibebuildsImg,
-    link: "https://www.vibebuilds.site"
+    link: ""
   },
   {
     id: 3,
@@ -35,7 +35,7 @@ const systemProjects = [
     description: "Dynamic digital photo booth ecosystem with cloud-based asset management and real-time social sharing capabilities.",
     tags: ["React TS", "Node.js", "Firebase"],
     image: dynboothImg,
-    link: "https://dynbooth.vercel.app"
+    link: ""
   },
   {
     id: 4,
@@ -43,7 +43,7 @@ const systemProjects = [
     description: "Innovative visual identity and social networking platform designed for seamless personal branding and professional networking.",
     tags: ["React TS", "Node.js", "Firebase"],
     image: ismeyeImg,
-    link: "https://www.ismeye.site"
+    link: ""
   },
   {
     id: 5,
@@ -51,7 +51,7 @@ const systemProjects = [
     description: "Advanced competitive matching engine utilizing real-time data synchronization for high-fidelity user interactions.",
     tags: ["React TS", "Supabase", "Turbo"],
     image: altermatchImg,
-    link: "https://altermatch.vercel.app"
+    link: ""
   }
 ]
 
