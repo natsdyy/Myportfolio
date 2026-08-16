@@ -33,11 +33,15 @@ const handleAuthSuccess = (account) => {
     <Header @navigate="navigateTo" :current-page="currentPage" />
     
     <main class="flex-1">
-      <Hero v-if="currentPage === 'home'" @navigate="navigateTo" />
-      <About v-if="currentPage === 'about'" />
-      <Projects v-if="currentPage === 'projects'" />
-      <Skills v-if="currentPage === 'skills'" />
-      <Contact v-if="currentPage === 'contact'" />
+      <!-- Single Page Layout -->
+      <div v-if="currentPage === 'home'" class="flex flex-col w-full">
+        <Hero @navigate="navigateTo" />
+        <About />
+        <Projects />
+        <Skills />
+        <Contact />
+      </div>
+
       <Login
         v-if="currentPage === 'login'"
         @auth-success="handleAuthSuccess"
@@ -59,7 +63,7 @@ const handleAuthSuccess = (account) => {
 
       <!-- Fallback for unknown pages (404) -->
       <NotFound 
-        v-if="!['home', 'about', 'projects', 'skills', 'contact', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
+        v-if="!['home', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
         @navigate="navigateTo" 
       />
     </main>

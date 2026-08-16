@@ -15,6 +15,7 @@ const emit = defineEmits(['navigate'])
 const { isDark, toggleTheme } = useTheme()
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
+const activeSection = ref('home')
 
 const navItems = [
   { label: 'Home', id: 'home' },
@@ -26,6 +27,18 @@ const navItems = [
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
+  
+  if (props.currentPage !== 'home') return
+  
+  const sections = navItems.map(item => document.getElementById(item.id)).filter(Boolean)
+  let current = 'home'
+  for (const section of sections) {
+    const rect = section.getBoundingClientRect()
+    if (rect.top <= 150) {
+      current = section.id
+    }
+  }
+  activeSection.value = current
 }
 
 const toggleMobileMenu = () => {
@@ -38,7 +51,22 @@ const toggleMobileMenu = () => {
 }
 
 const navigate = (id) => {
-  emit('navigate', id)
+  const isSection = navItems.some(item => item.id === id)
+  
+  if (isSection) {
+    activeSection.value = id
+    if (props.currentPage !== 'home') {
+      emit('navigate', 'home')
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+    }
+  } else {
+    emit('navigate', id)
+  }
+  
   if (isMobileMenuOpen.value) toggleMobileMenu()
 }
 
@@ -90,7 +118,7 @@ onUnmounted(() => {
             @click="navigate(item.id)"
             :class="[
               'px-5 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-xl cursor-pointer',
-              currentPage === item.id 
+              activeSection === item.id && props.currentPage === 'home'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
                 : 'text-muted hover:text-main hover:bg-slate-100/50'
             ]"
@@ -139,7 +167,12 @@ onUnmounted(() => {
               v-for="(item, index) in navItems"
               :key="item.id"
               @click="navigate(item.id)"
-              class="block w-full text-left text-5xl font-black tracking-tighter text-muted hover:text-blue-600 transition-colors cursor-pointer"
+              :class="[
+                'block w-full text-left text-5xl font-black tracking-tighter transition-colors cursor-pointer',
+                activeSection === item.id && props.currentPage === 'home'
+                  ? 'text-blue-600'
+                  : 'text-muted hover:text-blue-600'
+              ]"
               :style="{ transitionDelay: `${index * 50}ms` }"
             >
               {{ item.label }}

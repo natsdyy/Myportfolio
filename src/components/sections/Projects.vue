@@ -1,14 +1,18 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { ExternalLink, ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import { ref, computed, watch } from 'vue'
+import { ExternalLink, Layers, Monitor, Bot, Puzzle, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 import vibebuildsImg from '../../assets/Vibebuilds.png'
 import dynboothImg from '../../assets/DynBooth.png'
 import ismeyeImg from '../../assets/ismeye.png'
 import altermatchImg from '../../assets/Altermatch.png'
 import CountrysideImg from '../../assets/Countryside.png'
+import figma1Img from '../../assets/Figma1.png'
+import figma2Img from '../../assets/Figma2.png'
+import extension1Img from '../../assets/Extension1.png'
+import bot1Img from '../../assets/bot1.png'
 
-const projects = [
+const systemProjects = [
   {
     id: 1,
     title: "Countryside Steakhouse",
@@ -51,136 +55,176 @@ const projects = [
   }
 ]
 
-// Extended list for seamless loop
-const displayProjects = computed(() => [...projects, ...projects, ...projects])
-
-const scrollContainer = ref(null)
-const isDragging = ref(false)
-const startX = ref(0)
-const scrollLeft = ref(0)
-const animationId = ref(null)
-const isHovered = ref(false)
-
-const startDragging = (e) => {
-  isDragging.value = true
-  startX.value = (e.pageX || e.touches[0].pageX) - scrollContainer.value.offsetLeft
-  scrollLeft.value = scrollContainer.value.scrollLeft
-  cancelAnimationFrame(animationId.value)
-}
-
-const stopDragging = () => {
-  isDragging.value = false
-  if (!isHovered.value) startAutoScroll()
-}
-
-const move = (e) => {
-  if (!isDragging.value) return
-  e.preventDefault()
-  const x = (e.pageX || e.touches[0].pageX) - scrollContainer.value.offsetLeft
-  const walk = (x - startX.value) * 1.5
-  scrollContainer.value.scrollLeft = scrollLeft.value - walk
-  
-  // Infinite loop logic for dragging
-  const container = scrollContainer.value
-  const maxScroll = container.scrollWidth / 3
-  if (container.scrollLeft <= 0) {
-    container.scrollLeft = maxScroll
-    startX.value = x
-    scrollLeft.value = container.scrollLeft
-  } else if (container.scrollLeft >= maxScroll * 2) {
-    container.scrollLeft = maxScroll
-    startX.value = x
-    scrollLeft.value = container.scrollLeft
+const figmaProjects = [
+  {
+    id: 6,
+    title: "UI/UX Portfolio",
+    description: "A collection of user interface designs and user experience workflows crafted in Figma, focusing on clean aesthetics and intuitive navigation.",
+    tags: ["Figma", "UI/UX", "Design"],
+    image: figma1Img,
+    link: "https://www.figma.com/design/LtyIcirwyuXlYhBPF64nKh/Projects?m=auto&t=tYr81ovDXNeg53ht-6"
+  },
+  {
+    id: 7,
+    title: "College Thesis UI/UX",
+    description: "Comprehensive system design and prototyping for a capstone thesis project, visualizing complex data flows and user interactions.",
+    tags: ["Figma", "Prototyping", "Academic"],
+    image: figma2Img,
+    link: "https://www.figma.com/design/D8OJ09fuTDQPXC8AUDFdaR/THESIS?node-id=0-1&t=xDm8R7aDKAPRnPQP-1"
   }
-}
+]
 
-const startAutoScroll = () => {
-  const scroll = () => {
-    if (!isDragging.value && !isHovered.value && scrollContainer.value) {
-      scrollContainer.value.scrollLeft += 0.5 
-      const maxScroll = scrollContainer.value.scrollWidth / 3
-      if (scrollContainer.value.scrollLeft >= maxScroll * 2) {
-        scrollContainer.value.scrollLeft = maxScroll
-      }
-    }
-    animationId.value = requestAnimationFrame(scroll)
+const extensionProjects = [
+  {
+    id: 8,
+    title: "Appen Highlighter Extension",
+    description: "A custom browser extension designed to help coworkers easily identify products and receive guided task instructions directly within the platform, streamlining workflows and boosting efficiency.",
+    tags: ["Chrome Extension", "JavaScript", "DOM API"],
+    image: extension1Img,
+    link: "https://appenhighlighter.vercel.app/"
   }
-  animationId.value = requestAnimationFrame(scroll)
-}
+]
 
-const navScroll = (direction) => {
-  const amount = 450
-  scrollContainer.value.scrollBy({
-    left: direction === 'left' ? -amount : amount,
-    behavior: 'smooth'
-  })
-}
+const botProjects = [
+  {
+    id: 9,
+    title: "Discord Community Bot",
+    description: "A multi-purpose Discord bot built to assist with server management, featuring interactive mini-games and automated utility tools to enhance community engagement.",
+    tags: ["Discord.js", "Node.js", "Gaming"],
+    image: bot1Img,
+    link: ""
+  }
+]
 
-onMounted(() => {
-  setTimeout(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollLeft = scrollContainer.value.scrollWidth / 3
-      startAutoScroll()
-    }
-  }, 100)
+const activeTab = ref('system')
+const currentPage = ref(1)
+const itemsPerPage = 4
+
+const currentProjects = computed(() => {
+  if (activeTab.value === 'system') return systemProjects
+  if (activeTab.value === 'figma') return figmaProjects
+  if (activeTab.value === 'extensions') return extensionProjects
+  if (activeTab.value === 'bots') return botProjects
+  return systemProjects
 })
 
-onUnmounted(() => {
-  cancelAnimationFrame(animationId.value)
+const totalPages = computed(() => Math.ceil(currentProjects.value.length / itemsPerPage) || 1)
+
+const paginatedProjects = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return currentProjects.value.slice(start, start + itemsPerPage)
 })
+
+watch(activeTab, () => {
+  currentPage.value = 1
+})
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    const el = document.getElementById('projects')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
+}
 </script>
 
 <template>
-  <section class="relative py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="projects" class="relative py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Background Accents -->
     <div class="absolute top-0 right-0 w-[50rem] h-[50rem] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
 
     <div class="px-4 mb-16">
-      <div class="container-main flex flex-col md:flex-row md:items-end justify-between gap-10">
-        <div class="space-y-6">
+      <div class="container-main flex flex-col xl:flex-row xl:items-center justify-between gap-6 w-full text-left">
+        <div class="space-y-3 text-left">
           <div class="inline-flex items-center gap-3">
             <span class="h-px w-8 bg-blue-600"></span>
             <span class="text-xs font-black uppercase tracking-[0.4em] text-blue-600">The Portfolio</span>
           </div>
-          <h2 class="text-5xl lg:text-7xl font-black text-main leading-[1] tracking-tighter">
-            Selected <br /><span class="text-blue-600">Creations.</span>
+          <h2 class="text-4xl sm:text-5xl lg:text-6xl font-black text-main tracking-tighter leading-tight">
+            Selected <span class="text-blue-600">Creations.</span>
           </h2>
         </div>
         
-        <div class="flex gap-4">
-          <button 
-            @click="navScroll('left')"
-            class="h-14 w-14 rounded-2xl border border-main bg-card-custom flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-sm"
-          >
-            <ArrowLeft :size="20" />
-          </button>
-          <button 
-            @click="navScroll('right')"
-            class="h-14 w-14 rounded-2xl border border-main bg-card-custom flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-sm"
-          >
-            <ArrowRight :size="20" />
-          </button>
+        <!-- Controls: Category Tabs on Left, Page Nav directly to its Right (Strictly Horizontal) -->
+        <div class="flex items-center gap-3 flex-nowrap">
+          <!-- Category Tabs Pill -->
+          <div class="flex items-center p-1.5 rounded-2xl bg-card-custom border border-main shadow-sm gap-1 flex-shrink-0">
+            <button 
+              @click="activeTab = 'system'"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              :class="activeTab === 'system' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
+            >
+              <Monitor :size="14" />
+              <span>Systems</span>
+            </button>
+            <button 
+              @click="activeTab = 'figma'"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              :class="activeTab === 'figma' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
+            >
+              <Layers :size="14" />
+              <span>UI/UX</span>
+            </button>
+            <button 
+              @click="activeTab = 'extensions'"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              :class="activeTab === 'extensions' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
+            >
+              <Puzzle :size="14" />
+              <span>Extensions</span>
+            </button>
+            <button 
+              @click="activeTab = 'bots'"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+              :class="activeTab === 'bots' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
+            >
+              <Bot :size="14" />
+              <span>Bots</span>
+            </button>
+          </div>
+
+          <!-- Page Navigation Pill (Strictly to the Right of Tabs) -->
+          <div v-if="totalPages > 1" class="flex items-center p-1.5 rounded-2xl bg-card-custom border border-main shadow-sm gap-1 flex-shrink-0">
+            <button 
+              @click="goToPage(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="h-8 w-8 rounded-xl flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+              aria-label="Previous Page"
+            >
+              <ChevronLeft :size="15" />
+            </button>
+
+            <div class="flex items-center gap-1">
+              <button
+                v-for="page in totalPages"
+                :key="page"
+                @click="goToPage(page)"
+                class="h-8 min-w-8 px-2.5 rounded-xl text-xs font-black transition-all cursor-pointer"
+                :class="currentPage === page ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
+              >
+                {{ page }}
+              </button>
+            </div>
+
+            <button 
+              @click="goToPage(currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="h-8 w-8 rounded-xl flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+              aria-label="Next Page"
+            >
+              <ChevronRight :size="15" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Draggable Container -->
-    <div 
-      ref="scrollContainer"
-      class="flex gap-8 overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing py-10"
-      @mousedown="startDragging"
-      @mousemove="move"
-      @mouseup="stopDragging"
-      @touchstart="startDragging"
-      @touchmove="move"
-      @touchend="stopDragging"
-      @mouseenter="isHovered = true"
-      @mouseleave="() => { stopDragging(); isHovered = false; }"
-    >
+    <!-- Grid Container (Max 4 items per page) -->
+    <div class="container-main grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
       <article
-        v-for="(project, idx) in displayProjects"
-        :key="`${project.id}-${idx}`"
-        class="flex-shrink-0 w-[85vw] md:w-[600px] group relative flex flex-col gap-8 select-none first:ml-4"
+        v-for="(project, idx) in paginatedProjects"
+        :key="project.id"
+        class="group relative flex flex-col gap-8 w-full"
       >
         <div class="relative aspect-[16/10] w-full overflow-hidden rounded-[3rem] bg-card-custom border border-main shadow-xl transition-all duration-700 group-hover:shadow-blue-600/10 group-hover:border-blue-600/40">
           <img
@@ -201,17 +245,19 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="px-6 space-y-4">
+        <div class="px-2 lg:px-4 space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Project 0{{ (idx % projects.length) + 1 }}</span>
-            <div class="flex gap-2">
+            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">
+              Project 0{{ (currentPage - 1) * itemsPerPage + idx + 1 }}
+            </span>
+            <div class="flex flex-wrap gap-2">
               <span v-for="tech in project.tags" :key="tech" class="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-card-custom text-muted border border-main">
                 {{ tech }}
               </span>
             </div>
           </div>
-          <h3 class="text-4xl font-black text-main group-hover:text-blue-600 transition-colors tracking-tighter">{{ project.title }}</h3>
-          <p class="text-lg text-muted font-medium leading-relaxed line-clamp-2 max-w-xl">
+          <h3 class="text-3xl lg:text-4xl font-black text-main group-hover:text-blue-600 transition-colors tracking-tighter">{{ project.title }}</h3>
+          <p class="text-lg text-muted font-medium leading-relaxed max-w-xl">
             {{ project.description }}
           </p>
         </div>
@@ -219,8 +265,3 @@ onUnmounted(() => {
     </div>
   </section>
 </template>
-
-<style scoped>
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
