@@ -41,10 +41,10 @@ const techLogos = [
 </script>
 
 <template>
-  <section id="skills" class="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="skills" class="relative py-16 sm:py-20 lg:py-24 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Background Decor (Removed) -->
     
-    <div class="container-main relative mx-auto max-w-7xl">
+    <div class="container-main relative w-full">
       <div class="mb-10 sm:mb-12 lg:mb-16 space-y-4 sm:space-y-6 max-w-2xl">
         <div class="inline-flex items-center gap-3">
           <span class="h-px w-8 bg-blue-600"></span>

@@ -129,11 +129,10 @@ const goToPage = (page) => {
 </script>
 
 <template>
-  <section id="projects" class="relative py-20 sm:py-24 lg:py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
-  <section id="projects" class="relative py-20 sm:py-24 lg:py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="projects" class="relative py-16 sm:py-20 lg:py-24 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Background Accents (Removed) -->
 
-    <div class="px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12 lg:mb-16">
+    <div class="mb-10 sm:mb-12 lg:mb-16 w-full">
       <div class="container-main flex flex-col gap-6 w-full text-left">
         <div class="space-y-3 text-left">
           <div class="inline-flex items-center gap-3">
@@ -221,7 +220,7 @@ const goToPage = (page) => {
     </div>
 
     <!-- Grid Container (Max 4 items per page) -->
-    <div class="container-main px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 lg:gap-16">
+    <div class="container-main grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 w-full">
       <article
         v-for="(project, idx) in paginatedProjects"
         :key="project.id"
@@ -264,5 +263,5 @@ const goToPage = (page) => {
         </div>
       </article>
     </div>
-  </section></section>
+  </section>
 </template>

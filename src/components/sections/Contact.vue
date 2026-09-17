@@ -10,11 +10,11 @@ const contactInfo = [
 </script>
 
 <template>
-  <section id="contact" class="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="contact" class="relative py-16 sm:py-20 lg:py-24 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Background Accents (Removed for minimalism) -->
 
-    <div class="container-main relative mx-auto max-w-6xl">
-      <div class="flex flex-col gap-8 sm:gap-10 lg:gap-12 max-w-4xl">
+    <div class="container-main relative w-full">
+      <div class="flex flex-col gap-8 sm:gap-10 lg:gap-12 w-full max-w-5xl">
         <!-- Text Side -->
         <div class="space-y-6">
           <div class="inline-flex items-center gap-3">

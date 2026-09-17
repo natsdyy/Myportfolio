@@ -19,16 +19,16 @@ const highlights = [
 </script>
 
 <template>
-  <section id="about" class="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-app transition-colors duration-500 overflow-hidden">
+  <section id="about" class="relative py-16 sm:py-20 lg:py-24 bg-app transition-colors duration-500 overflow-hidden">
     <!-- Abstract background elements (Removed for minimalism) -->
 
-    <div class="container-main relative mx-auto max-w-7xl">
-      <div class="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-10 md:gap-12 lg:gap-20 items-start">
+    <div class="container-main relative w-full">
+      <div class="grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr] xl:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-14 xl:gap-20 items-start w-full">
         
         <!-- Visual Side (Left) -->
         <div class="relative hidden md:flex justify-start w-full">
-          <div class="relative w-full max-w-[24rem]">
-            <div class="relative z-10 rounded-2xl overflow-hidden bg-card-custom p-1.5 shadow-lg transition-transform duration-500 hover:-translate-y-1">
+          <div class="relative w-full max-w-sm lg:max-w-md">
+            <div class="relative z-10 rounded-2xl overflow-hidden bg-card-custom p-2 shadow-lg border border-main transition-transform duration-500 hover:-translate-y-1">
               <img
                 :src="profileImage"
                 alt="Charles Louie Alvaran"

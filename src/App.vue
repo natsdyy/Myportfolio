@@ -29,11 +29,11 @@ const handleAuthSuccess = (account) => {
 </script>
 
 <template>
-  <div class="app flex flex-col md:flex-row min-h-screen relative bg-app text-main">
+  <div class="app flex flex-col md:flex-row min-h-screen relative bg-app text-main overflow-x-hidden">
     <Header @navigate="navigateTo" :current-page="currentPage" />
     
-    <div class="flex-1 md:ml-64 flex flex-col min-h-screen w-full relative transition-all duration-300">
-      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-12">
+    <div class="flex-1 md:ml-64 flex flex-col min-h-screen min-w-0 relative transition-all duration-300 overflow-x-hidden">
+      <main class="flex-1 w-full min-w-0 px-4 sm:px-8 lg:px-12 xl:px-16 pt-20 md:pt-10">
         <!-- Single Page Layout -->
         <div v-if="currentPage === 'home'" class="flex flex-col w-full gap-24 pb-24">
           <Hero @navigate="navigateTo" />
