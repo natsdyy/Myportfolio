@@ -64,7 +64,7 @@ const highlights = [
               class="group p-5 sm:p-6 lg:p-8 rounded-2xl bg-card-custom border border-main transition-all hover:-translate-y-1 hover:shadow-md"
             >
               <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                <component :is="item.icon" :size="20" />
+                <component :is="item.icon" :size="20" :stroke-width="1.5" />
               </div>
               <h3 class="text-lg font-semibold text-main mb-3 transition-colors">{{ item.title }}</h3>
               <p class="text-sm text-muted leading-relaxed">{{ item.description }}</p>

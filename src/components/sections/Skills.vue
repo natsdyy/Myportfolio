@@ -63,7 +63,7 @@ const techLogos = [
           class="group p-5 sm:p-6 lg:p-8 rounded-2xl bg-card-custom border border-main transition-all hover:-translate-y-1 hover:shadow-md"
         >
           <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-            <component :is="category.icon" :size="20" />
+            <component :is="category.icon" :size="20" :stroke-width="1.5" />
           </div>
           <h3 class="text-lg font-bold text-main mb-4 group-hover:text-blue-600 transition-colors">{{ category.category }}</h3>
           <div class="flex flex-wrap gap-2">

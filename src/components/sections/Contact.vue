@@ -39,7 +39,7 @@ const contactInfo = [
             class="group flex items-center gap-4 sm:gap-5 p-4 sm:p-5 rounded-xl border border-main bg-card-custom shadow-sm transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer"
           >
             <div class="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 flex-shrink-0">
-              <component :is="info.icon" :size="20" />
+              <component :is="info.icon" :size="20" :stroke-width="1.5" />
             </div>
             <div>
               <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-0.5">{{ info.label }}</p>

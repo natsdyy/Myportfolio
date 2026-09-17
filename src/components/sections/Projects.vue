@@ -153,7 +153,7 @@ const goToPage = (page) => {
               class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'system' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
-              <Monitor :size="14" />
+              <Monitor :size="14" :stroke-width="1.5" />
               <span>Systems</span>
             </button>
             <button 
@@ -161,7 +161,7 @@ const goToPage = (page) => {
               class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'figma' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
-              <Layers :size="14" />
+              <Layers :size="14" :stroke-width="1.5" />
               <span>UI/UX</span>
             </button>
             <button 
@@ -169,7 +169,7 @@ const goToPage = (page) => {
               class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'extensions' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
-              <Puzzle :size="14" />
+              <Puzzle :size="14" :stroke-width="1.5" />
               <span>Extensions</span>
             </button>
             <button 
@@ -177,7 +177,7 @@ const goToPage = (page) => {
               class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
               :class="activeTab === 'bots' ? 'bg-blue-600 text-white shadow-md' : 'text-muted hover:text-main'"
             >
-              <Bot :size="14" />
+              <Bot :size="14" :stroke-width="1.5" />
               <span>Bots</span>
             </button>
           </div>
@@ -190,7 +190,7 @@ const goToPage = (page) => {
               class="h-8 w-8 rounded-xl flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
               aria-label="Previous Page"
             >
-              <ChevronLeft :size="15" />
+              <ChevronLeft :size="15" :stroke-width="1.5" />
             </button>
 
             <div class="flex items-center gap-1">
@@ -211,7 +211,7 @@ const goToPage = (page) => {
               class="h-8 w-8 rounded-xl flex items-center justify-center text-main hover:bg-blue-600 hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
               aria-label="Next Page"
             >
-              <ChevronRight :size="15" />
+              <ChevronRight :size="15" :stroke-width="1.5" />
             </button>
           </div>
         </div>
@@ -240,7 +240,7 @@ const goToPage = (page) => {
               target="_blank"
               class="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center hover:scale-110 transition-transform shadow-2xl cursor-pointer"
             >
-              <ExternalLink :size="28" />
+              <ExternalLink :size="28" :stroke-width="1.5" />
             </a>
           </div>
         </div>
