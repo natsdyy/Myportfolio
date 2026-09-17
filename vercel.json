@@ -1,8 +1,18 @@
 {
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    },
+    {
+      "src": "server/src/index.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://myportfolio-production-0a5b.up.railway.app/api/$1"
+      "destination": "/server/src/index.js"
     },
     {
       "source": "/((?!api/).*)",

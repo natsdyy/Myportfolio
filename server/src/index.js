@@ -242,5 +242,10 @@ async function start() {
   });
 }
 
-start();
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+  start();
+} else {
+  ensureTables().catch(err => console.error('[server] WARNING: DB init error:', err.message));
+}
 
+module.exports = app;
