@@ -29,46 +29,49 @@ const handleAuthSuccess = (account) => {
 </script>
 
 <template>
-  <div class="app flex flex-col min-h-screen">
+  <div class="app flex flex-col md:flex-row min-h-screen relative bg-app text-main">
     <Header @navigate="navigateTo" :current-page="currentPage" />
     
-    <main class="flex-1">
-      <!-- Single Page Layout -->
-      <div v-if="currentPage === 'home'" class="flex flex-col w-full">
-        <Hero @navigate="navigateTo" />
-        <About />
-        <Projects />
-        <Skills />
-        <Contact />
-      </div>
+    <div class="flex-1 md:ml-64 flex flex-col min-h-screen w-full relative transition-all duration-300">
+      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-12">
+        <!-- Single Page Layout -->
+        <div v-if="currentPage === 'home'" class="flex flex-col w-full gap-24 pb-24">
+          <Hero @navigate="navigateTo" />
+          <About />
+          <Projects />
+          <Skills />
+          <Contact />
+        </div>
 
-      <Login
-        v-if="currentPage === 'login'"
-        @auth-success="handleAuthSuccess"
-      />
-      <UserDashboard
-        v-if="currentPage === 'dashboard'"
-        :user="currentUser"
-      />
+        <Login
+          v-if="currentPage === 'login'"
+          @auth-success="handleAuthSuccess"
+        />
+        <UserDashboard
+          v-if="currentPage === 'dashboard'"
+          :user="currentUser"
+        />
 
-      <!-- Error Pages -->
-      <NotFound 
-        v-if="currentPage === '404'" 
-        @navigate="navigateTo" 
-      />
-      <ServerError 
-        v-if="currentPage === '500'" 
-        @navigate="navigateTo" 
-      />
+        <!-- Error Pages -->
+        <NotFound 
+          v-if="currentPage === '404'" 
+          @navigate="navigateTo" 
+        />
+        <ServerError 
+          v-if="currentPage === '500'" 
+          @navigate="navigateTo" 
+        />
 
-      <!-- Fallback for unknown pages (404) -->
-      <NotFound 
-        v-if="!['home', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
-        @navigate="navigateTo" 
-      />
-    </main>
+        <!-- Fallback for unknown pages (404) -->
+        <NotFound 
+          v-if="!['home', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
+          @navigate="navigateTo" 
+        />
+      </main>
+      
+      <Footer @navigate="navigateTo" />
+    </div>
     
-    <Footer @navigate="navigateTo" />
     <ChatWidget />
     <ResumeModal />
   </div>

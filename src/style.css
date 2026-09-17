@@ -6,6 +6,8 @@
   --color-blue-600: #2563eb;
 }
 
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
 /* Bulletproof CSS Variable Theming */
 :root {
   --bg-app: #f8fafc;

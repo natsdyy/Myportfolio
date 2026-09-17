@@ -82,96 +82,111 @@ onUnmounted(() => {
 <template>
   <header 
     :class="[
-      'fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-4',
-      isScrolled ? 'pt-2 md:pt-4' : 'pt-3 md:pt-6'
+      'fixed top-0 left-0 z-[100] transition-all duration-500',
+      'w-full md:w-64 md:h-screen',
+      'md:border-r border-main bg-app'
     ]"
   >
-    <nav class="mx-auto max-w-5xl">
-      <!-- Premium Glass Island -->
+    <!-- Desktop Sidebar -->
+    <div class="hidden md:flex flex-col h-full py-10 xl:py-12 px-6 overflow-y-auto">
+      <!-- Logo Section -->
       <div 
-        :class="[
-          'relative flex items-center justify-between px-4 py-3 md:px-6 md:py-4 rounded-3xl transition-all duration-500 backdrop-blur-2xl border border-main',
-          isScrolled 
-            ? 'bg-header-custom shadow-[0_8px_32px_rgba(0,0,0,0.05)]' 
-            : 'bg-header-custom shadow-sm'
-        ]"
+        class="flex items-center gap-4 mb-16 cursor-pointer group"
+        @click="navigate('home')"
       >
-        <!-- Logo Section -->
-        <div 
-          class="flex items-center gap-2 md:gap-3 group cursor-pointer"
-          @click="navigate('home')"
+        <div class="relative h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 shadow-md shadow-blue-600/20">
+          <span class="text-white font-bold text-xl tracking-tight">C</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-base font-bold tracking-wide text-main uppercase">CLA.DEV</span>
+          <span class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">Portfolio</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 flex flex-col gap-2">
+        <button
+          v-for="item in navItems"
+          :key="item.id"
+          @click="navigate(item.id)"
+          :class="[
+            'flex items-center px-4 py-2.5 text-sm font-semibold tracking-wide transition-all duration-300 rounded-xl cursor-pointer w-full text-left',
+            activeSection === item.id && props.currentPage === 'home'
+              ? 'bg-blue-600/10 text-blue-600' 
+              : 'text-muted hover:text-main hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
+          ]"
         >
-          <div class="relative h-10 w-10 overflow-hidden rounded-xl bg-blue-600 flex items-center justify-center transition-transform group-hover:scale-110">
-            <span class="text-white font-black text-xl tracking-tighter">C</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-xs md:text-sm font-black tracking-[0.15em] md:tracking-[0.2em] text-main uppercase">CLA.DEV</span>
-            <span class="hidden md:block text-[9px] font-bold text-blue-600 uppercase tracking-widest">Portfolio</span>
-          </div>
-        </div>
+          <span :class="['w-1.5 h-1.5 rounded-full mr-3 transition-colors', activeSection === item.id && props.currentPage === 'home' ? 'bg-blue-600' : 'bg-transparent']"></span>
+          {{ item.label }}
+        </button>
+      </nav>
 
-        <!-- Desktop Navigation -->
-        <div class="hidden md:flex items-center gap-1">
-          <button
-            v-for="item in navItems"
-            :key="item.id"
-            @click="navigate(item.id)"
-            :class="[
-              'px-5 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 rounded-xl cursor-pointer',
-              activeSection === item.id && props.currentPage === 'home'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
-                : 'text-muted hover:text-main hover:bg-slate-100/50'
-            ]"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-
-        <!-- Action Button -->
-        <div class="flex items-center gap-2">
-          <!-- Theme Toggle -->
+      <!-- Bottom Actions -->
+      <div class="mt-8 flex flex-col gap-6">
+        <div class="flex items-center justify-between px-2">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted">Theme</span>
           <button 
             @click="toggleTheme"
-            class="h-10 w-10 flex items-center justify-center rounded-xl border border-main bg-card-custom text-muted hover:text-blue-600 transition-all cursor-pointer"
+            class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-muted hover:text-blue-600 border border-main transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+            :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
           >
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
-
-          <button 
-            @click="navigate('contact')"
-            class="hidden md:block px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-blue-600 dark:hover:bg-blue-600 dark:hover:text-white transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-900/10 cursor-pointer ml-2"
-          >
-            Hire Me
-          </button>
-
-          <!-- Mobile Toggle -->
-          <button 
-            @click="toggleMobileMenu"
-            class="md:hidden h-10 w-10 flex flex-col items-center justify-center gap-1 rounded-xl border border-main bg-card-custom text-muted hover:text-blue-600 transition-all cursor-pointer"
-          >
-            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''"></span>
-            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? 'opacity-0' : ''"></span>
-            <span class="h-0.5 w-5 bg-current transition-all transform duration-300" :class="isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''"></span>
-          </button>
         </div>
+        
+        <button 
+          @click="navigate('contact')"
+          class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+        >
+          Hire Me
+        </button>
       </div>
-    </nav>
+    </div>
+
+    <!-- Mobile Topbar -->
+    <div 
+      :class="[
+        'md:hidden flex items-center justify-between px-4 py-3 transition-all duration-500 backdrop-blur-2xl border-b border-main',
+        isScrolled ? 'bg-header-custom shadow-sm' : 'bg-transparent border-transparent'
+      ]"
+    >
+      <div class="flex items-center gap-2 group cursor-pointer" @click="navigate('home')">
+        <div class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+          <span class="text-white font-bold text-sm">C</span>
+        </div>
+        <span class="text-xs font-bold tracking-wide text-main uppercase">CLA.DEV</span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button @click="toggleTheme" class="text-muted hover:text-main">
+          <Sun v-if="isDark" :size="18" />
+          <Moon v-else :size="18" />
+        </button>
+        <button @click="toggleMobileMenu" class="text-main p-1">
+          <div class="flex flex-col items-end gap-1.5 w-6">
+            <span class="h-0.5 bg-current transition-all transform duration-300 w-full" :class="isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''"></span>
+            <span class="h-0.5 bg-current transition-all transform duration-300 w-4" :class="isMobileMenuOpen ? 'opacity-0' : ''"></span>
+            <span class="h-0.5 bg-current transition-all transform duration-300 w-full" :class="isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''"></span>
+          </div>
+        </button>
+      </div>
+    </div>
 
     <!-- Mobile Menu Overlay -->
     <Transition name="fade">
       <div v-if="isMobileMenuOpen" class="fixed inset-0 z-[110] bg-app md:hidden">
-        <div class="flex flex-col h-full p-6 sm:p-10 pt-24 sm:pt-32">
-          <div class="space-y-5 sm:space-y-8">
+        <div class="flex flex-col h-full p-6 pt-24">
+          <div class="space-y-6">
             <button
               v-for="(item, index) in navItems"
               :key="item.id"
               @click="navigate(item.id)"
               :class="[
-                'block w-full text-left text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter transition-colors cursor-pointer',
+                'block w-full text-left text-3xl font-bold tracking-tight transition-colors cursor-pointer',
                 activeSection === item.id && props.currentPage === 'home'
                   ? 'text-blue-600'
-                  : 'text-muted hover:text-blue-600'
+                  : 'text-muted hover:text-main'
               ]"
               :style="{ transitionDelay: `${index * 50}ms` }"
             >
@@ -179,10 +194,9 @@ onUnmounted(() => {
             </button>
           </div>
           
-
           <button 
             @click="toggleMobileMenu"
-            class="absolute top-5 right-5 sm:top-8 sm:right-8 h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-xl sm:rounded-2xl bg-card-custom border border-main text-main transition-all hover:rotate-90 cursor-pointer"
+            class="absolute top-4 right-4 h-12 w-12 flex items-center justify-center rounded-2xl bg-card-custom border border-main text-main transition-all hover:rotate-90 cursor-pointer"
           >
             <X :size="24" />
           </button>

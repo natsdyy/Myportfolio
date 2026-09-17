@@ -130,17 +130,17 @@ const goToPage = (page) => {
 
 <template>
   <section id="projects" class="relative py-20 sm:py-24 lg:py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
-    <!-- Background Accents -->
-    <div class="absolute top-0 right-0 w-[50rem] h-[50rem] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
+  <section id="projects" class="relative py-20 sm:py-24 lg:py-32 px-0 bg-app transition-colors duration-500 overflow-hidden">
+    <!-- Background Accents (Removed) -->
 
     <div class="px-4 sm:px-6 lg:px-8 mb-10 sm:mb-12 lg:mb-16">
       <div class="container-main flex flex-col gap-6 w-full text-left">
         <div class="space-y-3 text-left">
           <div class="inline-flex items-center gap-3">
             <span class="h-px w-8 bg-blue-600"></span>
-            <span class="text-xs font-black uppercase tracking-[0.4em] text-blue-600">The Portfolio</span>
+            <span class="text-xs font-semibold uppercase tracking-wide text-blue-600">The Portfolio</span>
           </div>
-          <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-main tracking-tighter leading-tight">
+          <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-main tracking-tight leading-tight">
             Selected <span class="text-blue-600">Creations.</span>
           </h2>
         </div>
@@ -217,6 +217,7 @@ const goToPage = (page) => {
           </div>
         </div>
       </div>
+      
     </div>
 
     <!-- Grid Container (Max 4 items per page) -->
@@ -224,13 +225,13 @@ const goToPage = (page) => {
       <article
         v-for="(project, idx) in paginatedProjects"
         :key="project.id"
-        class="group relative flex flex-col gap-8 w-full"
+        class="group relative flex flex-col gap-6 w-full"
       >
-        <div class="relative aspect-[16/10] w-full overflow-hidden rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-card-custom border border-main shadow-xl transition-all duration-700 group-hover:shadow-blue-600/10 group-hover:border-blue-600/40">
+        <div class="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-card-custom border border-main shadow-md transition-all duration-500 group-hover:shadow-lg">
           <img
             :src="project.image"
             :alt="project.title"
-            class="h-full w-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105 pointer-events-none"
+            class="h-full w-full object-cover transition-all duration-500 group-hover:scale-105 pointer-events-none"
             @error="(e) => e.target.src = 'https://placehold.co/800x500/f8fafc/3b82f6?text=' + project.title"
           />
           <div class="absolute inset-0 bg-white/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -238,30 +239,30 @@ const goToPage = (page) => {
               v-if="project.link"
               :href="project.link"
               target="_blank"
-              class="h-20 w-20 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center hover:scale-110 transition-transform shadow-2xl cursor-pointer"
+              class="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center hover:scale-110 transition-transform shadow-2xl cursor-pointer"
             >
-              <ExternalLink :size="32" />
+              <ExternalLink :size="28" />
             </a>
           </div>
         </div>
 
-        <div class="px-1 sm:px-2 lg:px-4 space-y-3 sm:space-y-4">
+        <div class="px-1 sm:px-2 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">
+            <span class="text-[10px] font-semibold uppercase tracking-wide text-blue-600">
               Project 0{{ (currentPage - 1) * itemsPerPage + idx + 1 }}
             </span>
             <div class="flex flex-wrap gap-1.5 sm:gap-2">
-              <span v-for="tech in project.tags" :key="tech" class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-card-custom text-muted border border-main">
+              <span v-for="tech in project.tags" :key="tech" class="text-[9px] font-semibold uppercase tracking-wider px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-card-custom text-muted border border-main">
                 {{ tech }}
               </span>
             </div>
           </div>
-          <h3 class="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-main group-hover:text-blue-600 transition-colors tracking-tighter">{{ project.title }}</h3>
-          <p class="text-sm sm:text-base lg:text-lg text-muted font-medium leading-relaxed max-w-xl">
+          <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-main group-hover:text-blue-600 transition-colors tracking-tight">{{ project.title }}</h3>
+          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-xl">
             {{ project.description }}
           </p>
         </div>
       </article>
     </div>
-  </section>
+  </section></section>
 </template>
