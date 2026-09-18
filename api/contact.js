@@ -4,7 +4,7 @@
 // Email-only — no database required. Validates reCAPTCHA then sends
 // the message via SMTP/Resend.
 
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 // ── reCAPTCHA verification ────────────────────────────────────
 async function verifyRecaptcha(token) {
@@ -59,7 +59,7 @@ async function sendEmail({ fromEmail, fromName, subject, message }) {
 }
 
 // ── Handler ───────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
         return res.status(405).json({ error: 'Method not allowed' });

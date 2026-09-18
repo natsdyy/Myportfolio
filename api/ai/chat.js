@@ -4,7 +4,7 @@
 // Depends only on axios + cheerio (plus the in-repo scraper/AI modules).
 // Fully serverless — no external database or browser binary required.
 
-import searchAgent from '../server/src/agents/searchAgent.js';
+import searchAgent from '../../server/src/agents/searchAgent.js';
 
 const { processUserQuery } = searchAgent;
 
