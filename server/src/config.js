@@ -14,7 +14,6 @@ const parseAllowedOrigins = (value) => {
 
 const config = {
   port: process.env.PORT || 4000,
-  databaseUrl: process.env.DATABASE_URL || '',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS || ''),
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
@@ -23,8 +22,6 @@ const config = {
 
 console.log('[config] Allowed origins:', config.allowedOrigins);
 console.log('[config] Raw ALLOWED_ORIGINS env:', process.env.ALLOWED_ORIGINS);
-console.log('[config] Supabase URL set:', !!process.env.SUPABASE_URL);
-console.log('[config] Supabase Key set:', !!process.env.SUPABASE_KEY);
 
 module.exports = { config };
 

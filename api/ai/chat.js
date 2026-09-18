@@ -1,10 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const { processUserQuery } = require('../agents/searchAgent');
+// Vercel serverless function for the AI assistant chat.
+// Maps to POST /api/ai/chat.
+//
+// Depends only on axios + cheerio (plus the in-repo scraper/AI modules).
+// Fully serverless — no external database or browser binary required.
+
+import searchAgent from '../server/src/agents/searchAgent.js';
+
+const { processUserQuery } = searchAgent;
 
 // ── Simple in-memory rate limiter ─────────────────────────────
-// The /chat endpoint can trigger an expensive web scrape, so we cap
-// requests per IP to prevent abuse.
+// Note: this is per-instance and best-effort. For guaranteed limits use
+// Vercel's built-in rate limiting or a store like Upstash.
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX_REQUESTS = 10;
 const MAX_QUERY_LENGTH = 500;
@@ -18,22 +24,21 @@ function pruneBuckets(now) {
     }
 }
 
-function chatRateLimit(req, res, next) {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+function isRateLimited(req) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+        || req.socket?.remoteAddress
+        || 'unknown';
     const now = Date.now();
     pruneBuckets(now);
 
     const bucket = rateBuckets.get(ip);
     if (!bucket || now - bucket.windowStart > RATE_WINDOW_MS) {
         rateBuckets.set(ip, { windowStart: now, count: 1 });
-        return next();
+        return false;
     }
 
     bucket.count += 1;
-    if (bucket.count > RATE_MAX_REQUESTS) {
-        return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
-    }
-    next();
+    return bucket.count > RATE_MAX_REQUESTS;
 }
 
 function withTimeout(promise, ms) {
@@ -44,8 +49,17 @@ function withTimeout(promise, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-router.post('/chat', chatRateLimit, async (req, res) => {
-    const { query, history } = req.body;
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (isRateLimited(req)) {
+        return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
+    }
+
+    const { query, history } = req.body || {};
 
     if (!query) {
         return res.status(400).json({ error: 'Query is required' });
@@ -57,17 +71,15 @@ router.post('/chat', chatRateLimit, async (req, res) => {
 
     try {
         const result = await withTimeout(
-            processUserQuery(query, history || []),
+            processUserQuery(query, Array.isArray(history) ? history : []),
             REQUEST_TIMEOUT_MS
         );
-        res.json(result);
+        return res.json(result);
     } catch (error) {
         console.error('Chat Route Error:', error.message);
         if (error.message === 'Request timed out') {
             return res.status(504).json({ error: 'The request took too long. Please try again.' });
         }
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
-});
-
-module.exports = router;
+}

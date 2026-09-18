@@ -7,24 +7,15 @@ import About from './components/sections/About.vue'
 import Projects from './components/sections/Projects.vue'
 import Skills from './components/sections/Skills.vue'
 import Contact from './components/sections/Contact.vue'
-import Login from './components/common/Login.vue'
-import UserDashboard from './components/common/UserDashboard.vue'
 import ChatWidget from './components/common/chat/ChatWidget.vue'
 import NotFound from './components/common/error/NotFound.vue'
 import ServerError from './components/common/error/ServerError.vue'
 import ResumeModal from './components/common/ResumeModal.vue'
 
 const currentPage = ref('home')
-const currentUser = ref(null)
-
 const navigateTo = (page) => {
   currentPage.value = page
   window.scrollTo(0, 0)
-}
-
-const handleAuthSuccess = (account) => {
-  currentUser.value = account
-  navigateTo('dashboard')
 }
 </script>
 
@@ -43,14 +34,7 @@ const handleAuthSuccess = (account) => {
           <Contact />
         </div>
 
-        <Login
-          v-if="currentPage === 'login'"
-          @auth-success="handleAuthSuccess"
-        />
-        <UserDashboard
-          v-if="currentPage === 'dashboard'"
-          :user="currentUser"
-        />
+
 
         <!-- Error Pages -->
         <NotFound 
@@ -64,7 +48,7 @@ const handleAuthSuccess = (account) => {
 
         <!-- Fallback for unknown pages (404) -->
         <NotFound 
-          v-if="!['home', 'login', 'dashboard', '404', '500'].includes(currentPage)" 
+          v-if="!['home', '404', '500'].includes(currentPage)" 
           @navigate="navigateTo" 
         />
       </main>

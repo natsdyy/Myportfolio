@@ -2,7 +2,7 @@ const { searchMultipleSources, detectQueryType } = require('../services/scraping
 const { tryLocalAnswer, classifyIntent, detectLanguage, detectSentiment } = require('../services/ai/localBrain');
 const { resolveFollowUp, buildConversationProfile } = require('../services/ai/conversationContext');
 const { applyPersona, shouldClarify, analyzeTone } = require('../services/ai/personaEngine');
-const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../services/supabase');
+const { logChatMessage, checkCachedAnswer } = require('../services/ai/memory');
 
 /**
  * Search Agent v5 — Persona-Enhanced Intelligence (100% Local, No API)
@@ -10,14 +10,13 @@ const { logChatMessage, getSupabaseContext, checkCachedAnswer } = require('../se
  * Flow:
  * 0a. CONTEXT RESOLUTION (detect follow-ups, enrich query with history)
  * 0b. BUILD CONVERSATION PROFILE (topics, mood, entities, turn count)
- * 0c. Check SUPABASE CACHE (long-term memory)
+ * 0c. Check IN-MEMORY CACHE (remembered answers)
  * 1. CLARIFICATION CHECK (Rule 7 — ask before assuming)
  * 2. Try LOCAL BRAIN (instant, hardcoded portfolio data)
- * 3. Try SUPABASE KNOWLEDGE (custom cloud-stored info)
- * 4. Try MULTI-SOURCE SCRAPING (Wikipedia, Reddit, Dictionary, Google)
- * 5. SYNTHESIZE from structured data
- * 6. APPLY PERSONA ENGINE (all 20 behavioral rules)
- * 7. LOG to Supabase for future learning
+ * 3. Try MULTI-SOURCE SCRAPING (Wikipedia, Reddit, Dictionary, DDG)
+ * 4. SYNTHESIZE from structured data
+ * 5. APPLY PERSONA ENGINE (all 20 behavioral rules)
+ * 6. LOG for future recall (in-memory)
  */
 async function processUserQuery(rawQuery, history = []) {
     let query = rawQuery;
@@ -35,12 +34,12 @@ async function processUserQuery(rawQuery, history = []) {
     const profile = buildConversationProfile(history);
     console.log(`[agent] 👤 Profile: ${profile.turnCount} turns | mood: ${profile.userMood} | topics: [${profile.topicsDiscussed.slice(0, 3).join(', ')}]`);
 
-    // ── Step 0c: Supabase Cache ──────────────────────────
+    // ── Step 0c: In-Memory Cache ─────────────────────────
     const cachedAnswer = await checkCachedAnswer(query);
     if (cachedAnswer) {
         console.log(`[agent] ✅ Remembered from memory`);
         const finalCached = applyPersona(cachedAnswer, query, history, { intent: null, profile, mode: 'memory' });
-        return { answer: finalCached, searched: false, sources: ['Memory (Supabase)'], mode: 'memory' };
+        return { answer: finalCached, searched: false, sources: ['Memory'], mode: 'memory' };
     }
 
     // ── Step 1: Clarification Check (Rule 7) ─────────────
@@ -70,20 +69,7 @@ async function processUserQuery(rawQuery, history = []) {
         return { answer: finalLocalAnswer, searched: false, sources: ['Local Brain'], mode: 'local' };
     }
 
-    // ── Step 3: Supabase Knowledge ────────────────────────
-    const supabaseContext = await getSupabaseContext(query);
-    if (supabaseContext) {
-        console.log(`[agent] ✅ Answered via Supabase`);
-        const finalSupabase = applyPersona(supabaseContext, rawQuery, history, {
-            intent: null,
-            profile,
-            mode: 'local',
-        });
-        await logChatMessage(query, finalSupabase, ['supabase']);
-        return { answer: finalSupabase, searched: true, sources: ['Supabase DB'], mode: 'local' };
-    }
-
-    // ── Step 4: Multi-Source Scraping ─────────────────────
+    // ── Step 3: Multi-Source Scraping ─────────────────────
     console.log(`[agent] Searching multiple sources...`);
     const queryType = detectQueryType(query);
     let searchData = { context: '', structured: {}, sources: [], resultCount: 0 };

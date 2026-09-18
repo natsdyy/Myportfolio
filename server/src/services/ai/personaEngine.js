@@ -521,7 +521,7 @@ function getGoalAwareOutro(profile, intent, lang, tone) {
  *
  * The single entry point that applies all 20 behavioral rules.
  *
- * @param {string} rawAnswer   - The raw answer from local brain / scraper / supabase
+ * @param {string} rawAnswer   - The raw answer from local brain / scraper
  * @param {string} query       - The user's original query
  * @param {Array}  history     - Chat history array of { role, content }
  * @param {Object} metadata    - { intent, profile, mode, intentResults }

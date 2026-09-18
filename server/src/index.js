@@ -3,16 +3,13 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { config } = require('./config');
-const { ensureTables } = require('./db');
 
-let contactRouter, authRouter, aiRouter;
+let contactRouter, aiRouter;
 try {
   contactRouter = require('./routes/contact');
-  authRouter = require('./routes/auth');
   aiRouter = require('./routes/aiRoutes');
   console.log('[server] Routers loaded successfully:', {
     contactRouter: !!contactRouter,
-    authRouter: !!authRouter,
     aiRouter: !!aiRouter
   });
 } catch (error) {
@@ -60,8 +57,7 @@ if (frontendExists) {
         api: '/api',
         test: '/api/test',
         routes: '/api/routes',
-        contact: '/api/contact',
-        auth: '/api/auth/*'
+        contact: '/api/contact'
       },
       timestamp: new Date().toISOString()
     });
@@ -70,28 +66,6 @@ if (frontendExists) {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Direct route test (not using router) to verify server is working
-app.post('/api/contact-test', (req, res) => {
-  console.log('[contact-test] Direct route hit!', req.body);
-  res.json({ 
-    message: 'Direct route is working!', 
-    body: req.body,
-    timestamp: new Date().toISOString() 
-  });
-});
-
-// Direct POST route for /api/contact as fallback (for testing)
-app.post('/api/contact-direct', (req, res) => {
-  console.log('[contact-direct] Direct route hit!', req.method, req.path, req.body);
-  res.json({ 
-    message: 'Direct /api/contact route is working!', 
-    method: req.method,
-    path: req.path,
-    body: req.body,
-    timestamp: new Date().toISOString() 
-  });
 });
 
 // Debug middleware to log all API requests
@@ -113,67 +87,10 @@ app.get('/api/routes', (req, res) => {
       'GET  /api/test',
       'GET  /api/routes',
       'POST /api/contact',
-      'POST /api/auth/signup',
-      'POST /api/auth/login',
-      'GET  /api/auth/me',
-      'POST /api/auth/me',
-      'POST /api/test-email'
+      'POST /api/ai/chat'
     ],
     timestamp: new Date().toISOString()
   });
-});
-
-// Test email endpoint (for debugging SMTP configuration)
-app.post('/api/test-email', async (req, res) => {
-  try {
-    const { sendContactEmail } = require('./services/emailService');
-    
-    console.log('[test-email] ========== TESTING SMTP CONFIGURATION ==========');
-    console.log('[test-email] Environment variables:', {
-      SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
-      SMTP_PORT: process.env.SMTP_PORT || '587',
-      SMTP_SECURE: process.env.SMTP_SECURE || 'false',
-      SMTP_USER: process.env.SMTP_USER || 'NOT SET',
-      SMTP_TO: process.env.SMTP_TO || 'NOT SET',
-      SMTP_FROM: process.env.SMTP_FROM || 'NOT SET',
-      SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'NOT SET',
-      hasSMTP_PASS: !!process.env.SMTP_PASS,
-      SMTP_PASS_length: process.env.SMTP_PASS?.length || 0
-    });
-    console.log('[test-email] ================================================');
-
-    // Send a test email
-    const testEmailInfo = await sendContactEmail({
-      fromEmail: process.env.SMTP_USER || 'test@example.com',
-      fromName: 'Test Sender',
-      subject: 'Test Email from Portfolio',
-      message: 'This is a test email to verify SMTP configuration is working correctly.\n\nIf you receive this email, your SMTP setup is working!'
-    });
-
-    console.log('[test-email] ✅ Test email sent successfully');
-    res.json({
-      success: true,
-      message: 'Test email sent successfully',
-      details: {
-        messageId: testEmailInfo.messageId,
-        accepted: testEmailInfo.accepted,
-        rejected: testEmailInfo.rejected,
-        response: testEmailInfo.response
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('[test-email] ❌ ERROR:', error.message);
-    console.error('[test-email] Error code:', error.code);
-    console.error('[test-email] Error stack:', error.stack);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      errorCode: error.code,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      timestamp: new Date().toISOString()
-    });
-  }
 });
 
 // Verify routers before mounting
@@ -181,21 +98,18 @@ if (!contactRouter) {
   console.error('[server] ERROR: contactRouter is not defined!');
 } else {
   console.log('[server] contactRouter type:', typeof contactRouter);
-  console.log('[server] contactRouter has post method:', typeof contactRouter.post === 'function');
 }
 
 app.use('/api', contactRouter);
-app.use('/api/auth', authRouter);
 app.use('/api/ai', aiRouter);
 
 // Log registered routes
 console.log('[server] Routes registered:');
 console.log('  GET  /health');
 console.log('  GET  /api/test');
-console.log('  POST /api/contact-test (direct route)');
 console.log('  GET  /api/routes');
 console.log('  POST /api/contact (via router)');
-console.log('  POST /api/auth/*');
+console.log('  POST /api/ai/chat');
 
 // 404 handler for unmatched API routes
 app.use((req, res, next) => {
@@ -229,23 +143,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-async function start() {
-  try {
-    await ensureTables();
-    console.log('[server] Database connected and tables ensured.');
-  } catch (error) {
-    console.error('[server] WARNING: Failed to connect to database. Some features may not work.', error.message);
-  }
-
+function start() {
   app.listen(config.port, () => {
     console.log(`Server listening on port ${config.port}`);
   });
 }
 
-if (process.env.NODE_ENV !== 'production' && require.main === module) {
+if (require.main === module) {
   start();
-} else {
-  ensureTables().catch(err => console.error('[server] WARNING: DB init error:', err.message));
 }
 
 module.exports = app;

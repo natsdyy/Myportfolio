@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { MessageSquare, X, Send, Loader2, Search, Sparkles, Trash2 } from 'lucide-vue-next'
 import axios from 'axios'
 import { marked } from 'marked'
@@ -44,6 +44,10 @@ function stopLoading() {
     loadingInterval = null
   }
 }
+
+onUnmounted(() => {
+  stopLoading()
+})
 
 const suggestedPrompts = [
   "What is your tech stack?",
@@ -106,6 +110,9 @@ const sendMessage = async () => {
   if (!query.value.trim() || isLoading.value) return
 
   const userQuery = query.value
+  // Capture history BEFORE adding the current message so the server does not
+  // treat the current query as a prior turn (fixes follow-up resolution).
+  const history = messages.value.slice(-10)
   messages.value.push({ role: 'user', content: userQuery })
   query.value = ''
 
@@ -129,7 +136,7 @@ const sendMessage = async () => {
   try {
     const response = await axios.post('/api/ai/chat', {
       query: userQuery,
-      history: messages.value.slice(-10) // Increased from 5 to 10 for deeper context (Rules 1, 3, 5, 6)
+      history
     })
 
     messages.value.push({ 
