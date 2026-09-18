@@ -160,41 +160,43 @@ const sendMessage = async () => {
 </script>
 
 <template>
-  <div :class="['fixed z-[100] transition-all duration-500', isOpen ? 'inset-0 md:inset-auto md:bottom-8 md:right-8' : 'bottom-8 right-8']" class="flex flex-col items-end pointer-events-none">
+  <div :class="['fixed z-[100] flex flex-col items-end pointer-events-none', isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-6 right-6']">
+    
     <!-- Chat Window -->
-    <div class="pointer-events-auto h-full w-full flex flex-col items-end justify-end">
     <Transition
-      enter-active-class="transition duration-300 ease-out"
-      enter-from-class="transform scale-95 opacity-0 translate-y-10"
+      enter-active-class="transition duration-400 ease-out"
+      enter-from-class="transform scale-95 opacity-0 md:translate-y-8"
       enter-to-class="transform scale-100 opacity-100 translate-y-0"
-      leave-active-class="transition duration-200 ease-in"
+      leave-active-class="transition duration-300 ease-in"
       leave-from-class="transform scale-100 opacity-100 translate-y-0"
-      leave-to-class="transform scale-95 opacity-0 translate-y-10"
+      leave-to-class="transform scale-95 opacity-0 md:translate-y-8"
     >
-      <div v-if="isOpen" class="w-full h-full md:h-[750px] md:w-[550px] md:mb-6 bg-app border-none md:border md:border-main rounded-none md:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
+      <div v-if="isOpen" class="pointer-events-auto w-full h-full md:h-[700px] md:max-h-[calc(100vh-120px)] md:w-[420px] md:mb-4 bg-app/95 backdrop-blur-2xl border-none md:border md:border-main rounded-none md:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+        
         <!-- Header -->
-        <div class="p-6 border-b border-main flex items-center justify-between bg-blue-600/5">
+        <div class="px-5 py-4 border-b border-main/20 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
           <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-              <Sparkles :size="20" />
+            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 relative">
+              <Sparkles :size="18" class="animate-pulse" />
+              <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-app rounded-full"></div>
             </div>
             <div>
-              <p class="text-sm font-black text-main">AI Assistant</p>
-              <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Always Learning</p>
+              <p class="text-sm font-bold text-main tracking-tight">AI Assistant</p>
+              <p class="text-[10px] font-semibold text-blue-500 uppercase tracking-wider">Always Learning</p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button @click="clearChat" title="Clear Chat" class="p-2 hover:bg-main/10 rounded-xl transition-colors text-muted">
+          <div class="flex items-center gap-1">
+            <button @click="clearChat" title="Clear Chat" class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-red-500">
               <Trash2 :size="18" />
             </button>
-            <button @click="toggleChat" class="p-2 hover:bg-main/10 rounded-xl transition-colors text-muted">
+            <button @click="toggleChat" class="md:hidden p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-main">
               <X :size="20" />
             </button>
           </div>
         </div>
 
         <!-- Messages -->
-        <div ref="scrollContainer" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+        <div ref="scrollContainer" class="flex-1 overflow-y-auto p-5 space-y-5 scroll-smooth">
           <div 
             v-for="(msg, idx) in messages" 
             :key="idx"
@@ -202,50 +204,52 @@ const sendMessage = async () => {
           >
             <div 
               :class="[
-                'max-w-[85%] p-4 rounded-3xl text-sm leading-relaxed overflow-hidden',
+                'max-w-[88%] p-3.5 text-[13.5px] leading-relaxed shadow-sm',
                 msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-tr-none' 
-                  : 'bg-main/5 text-main border border-main rounded-tl-none'
+                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm shadow-blue-600/20' 
+                  : 'bg-white dark:bg-slate-800 text-main border border-slate-100 dark:border-slate-700/60 rounded-2xl rounded-tl-sm'
               ]"
             >
               <div v-if="msg.role === 'user'" class="whitespace-pre-wrap">{{ msg.content }}</div>
-              <div v-else class="markdown-body text-sm leading-relaxed" v-html="renderMarkdown(msg.content)" @click="handleMarkdownClick"></div>
+              <div v-else class="markdown-body text-[13.5px] leading-relaxed" v-html="renderMarkdown(msg.content)" @click="handleMarkdownClick"></div>
               
               <!-- Source Tags -->
-              <div v-if="msg.sources && msg.sources.length" class="mt-3 pt-3 border-t border-main/10 flex flex-wrap gap-2">
-                <span v-for="source in msg.sources" :key="source" class="text-[10px] font-bold uppercase tracking-widest text-blue-600/70 bg-blue-600/5 px-2 py-1 rounded-md">
+              <div v-if="msg.sources && msg.sources.length" class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap gap-1.5">
+                <span v-for="source in msg.sources" :key="source" class="text-[9px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
                   {{ source }}
                 </span>
               </div>
             </div>
           </div>
           
+          <!-- Loading Indicator -->
           <div v-if="isLoading" class="flex items-start">
-            <div class="bg-main/5 border border-main p-4 rounded-3xl rounded-tl-none flex items-center gap-3">
-              <div class="relative flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+            <div class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 p-3.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-3">
+              <div class="flex space-x-1.5">
+                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
               </div>
-              <span class="text-[10px] text-blue-600 font-black tracking-[0.2em] uppercase italic">{{ loadingMessage }}</span>
+              <span class="text-[10px] text-muted font-semibold tracking-wider uppercase">{{ loadingMessage }}</span>
             </div>
           </div>
         </div>
 
         <!-- Input -->
-        <div class="p-4 border-t border-main bg-app flex flex-col gap-3">
+        <div class="p-4 border-t border-main/10 bg-app/80 backdrop-blur-lg flex flex-col gap-3">
           <!-- Suggested Prompts -->
           <div v-if="messages.length === 1" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             <button 
               v-for="prompt in suggestedPrompts" 
               :key="prompt"
               @click="usePrompt(prompt)"
-              class="whitespace-nowrap px-3 py-1.5 rounded-xl border border-main bg-main/5 text-xs text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
+              class="whitespace-nowrap px-3 py-1.5 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300"
             >
               {{ prompt }}
             </button>
           </div>
 
-          <form @submit.prevent="sendMessage" class="relative flex items-end gap-2 bg-main/5 border border-main rounded-2xl p-2 focus-within:border-blue-600/50 transition-colors">
+          <form @submit.prevent="sendMessage" class="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-[1.5rem] p-1.5 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all shadow-sm">
             <textarea 
               ref="textareaRef"
               v-model="query"
@@ -258,29 +262,28 @@ const sendMessage = async () => {
             <button 
               type="submit"
               :disabled="isLoading || !query.trim()"
-              class="h-10 w-10 flex-shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale mb-0.5 mr-0.5"
+              class="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-blue-500 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:shadow-none mb-0.5 mr-0.5"
             >
-              <Send :size="18" />
+              <Send :size="16" class="ml-0.5" />
             </button>
           </form>
         </div>
       </div>
     </Transition>
-    </div>
 
     <!-- Trigger Button -->
     <button 
       @click="toggleChat"
       :class="[
-        'h-16 w-16 rounded-[2rem] shadow-2xl flex items-center justify-center transition-all duration-500 hover:scale-110 active:scale-95 group pointer-events-auto',
-        isOpen ? 'hidden md:flex md:static bg-main text-app rotate-90 z-[110]' : 'bg-blue-600 text-white'
+        'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-500 hover:scale-110 active:scale-95 group pointer-events-auto relative',
+        isOpen ? 'hidden md:flex bg-slate-100 dark:bg-slate-800 text-muted hover:text-main border border-main/20 rotate-90' : 'bg-gradient-to-tr from-blue-600 to-blue-500 text-white shadow-blue-500/30'
       ]"
     >
-      <MessageSquare v-if="!isOpen" :size="28" class="group-hover:rotate-12 transition-transform" />
-      <X v-else :size="28" />
+      <MessageSquare v-if="!isOpen" :size="24" class="group-hover:rotate-12 transition-transform" />
+      <X v-else :size="24" />
       
       <!-- Notification Dot -->
-      <span v-if="!isOpen" class="absolute top-0 right-0 h-4 w-4 bg-red-500 border-2 border-app rounded-full animate-pulse"></span>
+      <span v-if="!isOpen" class="absolute top-0 right-0 h-3.5 w-3.5 bg-red-500 border-2 border-app rounded-full animate-pulse"></span>
     </button>
   </div>
 </template>
@@ -288,17 +291,17 @@ const sendMessage = async () => {
 <style scoped>
 /* Custom scrollbar for chat */
 div::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 div::-webkit-scrollbar-track {
   background: transparent;
 }
 div::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.3);
   border-radius: 10px;
 }
 div::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.5);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -314,22 +317,24 @@ div::-webkit-scrollbar-thumb:hover {
   color: var(--text-main);
 }
 :deep(.markdown-body p) {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 :deep(.markdown-body p:last-child) {
   margin-bottom: 0;
 }
 :deep(.markdown-body a) {
-  color: var(--color-blue-600, #2563eb);
-  text-decoration: underline;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
 }
 :deep(.markdown-body a:hover) {
-  color: #1d4ed8;
+  color: #2563eb;
+  border-bottom-color: #2563eb;
 }
 :deep(.markdown-body strong) {
-  font-weight: 900;
+  font-weight: 800;
   color: var(--text-main);
 }
 :deep(.markdown-body ul) {
@@ -339,5 +344,11 @@ div::-webkit-scrollbar-thumb:hover {
 }
 :deep(.markdown-body li) {
   margin-bottom: 0.25rem;
+}
+:deep(.markdown-body h3) {
+  font-size: 1.1em;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
 }
 </style>

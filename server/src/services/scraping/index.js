@@ -52,16 +52,32 @@ function extractWord(query) {
     return q.split(/\s+/).pop();
 }
 
+function cleanSearchQuery(query, queryType) {
+    if (queryType === 'definition') {
+        return extractWord(query);
+    }
+    
+    let clean = query.toLowerCase()
+        .replace(/^(what is|who is|where is|when is|how much is|what are|who are)\s+(the\s+)?(meaning of\s+)?/i, '')
+        .replace(/^(tell me about|explain|search for|look up|info about|who was)\s+/i, '')
+        .replace(/^(ano ang|sino si|sino ang|saan ang|ano ba ang|tungkol kay|tungkol sa)\s+/i, '')
+        .replace(/[?!.,]+$/, '')
+        .trim();
+        
+    return clean || query;
+}
+
 async function searchMultipleSources(query, queryType = null) {
     const type = queryType || detectQueryType(query);
     const sourcesToUse = SOURCE_ROUTES[type] || SOURCE_ROUTES.general;
 
-    console.log(`[scraper-manager] Query type: "${type}" → Sources: [${sourcesToUse.join(', ')}]`);
+    const cleanQuery = cleanSearchQuery(query, type);
+    console.log(`[scraper-manager] Query type: "${type}" → Cleaned: "${cleanQuery}" → Sources: [${sourcesToUse.join(', ')}]`);
 
     const tasks = [];
 
     if (sourcesToUse.includes('google')) {
-        let googleQuery = query;
+        let googleQuery = cleanQuery;
 
         if (type === 'shopping') {
             let item = query.toLowerCase()
@@ -95,7 +111,7 @@ async function searchMultipleSources(query, queryType = null) {
 
     if (sourcesToUse.includes('wikipedia')) {
         tasks.push(
-            scrapeWikipedia(query, 2)
+            scrapeWikipedia(cleanQuery, 2)
                 .then(results => ({ source: 'wikipedia', results }))
                 .catch(() => ({ source: 'wikipedia', results: [] }))
         );
@@ -103,14 +119,14 @@ async function searchMultipleSources(query, queryType = null) {
 
     if (sourcesToUse.includes('reddit')) {
         tasks.push(
-            scrapeReddit(query, 3)
+            scrapeReddit(cleanQuery, 3)
                 .then(results => ({ source: 'reddit', results }))
                 .catch(() => ({ source: 'reddit', results: [] }))
         );
     }
 
     if (sourcesToUse.includes('dictionary')) {
-        const word = extractWord(query);
+        const word = cleanQuery;
         tasks.push(
             lookupWord(word)
                 .then(result => ({ source: 'dictionary', results: result ? [result] : [] }))

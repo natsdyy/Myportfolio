@@ -81,7 +81,7 @@ const intents = [
     {
         name: 'specific_project',
         priority: 0, // highest — very specific signals
-        keywords: ['countryside steakhouse', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch'],
+        keywords: ['countryside steakhouse', 'countryside', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch'],
         handler: handleSpecificProject,
     },
     {
