@@ -13,7 +13,7 @@ const coreTech = ["React", "Vue.js", "Supabase", "Figma", "shadcn/ui", "Tailwind
 const socialLinks = [
   { icon: Facebook, label: 'Facebook', url: 'https://www.facebook.com/CharlesLouieAlvaran/' },
   { icon: Instagram, label: 'Instagram', url: 'https://www.instagram.com/natsdyyy/' },
-  { icon: Mail, label: 'Email', url: 'mailto:[EMAIL_ADDRESS]' }
+  { icon: Mail, label: 'Email', url: 'mailto:charleslouiealvaran@gmail.com' }
 ]
 
 const stats = [

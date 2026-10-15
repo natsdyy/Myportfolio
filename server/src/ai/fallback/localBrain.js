@@ -12,7 +12,7 @@
  *  - Structured near-miss logging for continuous improvement
  */
 
-const { owner, skills, projects, botIdentity } = require('../../data/knowledgeBase');
+const { owner, skills, projects, otherProjects, botIdentity } = require('../../data/knowledgeBase');
 const { generateSmartSummary } = require('./conversationContext');
 
 // ─── Constants ────────────────────────────────────────────────
@@ -81,7 +81,7 @@ const intents = [
     {
         name: 'specific_project',
         priority: 0, // highest — very specific signals
-        keywords: ['countryside steakhouse', 'countryside', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch'],
+        keywords: ['countryside steakhouse', 'countryside', 'vibebuilds', 'vibe builds', 'dynbooth', 'ismeye', 'altermatch', 'appen highlighter', 'extension', 'discord bot', 'thesis', 'figma'],
         handler: handleSpecificProject,
     },
     {
@@ -373,9 +373,9 @@ function handleGreeting(query, ctx) {
 function handleBotIdentity(query, ctx) {
     const lang = detectLanguage(query);
     if (lang === 'tl') {
-        return `Ako si **${botIdentity.name}**, ang AI ni Charles. 🤖\n\nGinaawa ako ni Charles mula sa simula gamit ang custom JavaScript engine — walang gamit na external AI SDKs.\n\n**Kaya kong gawin:**\n- Magbigay ng impormasyon tungkol sa skills at projects ni Charles.\n- Mag-search sa web para sa Wikipedia, Reddit, at iba pa.\n- Real-time dictionary lookups.\n- Pakikipag-usap tungkol sa tech at career.`;
+        return `Ako si **${botIdentity.name}**, ang AI ni Charles. 🤖\n\nGinawa ako ni Charles gamit ang Google Gemini, kasama ang sarili niyang JavaScript engine bilang backup.\n\n**Kaya kong gawin:**\n- Magbigay ng impormasyon tungkol sa skills at projects ni Charles.\n- Mag-search sa web para sa Wikipedia, Reddit, at iba pa.\n- Real-time dictionary lookups.\n- Pakikipag-usap tungkol sa tech at career.`;
     }
-    return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nI was built **entirely from scratch** using a custom JavaScript engine — no external AI libraries like OpenAI or LangChain required.\n\n**Capabilities:**\n- Detailed insights into Charles' skills and projects.\n- Live web searching (Web, Wikipedia, Reddit).\n- Real-time dictionary lookups.\n- Technical discussion and guidance.\n\n*Try asking: "What is his tech stack?" or "How much is a PS5?"*`;
+    return `I am **${botIdentity.name}**, ${botIdentity.role}. 🤖\n\nCharles built me on Google Gemini, with his own hand-coded JavaScript engine as a backup brain.\n\n**Capabilities:**\n- Detailed insights into Charles' skills and projects.\n- Live web searching (Web, Wikipedia, Reddit).\n- Real-time dictionary lookups.\n- Technical discussion and guidance.\n\n*Try asking: "What is his tech stack?" or "Is he available for hire?"*`;
 }
 
 function handleOwnerIdentity(query, ctx) {
@@ -413,30 +413,40 @@ function handleSkills(query, ctx) {
            `${skills.highlights.map(h => `✅ ${h}`).join('\n')}`;
 }
 
+function formatProjectLink(p) {
+    return p.link ? `\n[View Project](${p.link})` : '';
+}
+
 function handleProjects(query, ctx) {
     const lang = detectLanguage(query);
     const projectList = projects.map(p =>
-        `🚀 **${p.name}**\n${p.description}\n[View Project](${p.link})`
+        `🚀 **${p.name}**\n${p.description}${formatProjectLink(p)}`
     ).join('\n\n');
+    const otherList = otherProjects.map(p => `- **${p.name}** (${p.category})`).join('\n');
 
     if (lang === 'tl') {
-        return `Nakalikha na si Charles ng mahigit **${owner.totalProjects}** na applications, mula sa production platforms hanggang sa experimental systems. Narito ang ilan sa kanyang mga gawa:\n\n${projectList}\n\n*Pwede kang magtanong ng detalye tungkol sa kahit anong project niya!*`;
+        return `Nakalikha na si Charles ng mahigit **${owner.totalProjects}** na projects. Narito ang mga featured systems niya:\n\n${projectList}\n\n**Iba pang gawa:**\n${otherList}\n\n*Pwede kang magtanong ng detalye tungkol sa kahit anong project niya!*`;
     }
 
-    return `Charles has developed over **${owner.totalProjects}** applications, ranging from production-ready platforms to complex experimental systems. Here are some of his featured works:\n\n${projectList}\n\n*Tip: You can ask for more details about any project by name!*`;
+    return `Charles has built **${owner.totalProjects}** projects, from production-ready platforms to design work and tools. Here are his featured systems:\n\n${projectList}\n\n**Other work:**\n${otherList}\n\n*Tip: You can ask for more details about any project by name!*`;
 }
 
 function handleSpecificProject(query, ctx) {
     const lang = detectLanguage(query);
     const q = query.toLowerCase();
-    const project = projects.find(p => q.includes(p.name.toLowerCase()));
+    const all = [...projects, ...otherProjects];
+    const aliases = { extension: 'Appen Highlighter Extension', 'discord bot': 'Discord Community Bot', thesis: 'College Thesis UI/UX', figma: 'UI/UX Portfolio', countryside: 'Countryside Steakhouse', 'vibe builds': 'VibeBuilds' };
+    let project = all.find(p => q.includes(p.name.toLowerCase()));
+    if (!project) {
+        const alias = Object.keys(aliases).find(a => q.includes(a));
+        if (alias) project = all.find(p => p.name === aliases[alias]);
+    }
 
     if (project) {
         const techStack = project.tech.join(', ');
-        if (lang === 'tl') {
-             return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}\n- ✨ **Highlights**: ${project.highlights}\n- 🔗 **Live Demo**: [Visit ${project.name}](${project.link})`;
-        }
-        return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}\n- ✨ **Key Highlights**: ${project.highlights}\n- 🔗 **Live Demo**: [Visit ${project.name}](${project.link})`;
+        const highlights = project.highlights ? `\n- ✨ **Highlights**: ${project.highlights}` : '';
+        const link = project.link ? `\n- 🔗 **Link**: [Visit ${project.name}](${project.link})` : '';
+        return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}${highlights}${link}`;
     }
     return handleProjects(query, ctx);
 }
@@ -446,7 +456,7 @@ function handleContact(query, ctx) {
     if (lang === 'tl') {
         return `Si Charles ay **${owner.status}** at handang makipag-usap para sa mga bagong projects! 🤝\n\n**Kontakin siya dito:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nPwede ka ring gumamit ng contact form sa ibaba para sa direct message!`;
     }
-    return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nYou can also use the contact form at the bottom of the page to send a direct message!`;
+    return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📱 **Phone**: ${owner.phone}\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nYou can also use the contact section at the bottom of the page!`;
 }
 
 function handleExperience(query, ctx) {

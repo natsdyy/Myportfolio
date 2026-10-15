@@ -1,40 +1,18 @@
-# Backend Service
+# Backend (local dev)
 
-Simple Express API that verifies Google ID tokens, stores authenticated users in
-Postgres, and saves contact form messages.
+Express server used for local development. In production, Vercel runs the
+functions in `../api/`, which import the same code from `src/ai/`.
 
-## Setup
-
-1. Install dependencies
-   ```bash
-   cd server
-   npm install
-   ```
-2. Copy `env.example` to `.env` and fill in your values:
-   ```
-   PORT=4000
-   DATABASE_URL=postgres://user:password@host:port/db
-   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-   ALLOWED_ORIGINS=https://cladev.up.railway.app,http://localhost:5173
-   ```
-3. Start the server
-   ```bash
-   npm run dev
-   ```
-
-## API
-
-### `POST /api/contact`
-
-Body:
-```json
-{
-  "idToken": "GOOGLE_ID_TOKEN",
-  "subject": "optional subject",
-  "message": "your message"
-}
+```bash
+npm install
+cp .env.example .env   # add GEMINI_API_KEY etc.
+npm run dev            # http://localhost:4000
 ```
 
-The server verifies the Google token, upserts the user, stores the message, and
-returns the saved record.
+## Endpoints
 
+- `POST /api/ai/chat` — `{ query, history?, stream? }` → SSE stream (or JSON when `stream: false`)
+- `POST /api/contact` — contact form email
+- `GET /health`
+
+See the root [README](../README.md) for the full project structure.

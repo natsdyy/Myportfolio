@@ -1,354 +1,536 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { MessageSquare, X, Send, Loader2, Search, Sparkles, Trash2 } from 'lucide-vue-next'
-import axios from 'axios'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { MessageSquare, X, Send, Sparkles, Trash2, Copy, Check, Square, RotateCcw, ExternalLink } from 'lucide-vue-next'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useResumeModal } from '../../../composables/useResumeModal'
 
 const { openModal } = useResumeModal()
 
-const isOpen = ref(false)
-const query = ref('')
-const isLoading = ref(false)
-const loadingMessage = ref('Thinking...')
-const defaultMessage = { role: 'assistant', content: "Hi! I'm Charles' personal AI. You can ask me about his tech stack, his projects, or I can even help you search for live info on the web. How can I help you today?" }
-const messages = ref([defaultMessage])
-const scrollContainer = ref(null)
-const textareaRef = ref(null)
+// ── Config ──────────────────────────────────────────────────────
+const STORAGE_KEY = 'cla-chat-history-v2'
+const MAX_STORED_MESSAGES = 40
+const HISTORY_SENT_TO_SERVER = 12
 
-const loadingMessages = [
-  'Searching the web...',
-  'Analyzing sources...',
-  'Reading content...',
-  'Synthesizing answer...',
-  'Finalizing response...'
-]
-
-let loadingInterval = null
-
-function startLoading() {
-  isLoading.value = true
-  let index = 0
-  loadingMessage.value = loadingMessages[0]
-  loadingInterval = setInterval(() => {
-    index = (index + 1) % loadingMessages.length
-    loadingMessage.value = loadingMessages[index]
-  }, 1500)
-}
-
-function stopLoading() {
-  isLoading.value = false
-  if (loadingInterval) {
-    clearInterval(loadingInterval)
-    loadingInterval = null
-  }
-}
-
-onUnmounted(() => {
-  stopLoading()
+const welcomeMessage = () => ({
+  id: 'welcome',
+  role: 'assistant',
+  content: "Hi! 👋 I'm **CLA Assistant**, Charles' personal AI. Ask me about his projects, skills, or availability — or anything tech-related. How can I help?",
 })
 
 const suggestedPrompts = [
-  "What is your tech stack?",
-  "Tell me about Countryside Steakhouse",
-  "Are you available for hire?",
-  "What is your latest project?"
+  'What is his tech stack?',
+  'Show me his best projects',
+  'Is he available for hire?',
+  'Can I see his resume?',
 ]
+
+// ── State ───────────────────────────────────────────────────────
+const isOpen = ref(false)
+const query = ref('')
+const isLoading = ref(false)
+const messages = ref([welcomeMessage()])
+const copiedId = ref(null)
+const scrollContainer = ref(null)
+const textareaRef = ref(null)
+let abortController = null
+let idCounter = 0
+
+const newId = () => `${Date.now().toString(36)}-${idCounter++}`
+const hasConversation = computed(() => messages.value.length > 1)
+const streamingMessage = computed(() => messages.value.find(m => m.streaming))
+const showTypingDots = computed(() => isLoading.value && !streamingMessage.value?.content)
+
+// ── Persistence ─────────────────────────────────────────────────
+onMounted(() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+    if (Array.isArray(saved) && saved.length) messages.value = saved
+  } catch { /* ignore corrupt storage */ }
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  abortController?.abort()
+  window.removeEventListener('keydown', handleGlobalKeydown)
+})
+
+watch(messages, (val) => {
+  const toStore = val.filter(m => !m.streaming).slice(-MAX_STORED_MESSAGES)
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore)) } catch { /* quota */ }
+}, { deep: true })
+
+// ── UI helpers ──────────────────────────────────────────────────
+function handleGlobalKeydown(e) {
+  if (e.key === 'Escape' && isOpen.value) isOpen.value = false
+}
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
-    scrollToBottom()
-    nextTick(() => { if (textareaRef.value) textareaRef.value.focus() })
+    scrollToBottom(true)
+    nextTick(() => textareaRef.value?.focus())
   }
 }
 
 const clearChat = () => {
-  messages.value = [defaultMessage]
+  abortController?.abort()
+  messages.value = [welcomeMessage()]
 }
 
-const scrollToBottom = async () => {
+const isNearBottom = () => {
+  const el = scrollContainer.value
+  return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 120
+}
+
+const scrollToBottom = async (force = false) => {
+  const shouldScroll = force || isNearBottom()
   await nextTick()
-  if (scrollContainer.value) {
+  if (shouldScroll && scrollContainer.value) {
     scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
   }
 }
 
-const handleInput = (e) => {
-  const target = e.target
-  target.style.height = 'auto'
-  target.style.height = `${Math.min(target.scrollHeight, 120)}px`
+const autoResize = () => {
+  const el = textareaRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight, 128)}px`
 }
 
 const handleKeydown = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
     e.preventDefault()
     sendMessage()
   }
 }
 
-const usePrompt = (prompt) => {
-  query.value = prompt
-  sendMessage()
-}
+// ── Markdown ────────────────────────────────────────────────────
+marked.setOptions({ breaks: true, gfm: true })
 
-const renderMarkdown = (text) => {
-  const rawHtml = marked.parse(text)
-  return DOMPurify.sanitize(rawHtml)
-}
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    const href = node.getAttribute('href') || ''
+    if (/^https?:\/\//i.test(href)) {
+      node.setAttribute('target', '_blank')
+      node.setAttribute('rel', 'noopener noreferrer')
+    }
+  }
+})
+
+const renderMarkdown = (text) => DOMPurify.sanitize(marked.parse(text || ''))
 
 const handleMarkdownClick = (e) => {
-  const target = e.target.closest('a')
-  if (target && target.getAttribute('href') === '#resume') {
+  const link = e.target.closest('a')
+  if (link && link.getAttribute('href') === '#resume') {
     e.preventDefault()
     openModal()
   }
 }
 
-const sendMessage = async () => {
-  if (!query.value.trim() || isLoading.value) return
-
-  const userQuery = query.value
-  // Capture history BEFORE adding the current message so the server does not
-  // treat the current query as a prior turn (fixes follow-up resolution).
-  const history = messages.value.slice(-10)
-  messages.value.push({ role: 'user', content: userQuery })
-  query.value = ''
-
-  // Mood-aware loading messages (Rule 2, 10)
-  const frustrationWords = /\b(frustrated|angry|annoyed|ugh|broken|wrong|bad|stupid|nakakainis|bobo|mali)\b/i
-  const confusedWords = /\b(confused|don't understand|help|lost|unclear|naguguluhan|di ko gets)\b/i
-
-  if (frustrationWords.test(userQuery)) {
-    loadingMessage.value = 'Let me help with that...'
-  } else if (confusedWords.test(userQuery)) {
-    loadingMessage.value = 'Breaking it down for you...'
-  }
-
-  startLoading()
-  scrollToBottom()
-  
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-  }
-
+const copyMessage = async (msg) => {
   try {
-    const response = await axios.post('/api/ai/chat', {
-      query: userQuery,
-      history
-    })
+    await navigator.clipboard.writeText(msg.content)
+    copiedId.value = msg.id
+    setTimeout(() => { if (copiedId.value === msg.id) copiedId.value = null }, 1500)
+  } catch { /* clipboard blocked */ }
+}
 
-    messages.value.push({ 
-      role: 'assistant', 
-      content: response.data.answer,
-      searched: response.data.searched,
-      sources: response.data.sources,
-      mode: response.data.mode
-    })
-  } catch (error) {
-    messages.value.push({ 
-      role: 'assistant', 
-      content: "I'm having a bit of trouble processing that right now. Could you try rephrasing your question?" 
-    })
-  } finally {
-    stopLoading()
-    scrollToBottom()
-    nextTick(() => { if (textareaRef.value) textareaRef.value.focus() })
+const sourceHost = (url) => {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return '' }
+}
+
+// ── Networking ──────────────────────────────────────────────────
+async function streamReply(userQuery, history, assistantMsg, signal) {
+  const response = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({ query: userQuery, history, stream: true }),
+    signal,
+  })
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || `Request failed (${response.status})`)
   }
+
+  // Server may answer with JSON (e.g. older deployments) — handle both.
+  if (!response.headers.get('content-type')?.includes('text/event-stream')) {
+    const data = await response.json()
+    assistantMsg.content = data.answer || ''
+    assistantMsg.sources = data.sources || []
+    assistantMsg.mode = data.mode
+    return
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let boundary
+    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+      const raw = buffer.slice(0, boundary)
+      buffer = buffer.slice(boundary + 2)
+      const line = raw.split('\n').find(l => l.startsWith('data:'))
+      if (!line) continue
+
+      let event
+      try { event = JSON.parse(line.slice(5).trim()) } catch { continue }
+
+      if (event.type === 'delta') {
+        assistantMsg.content += event.text
+        scrollToBottom()
+      } else if (event.type === 'done') {
+        assistantMsg.sources = event.sources || []
+        assistantMsg.mode = event.mode
+      } else if (event.type === 'error') {
+        throw new Error(event.message)
+      }
+    }
+  }
+}
+
+const sendMessage = async (overrideQuery) => {
+  const userQuery = (typeof overrideQuery === 'string' ? overrideQuery : query.value).trim()
+  if (!userQuery || isLoading.value) return
+
+  // History BEFORE the new message, without the welcome or failed turns.
+  const history = messages.value
+    .filter(m => m.id !== 'welcome' && !m.error && m.content)
+    .slice(-HISTORY_SENT_TO_SERVER)
+    .map(({ role, content }) => ({ role, content }))
+
+  messages.value.push({ id: newId(), role: 'user', content: userQuery })
+  messages.value.push({ id: newId(), role: 'assistant', content: '', sources: [], streaming: true })
+  // Use the reactive proxy so streamed updates re-render.
+  const assistantMsg = messages.value[messages.value.length - 1]
+
+  query.value = ''
+  nextTick(autoResize)
+  isLoading.value = true
+  scrollToBottom(true)
+
+  abortController = new AbortController()
+  try {
+    await streamReply(userQuery, history, assistantMsg, abortController.signal)
+    if (!assistantMsg.content) throw new Error('Empty response')
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      if (!assistantMsg.content) assistantMsg.content = '_Stopped._'
+    } else {
+      assistantMsg.error = true
+      assistantMsg.retryQuery = userQuery
+      assistantMsg.content = assistantMsg.content
+        ? `${assistantMsg.content}\n\n_Connection interrupted._`
+        : "I'm having trouble connecting right now. Please try again in a moment."
+    }
+  } finally {
+    assistantMsg.streaming = false
+    isLoading.value = false
+    abortController = null
+    scrollToBottom()
+    nextTick(() => textareaRef.value?.focus())
+  }
+}
+
+const stopGenerating = () => abortController?.abort()
+
+const retry = (msg) => {
+  const idx = messages.value.findIndex(m => m.id === msg.id)
+  if (idx > 0) messages.value.splice(idx - 1, 2) // remove the failed user + assistant pair
+  sendMessage(msg.retryQuery)
 }
 </script>
 
 <template>
   <div :class="['fixed z-[100] flex flex-col items-end pointer-events-none', isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-6 right-6']">
-    
+
     <!-- Chat Window -->
     <Transition
-      enter-active-class="transition duration-400 ease-out"
-      enter-from-class="transform scale-95 opacity-0 md:translate-y-8"
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform scale-95 opacity-0 md:translate-y-6"
       enter-to-class="transform scale-100 opacity-100 translate-y-0"
-      leave-active-class="transition duration-300 ease-in"
+      leave-active-class="transition duration-200 ease-in"
       leave-from-class="transform scale-100 opacity-100 translate-y-0"
-      leave-to-class="transform scale-95 opacity-0 md:translate-y-8"
+      leave-to-class="transform scale-95 opacity-0 md:translate-y-6"
     >
-      <div v-if="isOpen" class="pointer-events-auto w-full h-full md:h-[700px] md:max-h-[calc(100vh-120px)] md:w-[420px] md:mb-4 bg-app/95 backdrop-blur-2xl border-none md:border md:border-main rounded-none md:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
-        
+      <section
+        v-if="isOpen"
+        id="chat-window"
+        role="dialog"
+        aria-label="CLA Assistant chat"
+        class="pointer-events-auto w-full h-full md:h-[680px] md:max-h-[calc(100vh-120px)] md:w-[420px] md:mb-4 bg-app/95 backdrop-blur-2xl md:border md:border-main rounded-none md:rounded-[1.75rem] shadow-2xl flex flex-col overflow-hidden origin-bottom-right"
+      >
         <!-- Header -->
-        <div class="px-5 py-4 border-b border-main/20 flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
+        <header class="px-5 py-4 border-b border-main/20 flex items-center justify-between bg-gradient-to-r from-blue-600/10 via-indigo-500/5 to-transparent">
           <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 relative">
-              <Sparkles :size="18" class="animate-pulse" />
-              <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-app rounded-full"></div>
+            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 relative">
+              <Sparkles :size="18" />
+              <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-app rounded-full"></span>
             </div>
             <div>
-              <p class="text-sm font-bold text-main tracking-tight">AI Assistant</p>
-              <p class="text-[10px] font-semibold text-blue-500 uppercase tracking-wider">Always Learning</p>
+              <h2 class="text-sm font-bold text-main tracking-tight">CLA Assistant</h2>
+              <p class="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">
+                {{ isLoading ? 'Typing…' : 'Online' }}
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-1">
-            <button @click="clearChat" title="Clear Chat" class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-red-500">
-              <Trash2 :size="18" />
+            <button
+              v-if="hasConversation"
+              id="chat-clear-btn"
+              @click="clearChat"
+              title="Clear chat"
+              aria-label="Clear chat"
+              class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-red-500"
+            >
+              <Trash2 :size="17" />
             </button>
-            <button @click="toggleChat" class="md:hidden p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-main">
-              <X :size="20" />
+            <button
+              id="chat-close-btn"
+              @click="toggleChat"
+              title="Close"
+              aria-label="Close chat"
+              class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-main"
+            >
+              <X :size="19" />
             </button>
           </div>
-        </div>
+        </header>
 
         <!-- Messages -->
-        <div ref="scrollContainer" class="flex-1 overflow-y-auto p-5 space-y-5 scroll-smooth">
-          <div 
-            v-for="(msg, idx) in messages" 
-            :key="idx"
-            :class="['flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start']"
+        <div ref="scrollContainer" id="chat-messages" class="chat-scroll flex-1 overflow-y-auto px-4 py-5 space-y-4" aria-live="polite">
+          <div
+            v-for="msg in messages"
+            :key="msg.id"
+            :class="['group flex flex-col msg-enter', msg.role === 'user' ? 'items-end' : 'items-start']"
           >
-            <div 
-              :class="[
-                'max-w-[88%] p-3.5 text-[13.5px] leading-relaxed shadow-sm',
-                msg.role === 'user' 
-                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm shadow-blue-600/20' 
-                  : 'bg-white dark:bg-slate-800 text-main border border-slate-100 dark:border-slate-700/60 rounded-2xl rounded-tl-sm'
-              ]"
-            >
-              <div v-if="msg.role === 'user'" class="whitespace-pre-wrap">{{ msg.content }}</div>
-              <div v-else class="markdown-body text-[13.5px] leading-relaxed" v-html="renderMarkdown(msg.content)" @click="handleMarkdownClick"></div>
-              
-              <!-- Source Tags -->
-              <div v-if="msg.sources && msg.sources.length" class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap gap-1.5">
-                <span v-for="source in msg.sources" :key="source" class="text-[9px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
-                  {{ source }}
-                </span>
+            <!-- User bubble -->
+            <div
+              v-if="msg.role === 'user'"
+              class="max-w-[85%] px-4 py-2.5 text-[13.5px] leading-relaxed bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-md shadow-md shadow-blue-600/20 whitespace-pre-wrap break-words"
+            >{{ msg.content }}</div>
+
+            <!-- Assistant bubble -->
+            <template v-else-if="msg.content || !msg.streaming">
+              <div
+                :class="[
+                  'max-w-[92%] px-4 py-3 text-[13.5px] leading-relaxed rounded-2xl rounded-bl-md shadow-sm border',
+                  msg.error
+                    ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-main'
+                    : 'bg-white dark:bg-slate-800/90 border-slate-100 dark:border-slate-700/60 text-main'
+                ]"
+              >
+                <div
+                  :class="['markdown-body break-words', msg.streaming && 'is-streaming']"
+                  v-html="renderMarkdown(msg.content)"
+                  @click="handleMarkdownClick"
+                ></div>
+
+                <!-- Sources -->
+                <div v-if="msg.sources?.length && !msg.streaming" class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap gap-1.5">
+                  <template v-for="source in msg.sources" :key="source.url || source.label">
+                    <a
+                      v-if="source.url"
+                      :href="source.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      :title="source.label"
+                      class="inline-flex items-center gap-1 max-w-[180px] text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/25 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-2 py-1 rounded-md transition-colors"
+                    >
+                      <ExternalLink :size="10" class="flex-shrink-0" />
+                      <span class="truncate">{{ sourceHost(source.url) || source.label }}</span>
+                    </a>
+                    <span v-else class="text-[9px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
+                      {{ source.label }}
+                    </span>
+                  </template>
+                </div>
               </div>
-            </div>
+
+              <!-- Actions -->
+              <div v-if="msg.id !== 'welcome' && !msg.streaming" class="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                <button
+                  @click="copyMessage(msg)"
+                  :title="copiedId === msg.id ? 'Copied!' : 'Copy'"
+                  aria-label="Copy message"
+                  class="p-1.5 rounded-md text-muted hover:text-main hover:bg-main/10 transition-colors"
+                >
+                  <Check v-if="copiedId === msg.id" :size="13" class="text-emerald-500" />
+                  <Copy v-else :size="13" />
+                </button>
+                <button
+                  v-if="msg.error && msg.retryQuery"
+                  @click="retry(msg)"
+                  title="Retry"
+                  aria-label="Retry"
+                  class="p-1.5 rounded-md text-muted hover:text-main hover:bg-main/10 transition-colors"
+                >
+                  <RotateCcw :size="13" />
+                </button>
+              </div>
+            </template>
           </div>
-          
-          <!-- Loading Indicator -->
-          <div v-if="isLoading" class="flex items-start">
-            <div class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 p-3.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-3">
-              <div class="flex space-x-1.5">
-                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
-                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
-              </div>
-              <span class="text-[10px] text-muted font-semibold tracking-wider uppercase">{{ loadingMessage }}</span>
+
+          <!-- Typing indicator (before first token arrives) -->
+          <div v-if="showTypingDots" class="flex items-start msg-enter">
+            <div class="bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/60 px-4 py-3.5 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-1.5">
+              <span class="typing-dot"></span>
+              <span class="typing-dot" style="animation-delay: 0.15s"></span>
+              <span class="typing-dot" style="animation-delay: 0.3s"></span>
             </div>
           </div>
         </div>
 
         <!-- Input -->
         <div class="p-4 border-t border-main/10 bg-app/80 backdrop-blur-lg flex flex-col gap-3">
-          <!-- Suggested Prompts -->
-          <div v-if="messages.length === 1" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <button 
-              v-for="prompt in suggestedPrompts" 
+          <!-- Suggested prompts -->
+          <div v-if="!hasConversation" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <button
+              v-for="(prompt, i) in suggestedPrompts"
               :key="prompt"
-              @click="usePrompt(prompt)"
-              class="whitespace-nowrap px-3 py-1.5 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300"
+              :id="`chat-suggestion-${i}`"
+              @click="sendMessage(prompt)"
+              class="whitespace-nowrap px-3 py-1.5 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200"
             >
               {{ prompt }}
             </button>
           </div>
 
-          <form @submit.prevent="sendMessage" class="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-[1.5rem] p-1.5 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all shadow-sm">
-            <textarea 
+          <form
+            @submit.prevent="sendMessage()"
+            class="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-[1.5rem] p-1.5 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500 transition-all shadow-sm"
+          >
+            <label for="chat-input" class="sr-only">Message</label>
+            <textarea
+              id="chat-input"
               ref="textareaRef"
               v-model="query"
               rows="1"
-              placeholder="Ask me anything..."
-              @input="handleInput"
+              maxlength="1000"
+              placeholder="Ask me anything…"
+              @input="autoResize"
               @keydown="handleKeydown"
-              class="w-full bg-transparent resize-none py-2 pl-4 text-sm text-main placeholder:text-muted focus:outline-none max-h-32"
+              class="w-full bg-transparent resize-none py-2 pl-3.5 text-sm text-main placeholder:text-muted focus:outline-none max-h-32"
             ></textarea>
-            <button 
+            <button
+              v-if="isLoading"
+              id="chat-stop-btn"
+              type="button"
+              @click="stopGenerating"
+              title="Stop generating"
+              aria-label="Stop generating"
+              class="h-9 w-9 flex-shrink-0 rounded-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center hover:scale-105 transition-transform mb-0.5 mr-0.5"
+            >
+              <Square :size="12" fill="currentColor" />
+            </button>
+            <button
+              v-else
+              id="chat-send-btn"
               type="submit"
-              :disabled="isLoading || !query.trim()"
-              class="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-blue-500 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:shadow-none mb-0.5 mr-0.5"
+              :disabled="!query.trim()"
+              aria-label="Send message"
+              class="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-40 disabled:shadow-none mb-0.5 mr-0.5"
             >
               <Send :size="16" class="ml-0.5" />
             </button>
           </form>
+          <p class="text-[10px] text-center text-muted -mt-1">AI can make mistakes — verify important info.</p>
         </div>
-      </div>
+      </section>
     </Transition>
 
-    <!-- Trigger Button -->
-    <button 
+    <!-- Launcher -->
+    <button
+      id="chat-launcher"
       @click="toggleChat"
+      :aria-label="isOpen ? 'Close chat' : 'Open chat'"
       :class="[
-        'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-500 hover:scale-110 active:scale-95 group pointer-events-auto relative',
-        isOpen ? 'hidden md:flex bg-slate-100 dark:bg-slate-800 text-muted hover:text-main border border-main/20 rotate-90' : 'bg-gradient-to-tr from-blue-600 to-blue-500 text-white shadow-blue-500/30'
+        'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group pointer-events-auto relative',
+        isOpen ? 'hidden md:flex bg-slate-100 dark:bg-slate-800 text-muted hover:text-main border border-main/20' : 'bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-blue-500/30'
       ]"
     >
       <MessageSquare v-if="!isOpen" :size="24" class="group-hover:rotate-12 transition-transform" />
       <X v-else :size="24" />
-      
-      <!-- Notification Dot -->
-      <span v-if="!isOpen" class="absolute top-0 right-0 h-3.5 w-3.5 bg-red-500 border-2 border-app rounded-full animate-pulse"></span>
+      <span v-if="!isOpen && !hasConversation" class="absolute top-0 right-0 h-3.5 w-3.5 bg-red-500 border-2 border-app rounded-full animate-pulse"></span>
     </button>
   </div>
 </template>
 
 <style scoped>
-/* Custom scrollbar for chat */
-div::-webkit-scrollbar {
-  width: 5px;
-}
-div::-webkit-scrollbar-track {
-  background: transparent;
-}
-div::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 10px;
-}
-div::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
+.chat-scroll::-webkit-scrollbar { width: 5px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+.chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.msg-enter { animation: msg-in 0.25s ease-out; }
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 9999px;
+  background: #3b82f6;
+  animation: typing 1s infinite ease-in-out;
 }
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+@keyframes typing {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* Markdown Styles */
-:deep(.markdown-body) {
-  color: var(--text-main);
+/* Blinking caret while streaming */
+:deep(.markdown-body.is-streaming > :last-child::after) {
+  content: '';
+  display: inline-block;
+  width: 7px; height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: #3b82f6;
+  border-radius: 1px;
+  animation: caret 0.9s steps(1) infinite;
 }
-:deep(.markdown-body p) {
-  margin-bottom: 0.6rem;
-}
-:deep(.markdown-body p:last-child) {
-  margin-bottom: 0;
-}
+@keyframes caret { 50% { opacity: 0; } }
+
+/* Markdown */
+:deep(.markdown-body) { color: var(--text-main); }
+:deep(.markdown-body p) { margin-bottom: 0.6rem; }
+:deep(.markdown-body > :last-child) { margin-bottom: 0; }
 :deep(.markdown-body a) {
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 600;
-  border-bottom: 1px solid transparent;
-  transition: all 0.2s ease;
+  color: #3b82f6; font-weight: 600; text-decoration: none;
+  border-bottom: 1px solid transparent; transition: all 0.2s ease;
 }
-:deep(.markdown-body a:hover) {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+:deep(.markdown-body a:hover) { color: #2563eb; border-bottom-color: #2563eb; }
+:deep(.markdown-body strong) { font-weight: 700; color: var(--text-main); }
+:deep(.markdown-body ul) { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.6rem; }
+:deep(.markdown-body ol) { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.6rem; }
+:deep(.markdown-body li) { margin-bottom: 0.25rem; }
+:deep(.markdown-body h1), :deep(.markdown-body h2), :deep(.markdown-body h3) {
+  font-size: 1.05em; font-weight: 700; margin: 0.9rem 0 0.4rem;
 }
-:deep(.markdown-body strong) {
-  font-weight: 800;
-  color: var(--text-main);
+:deep(.markdown-body blockquote) {
+  border-left: 3px solid rgba(59, 130, 246, 0.5);
+  padding-left: 0.75rem; margin: 0.5rem 0; opacity: 0.85;
 }
-:deep(.markdown-body ul) {
-  list-style-type: disc;
-  padding-left: 1.25rem;
-  margin-bottom: 0.5rem;
+:deep(.markdown-body code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em; padding: 0.1rem 0.35rem; border-radius: 0.3rem;
+  background: rgba(100, 116, 139, 0.15);
 }
-:deep(.markdown-body li) {
-  margin-bottom: 0.25rem;
+:deep(.markdown-body pre) {
+  margin: 0.6rem 0; padding: 0.75rem 0.9rem; border-radius: 0.6rem;
+  background: #0f172a; color: #e2e8f0; overflow-x: auto; font-size: 12px; line-height: 1.55;
 }
-:deep(.markdown-body h3) {
-  font-size: 1.1em;
-  font-weight: 700;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-}
+:deep(.markdown-body pre code) { background: none; padding: 0; font-size: inherit; color: inherit; }
+:deep(.markdown-body table) { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 12px; }
+:deep(.markdown-body th), :deep(.markdown-body td) { border: 1px solid rgba(100, 116, 139, 0.25); padding: 0.35rem 0.5rem; text-align: left; }
+:deep(.markdown-body hr) { border: none; border-top: 1px solid rgba(100, 116, 139, 0.25); margin: 0.8rem 0; }
 </style>

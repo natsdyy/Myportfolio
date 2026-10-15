@@ -1,73 +1,9 @@
 const express = require('express');
+const { handleChatRequest } = require('../ai/http');
+
+// Local dev / Express deployments. Vercel uses api/ai/chat.js — both call the same handler.
 const router = express.Router();
-const { processUserQuery } = require('../agents/searchAgent');
 
-// ── Simple in-memory rate limiter ─────────────────────────────
-// The /chat endpoint can trigger an expensive web scrape, so we cap
-// requests per IP to prevent abuse.
-const RATE_WINDOW_MS = 60 * 1000;
-const RATE_MAX_REQUESTS = 10;
-const MAX_QUERY_LENGTH = 500;
-const REQUEST_TIMEOUT_MS = 25000;
-const rateBuckets = new Map();
-
-function pruneBuckets(now) {
-    if (rateBuckets.size < 1000) return;
-    for (const [ip, bucket] of rateBuckets) {
-        if (now - bucket.windowStart > RATE_WINDOW_MS) rateBuckets.delete(ip);
-    }
-}
-
-function chatRateLimit(req, res, next) {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-    const now = Date.now();
-    pruneBuckets(now);
-
-    const bucket = rateBuckets.get(ip);
-    if (!bucket || now - bucket.windowStart > RATE_WINDOW_MS) {
-        rateBuckets.set(ip, { windowStart: now, count: 1 });
-        return next();
-    }
-
-    bucket.count += 1;
-    if (bucket.count > RATE_MAX_REQUESTS) {
-        return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
-    }
-    next();
-}
-
-function withTimeout(promise, ms) {
-    let timer;
-    const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Request timed out')), ms);
-    });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
-
-router.post('/chat', chatRateLimit, async (req, res) => {
-    const { query, history } = req.body;
-
-    if (!query) {
-        return res.status(400).json({ error: 'Query is required' });
-    }
-
-    if (typeof query !== 'string' || query.length > MAX_QUERY_LENGTH) {
-        return res.status(400).json({ error: `Query must be a string of at most ${MAX_QUERY_LENGTH} characters` });
-    }
-
-    try {
-        const result = await withTimeout(
-            processUserQuery(query, history || []),
-            REQUEST_TIMEOUT_MS
-        );
-        res.json(result);
-    } catch (error) {
-        console.error('Chat Route Error:', error.message);
-        if (error.message === 'Request timed out') {
-            return res.status(504).json({ error: 'The request took too long. Please try again.' });
-        }
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
+router.post('/chat', handleChatRequest);
 
 module.exports = router;

@@ -1,11 +1,14 @@
-const { searchMultipleSources, detectQueryType } = require('../services/scraping/index');
-const { tryLocalAnswer, classifyIntent, detectLanguage, detectSentiment } = require('../services/ai/localBrain');
-const { resolveFollowUp, buildConversationProfile } = require('../services/ai/conversationContext');
-const { applyPersona, shouldClarify, analyzeTone } = require('../services/ai/personaEngine');
-const { logChatMessage, checkCachedAnswer } = require('../services/ai/memory');
+const { searchMultipleSources, detectQueryType } = require('./scraping/index');
+const { tryLocalAnswer, classifyIntent, detectLanguage } = require('./localBrain');
+const { resolveFollowUp, buildConversationProfile } = require('./conversationContext');
+const { applyPersona, shouldClarify } = require('./personaEngine');
+const { logChatMessage, checkCachedAnswer } = require('./memory');
 
 /**
- * Search Agent v5 — Persona-Enhanced Intelligence (100% Local, No API)
+ * Local Agent — rule-based fallback (100% Local, No API)
+ *
+ * Used automatically when the Gemini LLM is not configured (no
+ * GEMINI_API_KEY) or is temporarily unavailable. See ../index.js.
  *
  * Flow:
  * 0a. CONTEXT RESOLUTION (detect follow-ups, enrich query with history)
