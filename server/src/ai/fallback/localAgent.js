@@ -103,10 +103,10 @@ async function processUserQuery(rawQuery, history = []) {
     }
 
     if (!finalAnswer) {
-        const lang = detectLanguage(query);
+        const lang = detectLanguage(rawQuery);
         const fallback = lang === 'tl'
-            ? `Hindi ko mahanap ang eksaktong detalye tungkol sa "${query}" ngayon. Mas magaling ako sa mga tanong tungkol sa projects ni Charles, tech topics, o kahulugan ng mga salita — subukan mong i-rephrase?`
-            : `I couldn't find specific details about "${query}" right now. I'm best at answering things about Charles' projects, tech topics, or word definitions — maybe try rephrasing?`;
+            ? `Medyo malabo o hindi ko nahanap ang eksaktong detalye tungkol diyan! 😄 Pero andito ako para tulungan ka — mas gamay ko ang mga gawa ni Charles tulad ng **Countryside Steakhouse** at **VibeBuilds**, ang kanyang tech stack, o ang resume niya. Pwede mo ring i-click ang suggestion buttons sa ibaba! 🚀`
+            : `I couldn't find specific details about that right now! 😄 But I'm right here with you — I specialize in Charles' web projects (like **Countryside Steakhouse** or **VibeBuilds**), his full-stack skills, or his resume. Feel free to tap any of the suggestion buttons below! 🚀`;
         finalAnswer = applyPersona(fallback, rawQuery, history, {
             intent: null,
             profile,

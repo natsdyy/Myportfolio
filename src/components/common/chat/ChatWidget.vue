@@ -20,7 +20,9 @@ import {
   FileText,
   Lightbulb,
   Mail,
-  Bot
+  Bot,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-vue-next'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -48,8 +50,22 @@ const messages = ref([welcomeMessage()])
 const copiedId = ref(null)
 const scrollContainer = ref(null)
 const textareaRef = ref(null)
+const shortcutsRef = ref(null)
+const suggestionsRef = ref(null)
 let abortController = null
 let idCounter = 0
+
+const scrollBar = (elementRef, delta) => {
+  if (elementRef?.value) {
+    elementRef.value.scrollBy({ left: delta, behavior: 'smooth' })
+  }
+}
+
+const handleWheelScroll = (e) => {
+  if (e.deltaY !== 0) {
+    e.currentTarget.scrollLeft += e.deltaY * 0.9
+  }
+}
 
 const newId = () => `${Date.now().toString(36)}-${idCounter++}`
 const hasConversation = computed(() => messages.value.length > 1)
@@ -375,16 +391,42 @@ const retry = (msg) => {
           </div>
         </header>
 
-        <!-- Quick Shortcut Bar -->
-        <div class="px-4 py-2 bg-main/5 border-b border-main/10 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+        <!-- Quick Shortcut Bar with Scroll Chevrons -->
+        <div class="relative flex items-center bg-main/5 border-b border-main/10 px-2 py-1.5">
           <button
-            v-for="item in quickActions"
-            :key="item.label"
-            @click="item.action"
-            class="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-app/80 border border-main/15 text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-150 active:scale-95"
+            type="button"
+            @click="scrollBar(shortcutsRef, -120)"
+            title="Scroll shortcuts left"
+            aria-label="Scroll shortcuts left"
+            class="flex-shrink-0 h-6 w-6 rounded-full bg-app/90 border border-main/20 text-muted hover:text-main hover:bg-main/15 flex items-center justify-center transition-colors shadow-xs mr-1 z-10 active:scale-95"
           >
-            <component :is="item.icon" :size="11" />
-            <span>{{ item.label }}</span>
+            <ChevronLeft :size="13" />
+          </button>
+
+          <div
+            ref="shortcutsRef"
+            @wheel.passive="handleWheelScroll"
+            class="flex-1 flex items-center gap-1.5 overflow-x-auto row-scroll scroll-smooth py-0.5"
+          >
+            <button
+              v-for="item in quickActions"
+              :key="item.label"
+              @click="item.action"
+              class="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-app/90 border border-main/15 text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-150 active:scale-95"
+            >
+              <component :is="item.icon" :size="11" />
+              <span>{{ item.label }}</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            @click="scrollBar(shortcutsRef, 120)"
+            title="Scroll shortcuts right"
+            aria-label="Scroll shortcuts right"
+            class="flex-shrink-0 h-6 w-6 rounded-full bg-app/90 border border-main/20 text-muted hover:text-main hover:bg-main/15 flex items-center justify-center transition-colors shadow-xs ml-1 z-10 active:scale-95"
+          >
+            <ChevronRight :size="13" />
           </button>
         </div>
 
@@ -498,20 +540,47 @@ const retry = (msg) => {
 
         <!-- Dynamic Context Suggestions & Input Container -->
         <div class="p-3.5 border-t border-main/10 bg-app/90 backdrop-blur-lg flex flex-col gap-2.5">
-          <!-- Dynamic suggestions powered by JS Chat Analyzer -->
-          <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-            <span class="text-[10px] font-bold text-muted uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+          <!-- Dynamic suggestions powered by JS Chat Analyzer with Scroll Chevrons -->
+          <div class="relative flex items-center gap-1">
+            <span class="text-[10px] font-bold text-muted uppercase tracking-wider flex-shrink-0 flex items-center gap-1 pr-0.5">
               <Sparkles :size="10" class="text-blue-500" />
               Ask:
             </span>
+
             <button
-              v-for="(suggestion, i) in activeSuggestions"
-              :key="`suggest-${i}-${suggestion}`"
-              :id="`chat-suggestion-${i}`"
-              @click="sendMessage(suggestion)"
-              class="whitespace-nowrap flex-shrink-0 px-3 py-1 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 transition-all duration-200"
+              type="button"
+              @click="scrollBar(suggestionsRef, -130)"
+              title="Scroll suggestions left"
+              aria-label="Scroll suggestions left"
+              class="flex-shrink-0 h-5 w-5 rounded-full bg-main/10 hover:bg-blue-600 hover:text-white text-muted flex items-center justify-center transition-colors shadow-xs active:scale-95"
             >
-              {{ suggestion }}
+              <ChevronLeft :size="12" />
+            </button>
+
+            <div
+              ref="suggestionsRef"
+              @wheel.passive="handleWheelScroll"
+              class="flex-1 flex items-center gap-1.5 overflow-x-auto row-scroll scroll-smooth py-0.5"
+            >
+              <button
+                v-for="(suggestion, i) in activeSuggestions"
+                :key="`suggest-${i}-${suggestion}`"
+                :id="`chat-suggestion-${i}`"
+                @click="sendMessage(suggestion)"
+                class="whitespace-nowrap flex-shrink-0 px-3 py-1 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 transition-all duration-200"
+              >
+                {{ suggestion }}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              @click="scrollBar(suggestionsRef, 130)"
+              title="Scroll suggestions right"
+              aria-label="Scroll suggestions right"
+              class="flex-shrink-0 h-5 w-5 rounded-full bg-main/10 hover:bg-blue-600 hover:text-white text-muted flex items-center justify-center transition-colors shadow-xs active:scale-95"
+            >
+              <ChevronRight :size="12" />
             </button>
           </div>
 
@@ -589,6 +658,24 @@ const retry = (msg) => {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.row-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.25) transparent;
+}
+.row-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.row-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.row-scroll::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.25);
+  border-radius: 9999px;
+}
+.row-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
 
 .msg-enter { animation: msg-in 0.25s ease-out; }
 @keyframes msg-in {

@@ -43,6 +43,14 @@ const intents = [
         handler: handleSmallTalk,
     },
     {
+        name: 'uncertainty',
+        priority: 1,
+        keywords: [
+            'ewan', 'aywan', 'idk', 'dunno', 'dont know', 'don\'t know', 'di ko alam', 'hindi ko alam', 'di alam', 'not sure', 'di sure', 'wala lang', 'wala', 'nevermind', 'nvm', 'nothing'
+        ],
+        handler: handleUncertainty,
+    },
+    {
         name: 'bot_identity',
         priority: 1,
         keywords: [
@@ -211,34 +219,81 @@ const intents = [
 
 // ─── Language Detection ──────────────────────────────────────
 
+const TL_VOCABULARY = new Set([
+    'kumusta', 'musta', 'saan', 'san', 'ano', 'anu', 'sino', 'cno', 'kailan', 'kelan', 'paano', 'bakit', 'bkit',
+    'nasaan', 'taga', 'galing', 'salamat', 'paalam', 'ingat', 'ayos', 'ka', 'mo', 'si', 'ang', 'mga', 'ng', 'na',
+    'sa', 'at', 'o', 'ba', 'kaba', 'po', 'opo', 'astig', 'lodi', 'petmalu', 'yayaman', 'pautang', 'niya', 'kanya',
+    'nila', 'ewan', 'aywan', 'wala', 'dito', 'dto', 'd2', 'dyan', 'doon', 'dun', 'pala', 'naman', 'nga', 'din',
+    'rin', 'talaga', 'oo', 'hindi', 'di', 'huwag', 'wag', 'kaya', 'pwede', 'pede', 'pde', 'gawa', 'gawin',
+    'marunong', 'silipin', 'patingin', 'kwento', 'sabihin', 'alvaran', 'magkano', 'oras', 'bago', 'gabi', 'umaga', 'hapon'
+]);
+
 function detectLanguage(query) {
-    const tlWords = [
-        'kumusta', 'musta', 'saan', 'ano', 'sino', 'kailan', 'paano', 'bakit', 
-        'nasaan', 'taga', 'galing', 'salamat', 'paalam', 'ingat', 'ayos', 'ka', 
-        'mo', 'si', 'ang', 'mga', 'ng', 'na', 'sa', 'at', 'o', 'ba', 'po', 'opo',
-        'astig', 'lodi', 'petmalu', 'yayaman', 'pautang', 'niya', 'kanya', 'nila'
-    ];
+    if (!query) return 'en';
+    const rawWords = query.toLowerCase().split(/\s+/).map(w => w.replace(/[^\w]/g, ''));
+    const matches = rawWords.filter(w => TL_VOCABULARY.has(w));
     
-    const words = query.toLowerCase().split(/\s+/).map(w => w.replace(/[^\w]/g, ''));
-    
-    const matches = words.filter(w => tlWords.includes(w));
-    
-    const hasTlPattern = (words.includes('si') && words.length > 1) || 
-                         (words.includes('taga') && words.length > 1) ||
-                         (words.includes('saan') && words.length > 1);
+    const hasTlPattern = rawWords.some(w => TL_VOCABULARY.has(w)) ||
+                         (rawWords.includes('si') && rawWords.length > 1) || 
+                         (rawWords.includes('taga') && rawWords.length > 1) ||
+                         (rawWords.includes('saan') && rawWords.length > 1) ||
+                         (rawWords.includes('san') && rawWords.length > 1);
 
     return (matches.length > 0 || hasTlPattern) ? 'tl' : 'en';
 }
 
-// ─── Query Normalization ──────────────────────────────────────
+// ─── Query Normalization & Grammar/Typo Correction ───────────
+
+const CHAT_SHORTCUTS = {
+    'kaba': 'ka ba',
+    'd2': 'dito',
+    'dto': 'dito',
+    'san': 'saan',
+    'anu': 'ano',
+    'anoo': 'ano',
+    'anooo': 'ano',
+    'cno': 'sino',
+    'bkit': 'bakit',
+    'kelan': 'kailan',
+    'kilan': 'kailan',
+    'bka': 'baka',
+    'pede': 'pwede',
+    'pde': 'pwede',
+    'wag': 'huwag',
+    'aq': 'ako',
+    'ikw': 'ikaw',
+    'thx': 'thanks',
+    'ty': 'thank you',
+    'tnx': 'thanks',
+    'pls': 'please',
+    'plz': 'please',
+    'u': 'you',
+    'ur': 'your',
+    'r': 'are',
+    'cge': 'sige',
+    'ge': 'sige',
+    'idk': 'ewan',
+    'dunno': 'ewan',
+};
 
 function normalizeQuery(raw) {
-    return raw
-        .toLowerCase()
-        .replace(/[^\w\s']/g, '') // strip punctuation except apostrophes
-        .replace(/\s+/g, ' ')     // collapse whitespace
-        .trim();
+    if (!raw) return '';
+    let text = raw.toLowerCase();
+
+    // 1. Collapse excessive repeated letters (e.g., "hellooo" -> "hello", "hiiii" -> "hi", "kamustaaa" -> "kamusta")
+    text = text.replace(/([a-zA-Z])\1{2,}/g, '$1');
+
+    // 2. Strip unwanted punctuation except essential apostrophes
+    text = text.replace(/[^\w\s']/g, ' ');
+
+    // 3. Expand common chat abbreviations and correct grammar shortcuts
+    const tokens = text.trim().split(/\s+/).map(word => {
+        return CHAT_SHORTCUTS[word] || word;
+    });
+
+    return tokens.join(' ').replace(/\s+/g, ' ').trim();
 }
+
 
 // ─── Memoized Levenshtein Distance ───────────────────────────
 
@@ -596,6 +651,23 @@ function handleSmallTalk(query, ctx) {
     ]);
 }
 
+function handleUncertainty(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Haha ayos lang yan! 😂 Kung di ka sigurado kung anong uunahing itanong, pwede kitang ipasyal sa mga highlight ni Charles:\n\n` +
+               `- 🚀 **Countryside Steakhouse**: Isang full-featured ERP system na may finance, CRM, at inventory.\n` +
+               `- 💻 **VibeBuilds**: Real-time PC builder at community platform para sa tech enthusiasts.\n` +
+               `- ⚡ **Tech Stack**: Frontend (Vue, React), Backend (Node.js, Supabase, Firebase).\n` +
+               `- 📄 [**View / Download Resume**](#resume)\n\n` +
+               `Pili ka lang sa mga buttons sa ibaba o sabihin mo kung ano ang trip mong makita! 🚀`;
+    }
+    return `Haha no worries at all! 😄 If you're not sure where to start, here are some great highlights to explore:\n\n` +
+           `- 🚀 **Countryside Steakhouse**: A full-scale ERP system for restaurant operations.\n` +
+           `- 💻 **VibeBuilds**: Interactive PC builder platform with real-time component validation.\n` +
+           `- ⚡ **Tech Stack**: Vue, React, Node.js, Express, Supabase, Tailwind.\n` +
+           `- 📄 [**View / Download Resume**](#resume)\n\n` +
+           `Feel free to click any of the suggestion chips below or ask me anything! 🚀`;
+}
 
 function handleLaugh(query, ctx) {
     const lang = detectLanguage(query);
@@ -632,11 +704,10 @@ function handleChatter(query, ctx) {
 
 function handleUnknownSimpleWord(query) {
     const lang = detectLanguage(query);
-    // Rule 7: Ask clarifying questions instead of guessing
     if (lang === 'tl') {
-        return `Hindi ako sigurado kung ano ang ibig mong sabihin sa "${query}" — tungkol ba ito kay Charles, isang tech topic, o ibang bagay? Paki-clarify lang para matulungan kita nang maayos! 😊`;
+        return `Medyo malabo o baka may typo yung sinabi mo tungkol sa "${query}"! 😄 Pero walang problema — andito ako para tulungan ka. Pwede nating silipin ang mga projects ni Charles tulad ng **Countryside Steakhouse** o **VibeBuilds**, ang **tech stack** niya, o ang **resume**. Pili ka lang sa suggestion buttons sa ibaba! 🚀`;
     }
-    return `I want to make sure I help you correctly — when you say "${query}", are you asking about Charles' work, a tech topic, or something else entirely? Just a quick clarification and I'll get you the best answer! 😊`;
+    return `I didn't quite catch what you meant by "${query}"! 😄 But no worries at all — I'm right here to help you explore. We can dive into Charles' featured projects like **Countryside Steakhouse** or **VibeBuilds**, check out his **tech stack**, or open his **resume**. Feel free to tap any of the suggestion buttons! 🚀`;
 }
 
 function handleSummary(query, ctx) {
@@ -756,6 +827,71 @@ function detectSentiment(query) {
     return 'neutral';
 }
 
+// ─── Word-Level Semantic Knowledge Search ─────────────────────
+
+function searchLocalKnowledge(query, history = []) {
+    const normalized = normalizeQuery(query);
+    const words = normalized.split(/\s+/);
+
+    // 1. Specific Projects
+    const projectTriggers = ['countryside', 'steakhouse', 'erp', 'vibebuilds', 'vibe', 'builds', 'dynbooth', 'photo', 'ismeye', 'altermatch', 'appen', 'extension', 'discord', 'figma'];
+    if (words.some(w => projectTriggers.includes(w))) {
+        return handleSpecificProject(normalized, { history });
+    }
+
+    // 2. General Projects
+    const generalProjectTriggers = ['projects', 'project', 'portfolio', 'gawa', 'nagawamo', 'built', 'systems', 'system', 'apps', 'app'];
+    if (words.some(w => generalProjectTriggers.includes(w))) {
+        return handleProjects(normalized, { history });
+    }
+
+    // 3. Skills & Tech Stack
+    const techTriggers = ['skills', 'skill', 'stack', 'tech', 'technologies', 'technology', 'react', 'vue', 'vuejs', 'node', 'nodejs', 'express', 'supabase', 'firebase', 'tailwind', 'typescript', 'javascript', 'docker', 'git', 'vite', 'fullstack', 'frontend', 'backend', 'api', 'database', 'program', 'coding'];
+    if (words.some(w => techTriggers.includes(w))) {
+        return handleSkills(normalized, { history });
+    }
+
+    // 4. Resume / CV
+    const resumeTriggers = ['resume', 'cv', 'curriculum', 'biodata', 'download'];
+    if (words.some(w => resumeTriggers.includes(w))) {
+        return handleResume(normalized, { history });
+    }
+
+    // 5. Hiring / Availability
+    const hiringTriggers = ['hire', 'hiring', 'available', 'job', 'freelance', 'contract', 'remote', 'work', 'collaborate', 'employment'];
+    if (words.some(w => hiringTriggers.includes(w))) {
+        return handleAvailability(normalized, { history });
+    }
+
+    // 6. Contact & Socials
+    const contactTriggers = ['contact', 'email', 'phone', 'reach', 'social', 'facebook', 'instagram', 'message', 'call', 'kontak'];
+    if (words.some(w => contactTriggers.includes(w))) {
+        return handleContact(normalized, { history });
+    }
+
+    // 7. Creator / Background
+    if (words.some(w => ['charles', 'developer', 'creator', 'owner'].includes(w))) {
+        return handleOwnerIdentity(normalized, { history });
+    }
+    if (words.some(w => ['education', 'degree', 'school', 'graduate', 'experience', 'years'].includes(w))) {
+        return handleExperience(normalized, { history });
+    }
+
+    // 8. Uncertainty / Casual check
+    const uncertaintyTriggers = ['ewan', 'aywan', 'idk', 'dunno', 'wala', 'nevermind', 'nvm', 'nothing'];
+    if (words.some(w => uncertaintyTriggers.includes(w))) {
+        return handleUncertainty(normalized, { history });
+    }
+
+    // 9. Greetings
+    const greetingTriggers = ['hello', 'hi', 'hey', 'sup', 'yo', 'kamusta', 'kumusta', 'musta', 'uy', 'oy'];
+    if (words.some(w => greetingTriggers.includes(w))) {
+        return handleGreeting(normalized, { history });
+    }
+
+    return null;
+}
+
 // ─── Main Export ──────────────────────────────────────────────
 
 /**
@@ -763,9 +899,6 @@ function detectSentiment(query) {
  *
  * Returns a string response if a local intent matched,
  * or null if the query should fall through to web search.
- *
- * For compound queries (e.g. "skills and projects"), combines
- * all matched intents above threshold into a single response.
  */
 function tryLocalAnswer(query, history = []) {
     // ─── Try Math First ──────────────────────────────────────────
@@ -780,37 +913,38 @@ function tryLocalAnswer(query, history = []) {
 
     const results = classifyIntent(query);
 
-    if (!results.length) {
-        console.log('[localBrain] No intent matched.');
-        
-        // Smart Fallback: If it's a very short query (1-2 words), don't just search the web.
-        // Acknowledge it as a word the AI is still learning, UNLESS it looks like a definition/knowledge request.
-        const words = query.trim().split(/\s+/);
-        const isSearchPattern = /^(what|who|define|meaning|where|how|search|look up)\b/i.test(query);
-
-        if (words.length <= 2 && !isSearchPattern) {
-            console.log(`[localBrain] 🧠 Short unknown query detected: "${query}"`);
-            return handleUnknownSimpleWord(query);
+    if (results.length > 0) {
+        const [top, ...others] = results;
+        console.log(`[localBrain] ✅ Intent: "${top.intent.name}" | score: ${top.score} | confidence: ${top.confidence.toFixed(2)}`);
+        if (others.length) {
+            console.log(`[localBrain] Also matched: ${others.map(r => `${r.intent.name}(${r.score})`).join(', ')}`);
         }
-
-        console.log(`[localBrain] Query: "${query}" — will search the web.`);
-        return null;
+        const topResults = results.slice(0, 2);
+        const responses = topResults.map(r => r.intent.handler(query, { history }));
+        return responses.length > 1
+            ? responses.join('\n\n---\n\n')
+            : responses[0];
     }
 
-    // Log top match and any near-misses for ongoing keyword tuning
-    const [top, ...others] = results;
-    console.log(`[localBrain] ✅ Intent: "${top.intent.name}" | score: ${top.score} | confidence: ${top.confidence.toFixed(2)}`);
-    if (others.length) {
-        console.log(`[localBrain] Also matched: ${others.map(r => `${r.intent.name}(${r.score})`).join(', ')}`);
+    // ─── Word-Level Semantic Knowledge Search ─────────────────────
+    console.log(`[localBrain] Searching individual words and entities for: "${query}"`);
+    const smartAnswer = searchLocalKnowledge(query, history);
+    if (smartAnswer) {
+        console.log(`[localBrain] 🎯 Matched via smart word & entity search!`);
+        return smartAnswer;
     }
 
-    // For compound queries, join up to 2 responses
-    const topResults = results.slice(0, 2);
-    const responses = topResults.map(r => r.intent.handler(query, { history }));
+    // ─── Conversational / Short Word Fallback ─────────────────────
+    const words = query.trim().split(/\s+/);
+    const isSearchPattern = /^(what|who|define|meaning|where|how|search|look up)\b/i.test(query);
 
-    return responses.length > 1
-        ? responses.join('\n\n---\n\n')
-        : responses[0];
+    if (words.length <= 4 && !isSearchPattern) {
+        console.log(`[localBrain] 🧠 Conversational / typo query handled: "${query}"`);
+        return handleUnknownSimpleWord(query);
+    }
+
+    console.log(`[localBrain] Query: "${query}" — will search the web.`);
+    return null;
 }
 
 module.exports = { tryLocalAnswer, classifyIntent, normalizeQuery, detectLanguage, detectSentiment };
