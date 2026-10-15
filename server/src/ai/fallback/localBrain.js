@@ -359,16 +359,22 @@ function handleGreeting(query, ctx) {
     const lang = detectLanguage(query);
     
     if (lang === 'tl') {
-        return `Kumusta! Ako ang AI ni Charles. 👋 Masaya akong makita ka dito! Ano ang maipaglilingkod ko?`;
+        const tlGreetings = [
+            `Kumusta! Ako si **${botIdentity.name}**, ang friendly AI wingman ni Charles. 👋 Masaya kitang makausap! Ano ang pwede kong maitulong o maibahagi tungkol sa kanya?`,
+            `Uy hello! 🚀 Welcome sa portfolio ni Charles. Handang-handa akong magkwento tungkol sa mga gawa niya, tech stack, o tulungan ka sa tech questions!`,
+            `Kamusta! 😊 Nandito ako para tulungan kang silipin ang mga projects, skills, o resume ni Charles. Ano ang gusto mong simulan?`
+        ];
+        return pickRandom(tlGreetings);
     }
 
     const greetings = [
-        `Hey! I'm **${botIdentity.name}**, Charles' personal AI assistant. 👋 I'm here to help you explore his work, skills, and experience. What can I help you find today?`,
-        `Hello! Welcome to Charles' portfolio. 🚀 I have full access to his project history and technical background. How can I assist you?`,
-        `Hi there! I'm Charles' AI. I can answer questions about his tech stack, provide his resume, or even search the web for you. What's on your mind?`,
+        `Hey there! 👋 I'm **${botIdentity.name}**, Charles' personal AI assistant & portfolio wingman. What can we dive into today — his projects, tech stack, or background?`,
+        `Hello and welcome! 🚀 I'm Charles' AI companion. Whether you're curious about his full-stack systems, engineering chops, or hiring availability, I've got you covered!`,
+        `Hi! Great to connect with you. ✨ I can walk you through Charles' work, discuss tech architecture, check his resume, or answer anything tech-related. What's on your mind?`,
     ];
     return pickRandom(greetings);
 }
+
 
 function handleBotIdentity(query, ctx) {
     const lang = detectLanguage(query);
@@ -576,15 +582,20 @@ function handleSmallTalk(query, ctx) {
     const lang = detectLanguage(query);
 
     if (lang === 'tl') {
-        return `Ayos naman ako! Kasalukuyang nag-aabang ng iyong mga katanungan. Ikaw, kumusta ang araw mo? 🚀`;
+        return pickRandom([
+            `Ayos na ayos ako! ⚡ Nakabantay at laging handang mag-share ng info tungkol sa projects at skills ni Charles. Ikaw, kumusta ang araw mo?`,
+            `Solid naman dito sa server side! 😄 Masaya akong may kausap na katulad mo. Ano ang gusto nating pag-usapan?`,
+            `Lahat ng systems ay 100% operational! 🚀 Ready to chat. Kumusta ang dev journey o work mo lately?`
+        ]);
     }
 
     return pickRandom([
-        "I'm doing great, thanks for asking! Just hanging out in the server, processing data. How can I help you? 🤖",
-        "All systems go! Ready to answer your questions or search the web. What's on your mind?",
-        "I'm just a bunch of code, so I don't have feelings — but if I did, I'd say I'm feeling fantastic! 🚀",
+        "I'm doing fantastic, thanks for asking! ⚡ All systems are running smooth and I'm ready to chat about Charles' projects, code, or anything tech. How's your day going?",
+        "Feeling great! 🚀 Ready to explore systems, break down tech stacks, or search the web. What brings you to Charles' portfolio today?",
+        "Running at peak performance! 💻 Always excited to connect with developers, recruiters, and tech lovers. How can I make your visit awesome today?",
     ]);
 }
+
 
 function handleLaugh(query, ctx) {
     const lang = detectLanguage(query);
