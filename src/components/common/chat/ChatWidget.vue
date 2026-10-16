@@ -5,24 +5,16 @@ import {
   X,
   Send,
   Sparkles,
-  Trash2,
   Copy,
   Check,
   Square,
   RotateCcw,
   ExternalLink,
-  Briefcase,
   Code2,
   Rocket,
-  Zap,
-  Smile,
-  MessageCircle,
   FileText,
-  Lightbulb,
   Mail,
-  Bot,
-  ChevronLeft,
-  ChevronRight
+  Bot
 } from 'lucide-vue-next'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -40,7 +32,7 @@ const HISTORY_SENT_TO_SERVER = 12
 const welcomeMessage = () => ({
   id: 'welcome',
   role: 'assistant',
-  content: "Hey there! 👋 I'm **CLA Assistant**, Charles' AI companion & portfolio wingman.\n\nI have a built-in JS conversation engine to talk shop about his **full-stack projects**, breakdown his **tech stack**, share his **resume**, or answer any tech & coding questions. What would you like to explore today? 🚀",
+  content: "Hi, I'm **CLA Assistant**. Ask me about Charles' projects, skills, experience, availability, or resume.\n\nWhat would you like to know?",
 })
 
 // ── State ───────────────────────────────────────────────────────
@@ -51,22 +43,8 @@ const messages = ref([welcomeMessage()])
 const copiedId = ref(null)
 const scrollContainer = ref(null)
 const textareaRef = ref(null)
-const shortcutsRef = ref(null)
-const suggestionsRef = ref(null)
 let abortController = null
 let idCounter = 0
-
-const scrollBar = (elementRef, delta) => {
-  if (elementRef?.value) {
-    elementRef.value.scrollBy({ left: delta, behavior: 'smooth' })
-  }
-}
-
-const handleWheelScroll = (e) => {
-  if (e.deltaY !== 0) {
-    e.currentTarget.scrollLeft += e.deltaY * 0.9
-  }
-}
 
 const newId = () => `${Date.now().toString(36)}-${idCounter++}`
 const hasConversation = computed(() => messages.value.length > 1)
@@ -75,19 +53,6 @@ const showTypingDots = computed(() => isLoading.value && !streamingMessage.value
 
 // ── Real-Time JS Chat Analysis ──────────────────────────────────
 const chatAnalysis = computed(() => analyzeConversation(messages.value, query.value))
-
-// Choose which icon to show for the vibe badge
-const vibeIconComponent = computed(() => {
-  switch (chatAnalysis.value.vibeBadge.icon) {
-    case 'Briefcase': return Briefcase
-    case 'Code2': return Code2
-    case 'Rocket': return Rocket
-    case 'Zap': return Zap
-    case 'Smile': return Smile
-    case 'MessageCircle': return MessageCircle
-    default: return Sparkles
-  }
-})
 
 // Display typing suggestions if user has typed something matching, else dynamic context suggestions
 const activeSuggestions = computed(() => {
@@ -100,10 +65,9 @@ const activeSuggestions = computed(() => {
 // ── Quick Action Shortcuts ──────────────────────────────────────
 const quickActions = [
   { label: 'Resume', icon: FileText, action: () => openModal() },
-  { label: 'Top Systems', icon: Rocket, action: () => sendMessage('Show me your featured web systems 🚀') },
-  { label: 'Tech Stack', icon: Code2, action: () => sendMessage("What is Charles' tech stack? ⚡") },
-  { label: 'Contact', icon: Mail, action: () => sendMessage('How can I contact Charles directly? ✉️') },
-  { label: 'Dev Joke', icon: Lightbulb, action: () => sendMessage('Tell me a fun programmer joke! 😄') },
+  { label: 'Projects', icon: Rocket, action: () => sendMessage('Show me Charles\' featured web systems') },
+  { label: 'Tech stack', icon: Code2, action: () => sendMessage("What is Charles' tech stack?") },
+  { label: 'Contact', icon: Mail, action: () => sendMessage('How can I contact Charles directly?') },
 ]
 
 // ── Persistence ─────────────────────────────────────────────────
@@ -299,6 +263,13 @@ const sendMessage = async (overrideQuery) => {
 
 const stopGenerating = () => abortController?.abort()
 
+const suggestionLabel = (suggestion) => suggestion
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+const sendSuggestion = (suggestion) => sendMessage(suggestionLabel(suggestion))
+
 const retry = (msg) => {
   const idx = messages.value.findIndex(m => m.id === msg.id)
   if (idx > 0) messages.value.splice(idx - 1, 2)
@@ -307,7 +278,7 @@ const retry = (msg) => {
 </script>
 
 <template>
-  <div :class="['fixed z-[100] flex flex-col items-end pointer-events-none', isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-6 right-6']">
+  <div :class="['fixed z-[100] flex flex-col items-end pointer-events-none', isOpen ? 'inset-0 md:inset-auto md:bottom-5 md:right-5' : 'bottom-5 right-4 sm:right-5']">
 
     <!-- Chat Window -->
     <Transition
@@ -322,112 +293,62 @@ const retry = (msg) => {
         v-if="isOpen"
         id="chat-window"
         role="dialog"
-        aria-label="CLA Assistant chat"
-        class="pointer-events-auto w-full h-full md:h-[700px] md:max-h-[calc(100vh-100px)] md:w-[440px] md:mb-4 bg-app/95 backdrop-blur-2xl md:border md:border-main/30 rounded-none md:rounded-[1.75rem] shadow-2xl flex flex-col overflow-hidden origin-bottom-right"
+        aria-modal="true"
+        aria-labelledby="chat-title"
+        class="chat-shell pointer-events-auto w-full h-full md:h-[min(760px,calc(100vh-88px))] md:w-[460px] md:mb-3 bg-app/95 backdrop-blur-2xl md:border md:border-main/25 rounded-none md:rounded-[1.75rem] shadow-2xl flex flex-col overflow-hidden origin-bottom-right"
       >
         <!-- Header -->
-        <header class="px-5 py-3.5 border-b border-main/20 flex flex-col gap-2.5 bg-gradient-to-r from-blue-600/10 via-indigo-500/5 to-purple-500/5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 relative">
-                <Bot :size="20" class="animate-bounce-subtle" />
-                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-app rounded-full"></span>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 class="text-sm font-bold text-main tracking-tight">CLA Assistant</h2>
-                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">AI Wingman</span>
-                </div>
-                <p class="text-[10px] font-semibold text-emerald-500 flex items-center gap-1">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  {{ isLoading ? 'Thinking & Synthesizing…' : 'JS Context Engine Active' }}
-                </p>
-              </div>
+        <header class="chat-header flex items-center justify-between gap-3 px-4 py-3.5 border-b border-main/15">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="relative h-11 w-11 flex-shrink-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+              <Bot :size="21" />
+              <span class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-[3px] border-app"></span>
             </div>
-
-            <!-- Header Action Controls -->
-            <div class="flex items-center gap-1">
-              <button
-                v-if="hasConversation"
-                id="chat-clear-btn"
-                @click="clearChat"
-                title="Reset conversation"
-                aria-label="Reset conversation"
-                class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-red-500"
-              >
-                <Trash2 :size="16" />
-              </button>
-              <button
-                id="chat-close-btn"
-                @click="toggleChat"
-                title="Close chat"
-                aria-label="Close chat"
-                class="p-2 hover:bg-main/10 rounded-full transition-colors text-muted hover:text-main"
-              >
-                <X :size="18" />
-              </button>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h2 id="chat-title" class="text-[15px] font-bold text-main tracking-tight">CLA Assistant</h2>
+                <span class="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">AI</span>
+              </div>
+              <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted min-w-0">
+                <span :class="['h-1.5 w-1.5 flex-shrink-0 rounded-full', isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500']"></span>
+                <span class="truncate">{{ isLoading ? 'Thinking…' : chatAnalysis.vibeBadge.sublabel }}</span>
+              </div>
             </div>
           </div>
 
-          <!-- Live JS Conversation Vibe Pill -->
-          <div class="flex items-center justify-between text-[11px] pt-1 border-t border-main/10">
-            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-main/5 border border-main/15 text-main font-medium">
-              <component :is="vibeIconComponent" :size="12" class="text-blue-500 animate-pulse" />
-              <span class="font-semibold text-blue-600 dark:text-blue-400">{{ chatAnalysis.vibeBadge.label }}</span>
-              <span class="text-muted text-[10px]">• {{ chatAnalysis.vibeBadge.sublabel }}</span>
-            </div>
+          <div class="flex items-center gap-0.5">
             <button
               @click="openModal()"
-              title="Open Resume Viewer"
-              class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              title="Open resume"
+              aria-label="Open resume"
+              class="chat-icon-btn"
             >
-              <FileText :size="12" />
-              <span>Resume</span>
+              <FileText :size="17" />
+            </button>
+            <button
+              v-if="hasConversation"
+              id="chat-clear-btn"
+              @click="clearChat"
+              title="Start a new conversation"
+              aria-label="Start a new conversation"
+              class="chat-icon-btn"
+            >
+              <RotateCcw :size="16" />
+            </button>
+            <button
+              id="chat-close-btn"
+              @click="toggleChat"
+              title="Close chat"
+              aria-label="Close chat"
+              class="chat-icon-btn"
+            >
+              <X :size="19" />
             </button>
           </div>
         </header>
 
-        <!-- Quick Shortcut Bar with Scroll Chevrons -->
-        <div class="relative flex items-center bg-main/5 border-b border-main/10 px-2 py-1.5">
-          <button
-            type="button"
-            @click="scrollBar(shortcutsRef, -120)"
-            title="Scroll shortcuts left"
-            aria-label="Scroll shortcuts left"
-            class="flex-shrink-0 h-6 w-6 rounded-full bg-app/90 border border-main/20 text-muted hover:text-main hover:bg-main/15 flex items-center justify-center transition-colors shadow-xs mr-1 z-10 active:scale-95"
-          >
-            <ChevronLeft :size="13" />
-          </button>
-
-          <div
-            ref="shortcutsRef"
-            @wheel.passive="handleWheelScroll"
-            class="flex-1 flex items-center gap-1.5 overflow-x-auto row-scroll scroll-smooth py-0.5"
-          >
-            <button
-              v-for="item in quickActions"
-              :key="item.label"
-              @click="item.action"
-              class="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-app/90 border border-main/15 text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-150 active:scale-95"
-            >
-              <component :is="item.icon" :size="11" />
-              <span>{{ item.label }}</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            @click="scrollBar(shortcutsRef, 120)"
-            title="Scroll shortcuts right"
-            aria-label="Scroll shortcuts right"
-            class="flex-shrink-0 h-6 w-6 rounded-full bg-app/90 border border-main/20 text-muted hover:text-main hover:bg-main/15 flex items-center justify-center transition-colors shadow-xs ml-1 z-10 active:scale-95"
-          >
-            <ChevronRight :size="13" />
-          </button>
-        </div>
-
         <!-- Messages Container -->
-        <div ref="scrollContainer" id="chat-messages" class="chat-scroll flex-1 overflow-y-auto px-4 py-4 space-y-4" aria-live="polite">
+        <div ref="scrollContainer" id="chat-messages" role="log" class="chat-scroll chat-canvas flex-1 overflow-y-auto px-3.5 sm:px-5 py-5 space-y-5" aria-live="polite" aria-relevant="additions text">
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -436,155 +357,123 @@ const retry = (msg) => {
             <!-- User bubble -->
             <div
               v-if="msg.role === 'user'"
-              class="max-w-[85%] px-4 py-2.5 text-[13.5px] leading-relaxed bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white rounded-2xl rounded-br-sm shadow-md shadow-blue-600/20 whitespace-pre-wrap break-words"
+              class="max-w-[86%] px-4 py-2.5 text-[13.5px] leading-relaxed bg-blue-600 text-white rounded-[1.25rem] rounded-br-md shadow-sm shadow-blue-600/15 whitespace-pre-wrap break-words"
             >{{ msg.content }}</div>
 
             <!-- Assistant bubble -->
             <template v-else-if="msg.content || !msg.streaming">
-              <div
-                :class="[
-                  'max-w-[94%] px-4 py-3 text-[13.5px] leading-relaxed rounded-2xl rounded-bl-sm shadow-sm border transition-all',
-                  msg.error
-                    ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-main'
-                    : 'bg-white dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700/60 text-main'
-                ]"
-              >
-                <!-- Assistant Sub-badge -->
-                <div class="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-main/10 text-[10px] font-semibold text-muted">
-                  <Sparkles :size="11" class="text-blue-500" />
-                  <span>CLA Assistant</span>
-                  <span v-if="msg.mode === 'ai'" class="text-[9px] px-1 py-0.2 rounded bg-purple-500/10 text-purple-500">Gemini LLM</span>
-                  <span v-else-if="msg.mode === 'search'" class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-500">Live Web</span>
-                  <span v-else-if="msg.mode === 'local'" class="text-[9px] px-1 py-0.2 rounded bg-blue-500/10 text-blue-500">Local Engine</span>
-                  <span v-else-if="msg.mode === 'memory'" class="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">Cached Answer</span>
+              <div class="flex items-start gap-2.5 w-full">
+                <div class="mt-5 h-7 w-7 flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-sm">
+                  <Sparkles :size="13" />
                 </div>
 
-                <div
-                  :class="['markdown-body break-words', msg.streaming && 'is-streaming']"
-                  v-html="renderMarkdown(msg.content)"
-                  @click="handleMarkdownClick"
-                ></div>
+                <div class="min-w-0 max-w-[calc(100%_-_2.375rem)] sm:max-w-[90%]">
+                  <div class="mb-1.5 flex items-center gap-2 px-1 text-[10px] font-semibold text-muted">
+                    <span>CLA Assistant</span>
+                    <span v-if="msg.streaming" class="text-blue-500">Writing…</span>
+                    <span v-else-if="msg.mode === 'ai'" class="chat-mode-badge text-violet-600 dark:text-violet-400 bg-violet-500/10">Gemini</span>
+                    <span v-else-if="msg.mode === 'search'" class="chat-mode-badge text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">Web</span>
+                    <span v-else-if="msg.mode === 'local'" class="chat-mode-badge text-blue-600 dark:text-blue-400 bg-blue-500/10">Local</span>
+                    <span v-else-if="msg.mode === 'memory'" class="chat-mode-badge text-amber-600 dark:text-amber-400 bg-amber-500/10">Cached</span>
+                  </div>
 
-                <!-- One-click Resume Modal Callout if resume is referenced -->
-                <div
-                  v-if="msg.content && msg.content.includes('#resume') && !msg.streaming"
-                  class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700/50"
-                >
-                  <button
-                    @click="openModal()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:shadow hover:scale-[1.02] active:scale-95 transition-all"
+                  <div
+                    :class="[
+                      'px-4 py-3 text-[13.5px] leading-relaxed rounded-[1.25rem] rounded-tl-md border shadow-sm transition-colors',
+                      msg.error
+                        ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-main'
+                        : 'bg-white/95 dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-700/70 text-main'
+                    ]"
                   >
-                    <FileText :size="13" />
-                    <span>Open Interactive Resume Viewer</span>
-                  </button>
-                </div>
+                    <div
+                      :class="['markdown-body break-words', msg.streaming && 'is-streaming']"
+                      v-html="renderMarkdown(msg.content)"
+                      @click="handleMarkdownClick"
+                    ></div>
 
-                <!-- Sources tag -->
-                <div v-if="msg.sources?.length && !msg.streaming" class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap gap-1.5">
-                  <template v-for="source in msg.sources" :key="source.url || source.label">
-                    <a
-                      v-if="source.url"
-                      :href="source.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      :title="source.label"
-                      class="inline-flex items-center gap-1 max-w-[180px] text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/25 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-2 py-1 rounded-md transition-colors"
-                    >
-                      <ExternalLink :size="10" class="flex-shrink-0" />
-                      <span class="truncate">{{ sourceHost(source.url) || source.label }}</span>
-                    </a>
-                    <span v-else class="text-[9px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
-                      {{ source.label }}
-                    </span>
-                  </template>
-                </div>
-              </div>
+                    <div v-if="msg.content && msg.content.includes('#resume') && !msg.streaming" class="mt-3 pt-3 border-t border-main/10">
+                      <button @click="openModal()" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition-all">
+                        <FileText :size="14" />
+                        <span>View resume</span>
+                      </button>
+                    </div>
 
-              <!-- Action buttons for message -->
-              <div v-if="msg.id !== 'welcome' && !msg.streaming" class="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                <button
-                  @click="copyMessage(msg)"
-                  :title="copiedId === msg.id ? 'Copied!' : 'Copy'"
-                  aria-label="Copy message"
-                  class="p-1.5 rounded-md text-muted hover:text-main hover:bg-main/10 transition-colors"
-                >
-                  <Check v-if="copiedId === msg.id" :size="13" class="text-emerald-500" />
-                  <Copy v-else :size="13" />
-                </button>
-                <button
-                  v-if="msg.error && msg.retryQuery"
-                  @click="retry(msg)"
-                  title="Retry"
-                  aria-label="Retry"
-                  class="p-1.5 rounded-md text-muted hover:text-main hover:bg-main/10 transition-colors"
-                >
-                  <RotateCcw :size="13" />
-                </button>
+                    <div v-if="msg.sources?.length && !msg.streaming" class="mt-3 pt-3 border-t border-main/10 flex flex-wrap gap-1.5">
+                      <template v-for="source in msg.sources" :key="source.url || source.label">
+                        <a
+                          v-if="source.url"
+                          :href="source.url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          :title="source.label"
+                          class="inline-flex items-center gap-1.5 max-w-[180px] text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 px-2.5 py-1.5 rounded-lg transition-colors"
+                        >
+                          <ExternalLink :size="10" class="flex-shrink-0" />
+                          <span class="truncate">{{ sourceHost(source.url) || source.label }}</span>
+                        </a>
+                        <span v-else class="text-[9px] font-bold uppercase tracking-wider text-muted bg-main/5 px-2 py-1 rounded-lg">{{ source.label }}</span>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div v-if="msg.id !== 'welcome' && !msg.streaming" class="flex items-center gap-0.5 mt-1 ml-1 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <button @click="copyMessage(msg)" :title="copiedId === msg.id ? 'Copied!' : 'Copy response'" aria-label="Copy response" class="chat-message-action">
+                      <Check v-if="copiedId === msg.id" :size="13" class="text-emerald-500" />
+                      <Copy v-else :size="13" />
+                    </button>
+                    <button v-if="msg.error && msg.retryQuery" @click="retry(msg)" title="Retry response" aria-label="Retry response" class="chat-message-action">
+                      <RotateCcw :size="13" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </template>
           </div>
 
+          <!-- Starter actions appear only before the first message -->
+          <div v-if="!hasConversation" class="ml-9 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <button
+              v-for="item in quickActions"
+              :key="item.label"
+              @click="item.action"
+              class="group/shortcut inline-flex items-center gap-2 rounded-xl border border-main/15 bg-white/70 dark:bg-slate-900/60 px-3 py-2.5 text-left text-xs font-semibold text-main hover:border-blue-500/40 hover:bg-blue-500/5 transition-all active:scale-[0.98]"
+            >
+              <component :is="item.icon" :size="14" class="text-blue-500" />
+              <span>{{ item.label }}</span>
+            </button>
+          </div>
+
           <!-- Typing indicator dots -->
-          <div v-if="showTypingDots" class="flex items-start msg-enter">
-            <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm flex items-center gap-1.5">
-              <span class="typing-dot"></span>
-              <span class="typing-dot" style="animation-delay: 0.15s"></span>
-              <span class="typing-dot" style="animation-delay: 0.3s"></span>
-              <span class="text-[11px] font-medium text-muted ml-2">Synthesizing reply…</span>
+          <div v-if="showTypingDots" class="flex items-end gap-2.5 msg-enter">
+            <div class="h-7 w-7 flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-sm">
+              <Sparkles :size="13" />
+            </div>
+            <div class="bg-white/95 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/70 px-4 py-3 rounded-[1.25rem] rounded-bl-md shadow-sm flex items-center gap-1.5">
+              <span class="typing-dot"></span><span class="typing-dot" style="animation-delay: 0.15s"></span><span class="typing-dot" style="animation-delay: 0.3s"></span>
+              <span class="text-[11px] font-medium text-muted ml-1.5">Thinking</span>
             </div>
           </div>
         </div>
 
-        <!-- Dynamic Context Suggestions & Input Container -->
-        <div class="p-3.5 border-t border-main/10 bg-app/90 backdrop-blur-lg flex flex-col gap-2.5">
-          <!-- Dynamic suggestions powered by JS Chat Analyzer with Scroll Chevrons -->
-          <div class="relative flex items-center gap-1">
-            <span class="text-[10px] font-bold text-muted uppercase tracking-wider flex-shrink-0 flex items-center gap-1 pr-0.5">
-              <Sparkles :size="10" class="text-blue-500" />
-              Ask:
-            </span>
-
+        <!-- Suggestions and composer -->
+        <div class="chat-composer px-3.5 pt-3 pb-3 border-t border-main/15 bg-app/95 backdrop-blur-xl flex flex-col gap-2.5">
+          <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5" aria-label="Suggested questions">
+            <Sparkles :size="12" class="text-blue-500 flex-shrink-0" />
             <button
-              type="button"
-              @click="scrollBar(suggestionsRef, -130)"
-              title="Scroll suggestions left"
-              aria-label="Scroll suggestions left"
-              class="flex-shrink-0 h-5 w-5 rounded-full bg-main/10 hover:bg-blue-600 hover:text-white text-muted flex items-center justify-center transition-colors shadow-xs active:scale-95"
+              v-for="(suggestion, index) in activeSuggestions"
+              :key="`suggest-${index}-${suggestion}`"
+              :id="`chat-suggestion-${index}`"
+              @click="sendSuggestion(suggestion)"
+              class="whitespace-nowrap flex-shrink-0 px-3 py-1.5 rounded-full border border-main/15 bg-main/[0.035] text-[11px] font-medium text-muted hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 active:scale-[0.98] transition-all"
             >
-              <ChevronLeft :size="12" />
-            </button>
-
-            <div
-              ref="suggestionsRef"
-              @wheel.passive="handleWheelScroll"
-              class="flex-1 flex items-center gap-1.5 overflow-x-auto row-scroll scroll-smooth py-0.5"
-            >
-              <button
-                v-for="(suggestion, i) in activeSuggestions"
-                :key="`suggest-${i}-${suggestion}`"
-                :id="`chat-suggestion-${i}`"
-                @click="sendMessage(suggestion)"
-                class="whitespace-nowrap flex-shrink-0 px-3 py-1 rounded-full border border-main/20 bg-main/5 text-[11px] font-medium text-main hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 transition-all duration-200"
-              >
-                {{ suggestion }}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              @click="scrollBar(suggestionsRef, 130)"
-              title="Scroll suggestions right"
-              aria-label="Scroll suggestions right"
-              class="flex-shrink-0 h-5 w-5 rounded-full bg-main/10 hover:bg-blue-600 hover:text-white text-muted flex items-center justify-center transition-colors shadow-xs active:scale-95"
-            >
-              <ChevronRight :size="12" />
+              {{ suggestionLabel(suggestion) }}
             </button>
           </div>
 
           <!-- Input Bar -->
           <form
             @submit.prevent="sendMessage()"
-            class="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-[1.5rem] p-1.5 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500 transition-all shadow-sm"
+            class="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-1.5 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500/60 transition-all shadow-sm"
           >
             <label for="chat-input" class="sr-only">Message</label>
             <textarea
@@ -593,10 +482,10 @@ const retry = (msg) => {
               v-model="query"
               rows="1"
               maxlength="1000"
-              placeholder="Ask anything about Charles' projects, stack, or tech…"
+              placeholder="Message CLA Assistant…"
               @input="autoResize"
               @keydown="handleKeydown"
-              class="w-full bg-transparent resize-none py-2 pl-3.5 text-sm text-main placeholder:text-muted focus:outline-none max-h-32"
+              class="w-full bg-transparent resize-none py-2.5 pl-3 pr-1 text-sm leading-relaxed text-main placeholder:text-muted/70 focus:outline-none max-h-32"
             ></textarea>
             
             <button
@@ -606,7 +495,7 @@ const retry = (msg) => {
               @click="stopGenerating"
               title="Stop generating"
               aria-label="Stop generating"
-              class="h-9 w-9 flex-shrink-0 rounded-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center hover:scale-105 transition-transform mb-0.5 mr-0.5"
+              class="h-10 w-10 flex-shrink-0 rounded-xl bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center hover:opacity-90 transition-opacity"
             >
               <Square :size="12" fill="currentColor" />
             </button>
@@ -616,15 +505,16 @@ const retry = (msg) => {
               type="submit"
               :disabled="!query.trim()"
               aria-label="Send message"
-              class="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-40 disabled:shadow-none mb-0.5 mr-0.5"
+              class="h-10 w-10 flex-shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 transition-all disabled:opacity-35 disabled:shadow-none disabled:cursor-not-allowed"
             >
               <Send :size="16" class="ml-0.5" />
             </button>
           </form>
 
-          <div class="flex items-center justify-between text-[10px] text-muted px-1 -mt-1">
-            <span>Powered by Gemini & JS Chat Analyzer</span>
-            <span>Shift+Enter for newline</span>
+          <div class="flex items-center justify-between gap-3 text-[10px] text-muted px-1">
+            <span>AI responses may need verification.</span>
+            <span v-if="query.length > 700" :class="query.length > 900 ? 'text-amber-500 font-semibold' : ''">{{ query.length }}/1000</span>
+            <span v-else>Enter to send</span>
           </div>
         </div>
       </section>
@@ -636,18 +526,78 @@ const retry = (msg) => {
       @click="toggleChat"
       :aria-label="isOpen ? 'Close chat' : 'Open chat'"
       :class="[
-        'h-14 w-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group pointer-events-auto relative',
-        isOpen ? 'hidden md:flex bg-slate-100 dark:bg-slate-800 text-muted hover:text-main border border-main/20' : 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white shadow-blue-500/40'
+        'h-14 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 group pointer-events-auto relative',
+        isOpen ? 'hidden md:flex w-14 bg-slate-100 dark:bg-slate-800 text-muted hover:text-main border border-main/20' : 'w-14 sm:w-auto sm:px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25'
       ]"
     >
-      <MessageSquare v-if="!isOpen" :size="24" class="group-hover:rotate-12 transition-transform" />
+      <MessageSquare v-if="!isOpen" :size="22" />
       <X v-else :size="24" />
-      <span v-if="!isOpen && !hasConversation" class="absolute -top-0.5 -right-0.5 h-4 w-4 bg-emerald-500 border-2 border-app rounded-full animate-pulse"></span>
+      <span v-if="!isOpen" class="hidden sm:inline text-sm font-semibold">Ask CLA</span>
+      <span v-if="!isOpen && !hasConversation" class="absolute -top-1 -right-1 h-3.5 w-3.5 bg-emerald-500 border-[3px] border-app rounded-full"></span>
     </button>
   </div>
 </template>
 
 <style scoped>
+.chat-shell {
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.08), transparent 32%),
+    radial-gradient(circle at 0% 100%, rgba(59, 130, 246, 0.06), transparent 28%);
+}
+
+.chat-header {
+  background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.chat-canvas {
+  background:
+    linear-gradient(to bottom, transparent, rgba(148, 163, 184, 0.035)),
+    var(--bg-app);
+}
+
+.chat-icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.chat-icon-btn:hover {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 7%, transparent);
+}
+
+.chat-icon-btn:active { transform: scale(0.94); }
+
+.chat-mode-badge {
+  padding: 0.125rem 0.4rem;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.chat-message-action {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.chat-message-action:hover {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 7%, transparent);
+}
+
 .chat-scroll::-webkit-scrollbar { width: 5px; }
 .chat-scroll::-webkit-scrollbar-track { background: transparent; }
 .chat-scroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
@@ -655,24 +605,6 @@ const retry = (msg) => {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-.row-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(59, 130, 246, 0.25) transparent;
-}
-.row-scroll::-webkit-scrollbar {
-  height: 3px;
-}
-.row-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.row-scroll::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.25);
-  border-radius: 9999px;
-}
-.row-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
 
 .msg-enter { animation: msg-in 0.25s ease-out; }
 @keyframes msg-in {
@@ -702,6 +634,20 @@ const retry = (msg) => {
   animation: caret 0.9s steps(1) infinite;
 }
 @keyframes caret { 50% { opacity: 0; } }
+
+@media (max-width: 767px) {
+  .chat-shell { height: 100dvh; }
+  .chat-header { padding-top: max(0.875rem, env(safe-area-inset-top)); }
+  .chat-composer { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-enter,
+  .typing-dot,
+  :deep(.markdown-body.is-streaming > :last-child::after) {
+    animation: none !important;
+  }
+}
 
 /* Markdown */
 :deep(.markdown-body) { color: var(--text-main); }
