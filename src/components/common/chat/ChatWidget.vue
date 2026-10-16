@@ -28,6 +28,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useResumeModal } from '../../../composables/useResumeModal'
 import { analyzeConversation } from '../../../utils/chatAnalyzer'
+import { createSseParser } from '../../../utils/sseParser'
 
 const { openModal } = useResumeModal()
 
@@ -228,34 +229,29 @@ async function streamReply(userQuery, history, assistantMsg, signal) {
 
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
-  let buffer = ''
+  let receivedDone = false
+  const parser = createSseParser((event) => {
+    if (event.type === 'delta') {
+      assistantMsg.content += event.text || ''
+      scrollToBottom()
+    } else if (event.type === 'done') {
+      assistantMsg.sources = Array.isArray(event.sources) ? event.sources : []
+      assistantMsg.mode = event.mode
+      receivedDone = true
+    } else if (event.type === 'error') {
+      throw new Error(event.message || 'The assistant could not complete the response.')
+    }
+  })
 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    let boundary
-    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-      const raw = buffer.slice(0, boundary)
-      buffer = buffer.slice(boundary + 2)
-      const line = raw.split('\n').find(l => l.startsWith('data:'))
-      if (!line) continue
-
-      let event
-      try { event = JSON.parse(line.slice(5).trim()) } catch { continue }
-
-      if (event.type === 'delta') {
-        assistantMsg.content += event.text
-        scrollToBottom()
-      } else if (event.type === 'done') {
-        assistantMsg.sources = event.sources || []
-        assistantMsg.mode = event.mode
-      } else if (event.type === 'error') {
-        throw new Error(event.message)
-      }
-    }
+    parser.push(decoder.decode(value, { stream: true }))
   }
+  parser.push(decoder.decode())
+  parser.finish()
+
+  if (!receivedDone) throw new Error('The connection ended before the response completed.')
 }
 
 const sendMessage = async (overrideQuery) => {
@@ -460,6 +456,7 @@ const retry = (msg) => {
                   <span v-if="msg.mode === 'ai'" class="text-[9px] px-1 py-0.2 rounded bg-purple-500/10 text-purple-500">Gemini LLM</span>
                   <span v-else-if="msg.mode === 'search'" class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-500">Live Web</span>
                   <span v-else-if="msg.mode === 'local'" class="text-[9px] px-1 py-0.2 rounded bg-blue-500/10 text-blue-500">Local Engine</span>
+                  <span v-else-if="msg.mode === 'memory'" class="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">Cached Answer</span>
                 </div>
 
                 <div

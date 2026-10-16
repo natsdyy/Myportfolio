@@ -64,7 +64,7 @@ const TONE_PATTERNS = {
         tl: /\b(stressed|sobrang pagod|di ko na kaya|nakakapagod|hirap|ubos na|presyur|pressured)\b/i,
     },
     confused: {
-        en: /\b(confused|don'?t understand|what do you mean|unclear|lost|makes no sense|huh|what\?|clarify|help me understand|don'?t get it|i don'?t know what)\b/i,
+        en: /\b(confused|don'?t understand|what do you mean|unclear|lost|makes no sense|huh|clarify|help me understand|don'?t get it|i don'?t know what)\b/i,
         tl: /\b(naguguluhan|di ko gets|ano daw|di ko maintindihan|paano ba|bakit ganun|ano ibig sabihin|confused)\b/i,
     },
     curious: {
@@ -239,30 +239,21 @@ function trimAtSentence(text, maxLen) {
 
 // ─── Anti-Repetition (Rules 3, 16) ──────────────────────────
 
-// Simple in-memory store for recent responses (per server instance)
-const _recentResponses = [];
-const MAX_RECENT = 10;
-
 function getResponseFingerprint(text) {
     // First 120 chars, normalized
     return text.substring(0, 120).toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
 }
 
-function isRepetitive(answer) {
+function isRepetitive(answer, history) {
     const fingerprint = getResponseFingerprint(answer);
-    return _recentResponses.some(fp => fp === fingerprint);
+    return history
+        .filter(message => message?.role === 'assistant' && typeof message.content === 'string')
+        .slice(-5)
+        .some(message => getResponseFingerprint(message.content) === fingerprint);
 }
 
-function recordResponse(answer) {
-    const fingerprint = getResponseFingerprint(answer);
-    _recentResponses.push(fingerprint);
-    if (_recentResponses.length > MAX_RECENT) {
-        _recentResponses.shift();
-    }
-}
-
-function deRepeat(answer, lang) {
-    if (!isRepetitive(answer)) return answer;
+function deRepeat(answer, lang, history) {
+    if (!isRepetitive(answer, history)) return answer;
 
     // Add a variation prefix so it doesn't feel copy-pasted
     const variations = lang === 'tl' ? [
@@ -340,8 +331,9 @@ const PROACTIVE_MAP = {
 };
 
 function suggestNextSteps(intent, lang, turnCount) {
-    // Don't be pushy in long conversations
-    if (turnCount > 6) return '';
+    // The UI already provides contextual prompt chips. Keep an inline prompt
+    // only for the first response so an ongoing conversation stays natural.
+    if (turnCount > 0) return '';
 
     const suggestion = PROACTIVE_MAP[intent];
     if (!suggestion) return '';
@@ -463,6 +455,19 @@ function applyFormalityStyle(answer, formality, lang) {
 
 // ─── Continuity Intro (Rule 3) ──────────────────────────────
 
+function applyConversationStyle(answer, profile) {
+    if (!profile) return answer;
+
+    if (profile.formality === 'formal' && !profile.usesEmoji) {
+        return answer
+            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, '')
+            .replace(/^[ \t]+/gm, '')
+            .replace(/ {2,}/g, ' ');
+    }
+
+    return answer;
+}
+
 function getContinuityIntro(profile, lang) {
     if (!profile) return '';
 
@@ -555,16 +560,9 @@ function applyPersona(rawAnswer, query, history = [], metadata = {}) {
     answer = adaptLength(query, answer);
 
     // ── Rule 6: Memory References ────────────────────────────
-    answer = injectMemoryReferences(answer, profile, lang);
-
     // ── Rule 3: Continuity Intro ─────────────────────────────
-    const continuityIntro = getContinuityIntro(profile, lang);
-    if (continuityIntro) {
-        answer = continuityIntro + answer;
-    }
-
     // ── Rules 3, 16: Anti-Repetition ─────────────────────────
-    answer = deRepeat(answer, lang);
+    answer = deRepeat(answer, lang, history);
 
     // ── Rule 15: Consistency ─────────────────────────────────
     answer = checkConsistency(answer, profile);
@@ -583,9 +581,9 @@ function applyPersona(rawAnswer, query, history = [], metadata = {}) {
         answer += outro;
     }
 
-    // ── Record this response for anti-repetition ─────────────
-    recordResponse(answer);
+    answer = applyConversationStyle(answer, profile);
 
+    // ── Record this response for anti-repetition ─────────────
     return answer;
 }
 

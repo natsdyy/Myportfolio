@@ -13,6 +13,7 @@
 const { streamGemini, isGeminiConfigured } = require('./providers/gemini');
 const { buildSystemPrompt } = require('./systemPrompt');
 const { processUserQuery: runLocalAgent } = require('./fallback/localAgent');
+const { buildConversationProfile } = require('./fallback/conversationContext');
 
 const MAX_HISTORY_MESSAGES = 12;
 const MAX_HISTORY_CHARS = 2000;
@@ -51,8 +52,9 @@ async function generateReply({ query, history = [], onDelta, signal } = {}) {
 
     let emitted = '';
     try {
+        const conversationState = buildConversationProfile(cleanHistory, query);
         const { text, sources } = await streamGemini({
-            systemPrompt: buildSystemPrompt(),
+            systemPrompt: buildSystemPrompt({ conversationState }),
             history: cleanHistory,
             query,
             signal,

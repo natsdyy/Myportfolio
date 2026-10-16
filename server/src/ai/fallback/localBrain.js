@@ -78,6 +78,16 @@ const intents = [
         handler: handleSkills,
     },
     {
+        name: 'skill_check',
+        priority: 0,
+        keywords: [
+            'does charles know', 'does he know', 'can charles use', 'can he use',
+            'is charles familiar with', 'is he familiar with', 'marunong ba si charles',
+            'marunong ba siya', 'alam ba niya'
+        ],
+        handler: handleSkillCheck,
+    },
+    {
         name: 'projects',
         priority: 1,
         keywords: [
@@ -96,10 +106,20 @@ const intents = [
         name: 'contact',
         priority: 1,
         keywords: [
-            'contact', 'email', 'reach', 'hire', 'connect', 'get in touch', 'message him', 'social media', 'facebook', 'instagram', 'how to contact',
-            'paano siya kontakin', 'email niya', 'paano siya imessage', 'kontak', 'hire natin siya'
+            'contact', 'email', 'reach', 'connect', 'get in touch', 'message him', 'social media', 'facebook', 'instagram', 'how to contact',
+            'paano siya kontakin', 'email niya', 'paano siya imessage', 'kontak'
         ],
         handler: handleContact,
+    },
+    {
+        name: 'hiring_fit',
+        priority: 0,
+        keywords: [
+            'why should we hire him', 'why hire charles', 'why hire him', 'good fit',
+            'strong candidate', 'qualified candidate', 'reasons to hire', 'what makes him qualified',
+            'bakit siya i hire', 'bakit namin siya kukunin'
+        ],
+        handler: handleHiringFit,
     },
     {
         name: 'experience',
@@ -401,6 +421,8 @@ function classifyIntent(query) {
             confidence: r.score / maxPossible,
         }))
         .sort((a, b) => {
+            if (a.intent.name === 'chatter' && b.intent.name !== 'chatter') return 1;
+            if (b.intent.name === 'chatter' && a.intent.name !== 'chatter') return -1;
             if (b.score !== a.score) return b.score - a.score;
             return a.intent.priority - b.intent.priority;
         });
@@ -474,6 +496,61 @@ function handleSkills(query, ctx) {
            `${skills.highlights.map(h => `✅ ${h}`).join('\n')}`;
 }
 
+function handleSkillCheck(query, ctx) {
+    const lang = detectLanguage(query);
+    const normalized = normalizeQuery(query);
+    const knownSkills = [
+        ...skills.frontend,
+        ...skills.backend,
+        ...skills.libraries,
+        ...skills.tools,
+    ];
+    const aliases = {
+        'vue js': 'Vue.js',
+        vuejs: 'Vue.js',
+        node: 'Node.js',
+        'node js': 'Node.js',
+        nodejs: 'Node.js',
+        ts: 'TypeScript',
+        js: 'JavaScript',
+        postgres: 'PostgreSQL',
+        tailwind: 'Tailwind CSS',
+    };
+    const directMatch = knownSkills.find(skill => {
+        const normalizedSkill = normalizeQuery(skill.replace(/[.]/g, ' '));
+        return normalized.includes(normalizedSkill);
+    });
+    const alias = Object.keys(aliases).find(key => {
+        const pattern = key.replace(' ', '\\s+');
+        return new RegExp(`\\b${pattern}\\b`, 'i').test(normalized);
+    });
+    const confirmedSkill = directMatch || (alias ? aliases[alias] : null);
+
+    if (confirmedSkill) {
+        return lang === 'tl'
+            ? `Oo. Nakalista ang **${confirmedSkill}** sa verified portfolio stack ni Charles.`
+            : `Yes. **${confirmedSkill}** is listed in Charles' verified portfolio stack.`;
+    }
+
+    const candidateMatch = normalized.match(/(?:know|use|with|familiar with|alam|marunong(?: ba)?(?: si charles| siya)?(?: sa)?)\s+([a-z0-9+#. -]{1,40})$/i);
+    const candidate = candidateMatch?.[1]?.trim().replace(/\b(?:well|yet|too)\b$/i, '').trim();
+    const displayName = candidate
+        ? candidate.replace(/\b\w/g, letter => letter.toUpperCase())
+        : 'That technology';
+
+    return lang === 'tl'
+        ? `Hindi nakalista ang **${displayName}** sa verified portfolio stack ni Charles, kaya ayokong mag-assume. Para makumpirma, puwede siyang kontakin sa [${owner.email}](mailto:${owner.email}).`
+        : `**${displayName}** is not listed in Charles' verified portfolio stack, so I can't confirm that skill without guessing. You can ask him directly at [${owner.email}](mailto:${owner.email}).`;
+}
+
+function handleHiringFit(query, ctx) {
+    const lang = detectLanguage(query);
+    if (lang === 'tl') {
+        return `Magandang candidate si Charles dahil pinagsasama niya ang **full-stack development**, **UI/UX thinking**, at hands-on experience sa practical systems. Makikita sa portfolio niya ang ERP workflows, real-time apps, Firebase/Supabase projects, browser tooling, at design work. Bukas din siya sa full-time, freelance, at contract opportunities.\n\n[View Resume](#resume) o mag-email sa [${owner.email}](mailto:${owner.email}).`;
+    }
+    return `Charles is a strong candidate because he combines **full-stack engineering**, **UI/UX awareness**, and hands-on experience building practical systems. His portfolio shows range across ERP workflows, real-time applications, Firebase/Supabase projects, browser tooling, and product design. He is open to full-time, freelance, and contract opportunities.\n\n[View his resume](#resume) or contact him at [${owner.email}](mailto:${owner.email}).`;
+}
+
 function formatProjectLink(p) {
     return p.link ? `\n[View Project](${p.link})` : '';
 }
@@ -507,6 +584,28 @@ function handleSpecificProject(query, ctx) {
         const techStack = project.tech.join(', ');
         const highlights = project.highlights ? `\n- ✨ **Highlights**: ${project.highlights}` : '';
         const link = project.link ? `\n- 🔗 **Link**: [Visit ${project.name}](${project.link})` : '';
+
+        if (/\b(tech|stack|built|build|architecture|framework|language|made with|use|uses)\b/i.test(q)) {
+            const verifiedDetail = project.highlights
+                ? ` The portfolio highlights ${project.highlights}`
+                : '';
+            const verifiedDetailTl = project.highlights
+                ? ` Naka-highlight sa portfolio ang ${project.highlights}`
+                : '';
+            return lang === 'tl'
+                ? `Ang verified tech stack ng **${project.name}** ay **${techStack}**.${verifiedDetailTl} Hindi nakadokumento ang mas malalim na architecture details, kaya ayokong manghula.`
+                : `The verified stack for **${project.name}** is **${techStack}**.${verifiedDetail} Deeper architecture details are not documented, so I won't guess.`;
+        }
+
+        if (/\b(link|demo|site|url|visit|live)\b/i.test(q)) {
+            if (!project.link) {
+                return `There is no public link listed for **${project.name}** yet.`;
+            }
+            return lang === 'tl'
+                ? `Narito ang public link ng **${project.name}**: [Buksan ang project](${project.link})`
+                : `Here is the public link for **${project.name}**: [Open the project](${project.link})`;
+        }
+
         return `**Project Spotlight: ${project.name}** 🚀\n\n${project.description}\n\n- 🛠️ **Tech Stack**: ${techStack}${highlights}${link}`;
     }
     return handleProjects(query, ctx);
@@ -515,17 +614,17 @@ function handleSpecificProject(query, ctx) {
 function handleContact(query, ctx) {
     const lang = detectLanguage(query);
     if (lang === 'tl') {
-        return `Si Charles ay **${owner.status}** at handang makipag-usap para sa mga bagong projects! 🤝\n\n**Kontakin siya dito:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nPwede ka ring gumamit ng contact form sa ibaba para sa direct message!`;
+        return `Si Charles ay **${owner.status}** at handang makipag-usap para sa mga bagong projects! 🤝\n\n**Kontakin siya dito:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nMakikita rin ang direct contact links sa Contact section sa ibaba.`;
     }
-    return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📱 **Phone**: ${owner.phone}\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nYou can also use the contact section at the bottom of the page!`;
+    return `Charles is currently **${owner.status}** and eager to discuss new projects! 🤝\n\n**Reach out directly:**\n- 📧 **Email**: [${owner.email}](mailto:${owner.email})\n- 📱 **Phone**: ${owner.phone}\n- 📘 **Facebook**: [Charles Louie Alvaran](${owner.socials.facebook})\n- 📸 **Instagram**: [@natsdyyy](${owner.socials.instagram})\n\nThe Contact section below contains the same direct links.`;
 }
 
 function handleExperience(query, ctx) {
     const lang = detectLanguage(query);
     if (lang === 'tl') {
-        return `**Professional Background:**\n\nDalubhasa si Charles sa pagbuo ng responsive user interfaces at high-performance backend systems. Mula sa real estate platforms hanggang sa competitive matching engines.\n\n**Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Karanasan**: ${owner.yearsExperience} Taon\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Lugar**: ${owner.location}`;
+        return `**Professional Background:**\n\nGumagawa si Charles ng responsive interfaces at full-stack web systems gamit ang React, Vue.js, Node.js, Supabase, Firebase, at PostgreSQL. Kasama sa portfolio niya ang ERP workflows, real-time applications, browser tooling, at UI/UX design.\n\n**Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Karanasan**: ${owner.yearsExperience} Taon\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Lugar**: ${owner.location}`;
     }
-    return `**Professional Background:**\n\nCharles specializes in building responsive user interfaces and high-performance backend systems. His expertise ranges from scalable real estate platforms to real-time competitive matching engines.\n\n**Core Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Active Years**: ${owner.yearsExperience} Years\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Location**: ${owner.location}`;
+    return `**Professional Background:**\n\nCharles builds responsive interfaces and full-stack web systems using React, Vue.js, Node.js, Supabase, Firebase, and PostgreSQL. His portfolio includes ERP workflows, real-time applications, browser tooling, and UI/UX design.\n\n**Core Stats:**\n- 🎓 **Degree**: ${owner.education}\n- ⏱️ **Active Years**: ${owner.yearsExperience} Years\n- 💼 **Portfolio**: ${owner.totalProjects} Projects developed\n- 📍 **Location**: ${owner.location}`;
 }
 
 function handleResume(query, ctx) {
@@ -919,11 +1018,7 @@ function tryLocalAnswer(query, history = []) {
         if (others.length) {
             console.log(`[localBrain] Also matched: ${others.map(r => `${r.intent.name}(${r.score})`).join(', ')}`);
         }
-        const topResults = results.slice(0, 2);
-        const responses = topResults.map(r => r.intent.handler(query, { history }));
-        return responses.length > 1
-            ? responses.join('\n\n---\n\n')
-            : responses[0];
+        return top.intent.handler(query, { history });
     }
 
     // ─── Word-Level Semantic Knowledge Search ─────────────────────

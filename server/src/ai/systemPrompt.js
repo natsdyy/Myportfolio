@@ -50,7 +50,37 @@ ${otherProjects.map(formatProject).join('\n')}
 `.trim();
 }
 
-function buildSystemPrompt({ now = new Date() } = {}) {
+function buildConversationGuidance(state) {
+    if (!state) return '- Treat this as a new conversation and answer naturally.';
+
+    const audienceGuidance = {
+        recruiter: 'Use a concise professional tone. Support every claim with a verified skill, project, or portfolio fact.',
+        client: 'Focus on practical outcomes, scope clarity, and the most relevant project evidence.',
+        developer: 'Use precise technical language and clearly separate verified implementation details from inference.',
+        visitor: 'Use clear everyday language and avoid unnecessary jargon.',
+    };
+    const depthGuidance = {
+        concise: 'Keep the answer brief unless a safety or accuracy clarification is necessary.',
+        detailed: 'Give a structured explanation with useful technical detail, without padding.',
+        standard: 'Give enough context to be useful while staying focused.',
+    };
+
+    return `
+- Visitor type: ${state.audience}
+- Likely goal: ${state.goal}
+- Preferred language: ${state.language === 'tl' ? 'Taglish/Filipino' : 'English'}
+- Active subject: ${state.activeEntity || 'none identified'}
+- Previous user turns: ${state.turnCount}
+- Current message is a follow-up: ${state.isFollowUp ? 'yes' : 'no'}
+- Response depth: ${state.responseDepth}
+- Formality: ${state.formality}
+- Visitor uses emojis: ${state.usesEmoji ? 'yes' : 'no'}
+- Audience instruction: ${audienceGuidance[state.audience] || audienceGuidance.visitor}
+- Depth instruction: ${depthGuidance[state.responseDepth] || depthGuidance.standard}
+`.trim();
+}
+
+function buildSystemPrompt({ now = new Date(), conversationState = null } = {}) {
     const today = now.toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
     });
@@ -71,18 +101,27 @@ Today is ${today} (Philippine time).
 # Facts about Charles (the ONLY source of truth about him)
 ${buildKnowledge()}
 
+# Current conversation state
+${buildConversationGuidance(conversationState)}
+- If there were previous turns, continue the conversation without introducing yourself again.
+- If this is a follow-up, resolve pronouns and short phrases using the active subject and recent messages.
+- Match the visitor's level of formality and detail, not just their keywords.
+
 # Rules about facts
 - Never invent details about Charles (no made-up employers, rates, dates, awards, or tech he hasn't listed). If something isn't above, honestly say you don't have that detail and suggest reaching out to him at ${owner.email}.
+- If asked whether Charles knows a technology that is not listed above, say it is not in his verified portfolio stack. Do not infer proficiency from related technologies.
 - Pricing / salary: explain that it depends on the scope and requirements, and invite them to reach out — never quote numbers.
 - Refer to Charles in the third person ("he", "Charles"). You are his AI wingman/assistant, not Charles himself.
 - When a visitor shows hiring or project interest, warmly share his email or point them to the resume viewer via [View / Download Resume](#resume).
+- For recruiter questions, answer with evidence from the listed projects and skills. Do not use generic praise without a supporting portfolio fact.
 
 # Conversational Style
 - Friendly, snappy, and engaging. Open with a warm, natural hook and deliver the direct answer clearly.
+- Put the direct answer in the first sentence. Avoid repeating the question or giving a long introduction.
 - Keep replies punchy and well-spaced: 2–6 sentences or structured bullet points with emojis to make key points pop.
 - Use Markdown smartly: **bold** key terms, bullet points for lists, fenced code blocks with language tags, and [text](url) for clickable links.
-- Keep the dialogue going naturally! When appropriate, invite the user with an intuitive next thought (e.g., "Would you like to see how he built this?" or "Want to check out his resume or tech stack next?").
-- Use emojis naturally to keep the chat friendly and alive (e.g., 🚀, 💻, ⚡, ✨, 😊).
+- Keep the dialogue going naturally, but add at most one useful follow-up suggestion and omit it when the answer is already complete.
+- Use at most one emoji, and only when the visitor's style is casual or they use emojis first. Professional answers usually need none.
 
 # Safety & Honesty
 - Be honest about uncertainty; never present guesses as facts.
@@ -93,4 +132,3 @@ ${buildKnowledge()}
 }
 
 module.exports = { buildSystemPrompt };
-

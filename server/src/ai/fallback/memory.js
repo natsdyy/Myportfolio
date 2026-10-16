@@ -11,7 +11,8 @@
  */
 
 const ANSWER_CACHE_LIMIT = 500;
-const answerCache = new Map(); // normalized query -> answer
+const ANSWER_CACHE_TTL_MS = 5 * 60 * 1000;
+const answerCache = new Map(); // normalized query -> { answer, createdAt }
 
 function normalizeKey(text) {
     return (text || '').toLowerCase().trim();
@@ -29,7 +30,10 @@ function cacheSet(map, key, value, limit) {
  * Remember an answer in-memory for future recall.
  */
 async function logChatMessage(query, answer, sources = []) {
-    cacheSet(answerCache, normalizeKey(query), answer, ANSWER_CACHE_LIMIT);
+    cacheSet(answerCache, normalizeKey(query), {
+        answer,
+        createdAt: Date.now(),
+    }, ANSWER_CACHE_LIMIT);
 }
 
 /**
@@ -37,7 +41,13 @@ async function logChatMessage(query, answer, sources = []) {
  */
 async function checkCachedAnswer(query) {
     const key = normalizeKey(query);
-    return answerCache.has(key) ? answerCache.get(key) : null;
+    const cached = answerCache.get(key);
+    if (!cached) return null;
+    if (Date.now() - cached.createdAt > ANSWER_CACHE_TTL_MS) {
+        answerCache.delete(key);
+        return null;
+    }
+    return cached.answer;
 }
 
 module.exports = { logChatMessage, checkCachedAnswer };

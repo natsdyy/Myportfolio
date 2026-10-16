@@ -114,8 +114,18 @@ function isFollowUp(query, history) {
     const words = q.split(/\s+/);
     const cleanWords = words.map(w => w.replace(/[?!.,]/g, ''));
 
-    // Long queries are usually self-contained
-    if (words.length > 6) return false;
+    // A named project is a self-contained subject, even when phrased as
+    // "what about ..." or as a correction to the previous topic.
+    if (/\b(countryside|steakhouse|vibebuilds|vibe builds|dynbooth|ismeye|altermatch|appen|discord bot)\b/i.test(q)) {
+        return false;
+    }
+
+    const isContextualExplanation = /^(?:can|could|would) you (?:explain|elaborate|expand)|^(?:explain|elaborate|expand|tell me more|go deeper)\b/i.test(q);
+
+    // Long queries are usually self-contained, except explicit requests to
+    // expand on an unnamed subject from the previous exchange.
+    if (words.length > 6 && !isContextualExplanation) return false;
+    if (isContextualExplanation) return true;
 
     // Check if it's clearly a conversational expression or new topic
     const isNewTopic = NEW_TOPIC_SIGNALS.some(signal => q.includes(signal));
@@ -239,7 +249,7 @@ function resolveFollowUp(query, history) {
  * @param {Array} history - Array of { role, content } messages
  * @returns {Object} profile
  */
-function buildConversationProfile(history) {
+function buildConversationProfile(history, currentQuery = '') {
     const profile = {
         topicsDiscussed: [],
         mentionedEntities: [],
@@ -248,14 +258,27 @@ function buildConversationProfile(history) {
         lastBotResponse: '',
         lastUserQuery: '',
         isReturningUser: false,
+        currentQuery: typeof currentQuery === 'string' ? currentQuery.trim() : '',
+        language: 'en',
+        audience: 'visitor',
+        goal: 'explore',
+        activeEntity: null,
+        responseDepth: 'standard',
+        isFollowUp: false,
+        formality: 'neutral',
+        usesEmoji: false,
     };
 
-    if (!history || history.length === 0) return profile;
-
-    const userMessages = history.filter(m => m.role === 'user');
-    const botMessages = history.filter(m => m.role === 'assistant');
+    const safeHistory = Array.isArray(history) ? history : [];
+    const userMessages = safeHistory.filter(m => m.role === 'user');
+    const botMessages = safeHistory.filter(m => m.role === 'assistant');
+    const analysisUserMessages = profile.currentQuery
+        ? [...userMessages, { role: 'user', content: profile.currentQuery }]
+        : userMessages;
 
     profile.turnCount = userMessages.length;
+    profile.isReturningUser = profile.turnCount > 0;
+    profile.isFollowUp = profile.currentQuery ? isFollowUp(profile.currentQuery, safeHistory) : false;
 
     // Extract the last bot response
     if (botMessages.length > 0) {
@@ -280,7 +303,7 @@ function buildConversationProfile(history) {
 
     const seenTopics = new Set();
 
-    for (const msg of userMessages) {
+    for (const msg of analysisUserMessages) {
         const words = msg.content.toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
             .split(/\s+/)
@@ -301,7 +324,7 @@ function buildConversationProfile(history) {
         'tailwind', 'html', 'css', 'docker', 'git', 'figma', 'vite',
     ];
 
-    for (const msg of userMessages) {
+    for (const msg of analysisUserMessages) {
         const lower = msg.content.toLowerCase();
         for (const entity of knownEntities) {
             if (lower.includes(entity) && !profile.mentionedEntities.includes(entity)) {
@@ -312,7 +335,7 @@ function buildConversationProfile(history) {
 
     // ── Mood Trending ─────────────────────────────────────
     // Look at the last 3 user messages for mood trend
-    const recentUser = userMessages.slice(-3);
+    const recentUser = analysisUserMessages.slice(-3);
     const moodScores = { positive: 0, negative: 0, neutral: 0 };
 
     const positiveWords = /\b(thanks|good|great|awesome|nice|cool|love|happy|wow|amazing|galing|salamat|astig|husay)\b/i;
@@ -327,6 +350,71 @@ function buildConversationProfile(history) {
     if (moodScores.positive > moodScores.negative) profile.userMood = 'positive';
     else if (moodScores.negative > moodScores.positive) profile.userMood = 'negative';
     else profile.userMood = 'neutral';
+
+    const recentText = analysisUserMessages
+        .slice(-4)
+        .map(message => message.content || '')
+        .join(' ')
+        .toLowerCase();
+    const currentText = profile.currentQuery.toLowerCase();
+
+    profile.language = detectLanguage(profile.currentQuery || profile.lastUserQuery || '');
+
+    if (/\b(recruiter|candidate|resume|cv|interview|position|role|employment|hire him|hire charles|qualifications?)\b/i.test(recentText)) {
+        profile.audience = 'recruiter';
+    } else if (/\b(client|freelance|contract|business|project quote|budget|deadline|build (?:me|us)|website for)\b/i.test(recentText)) {
+        profile.audience = 'client';
+    } else if (/\b(developer|engineer|architecture|implementation|code|api|database|framework|frontend|backend|stack|typescript|javascript|react|vue|node)\b/i.test(recentText)) {
+        profile.audience = 'developer';
+    }
+
+    if (/\b(contact|email|phone|reach|message him|get in touch)\b/i.test(currentText)) {
+        profile.goal = 'contact';
+    } else if (/\b(resume|cv|hire|candidate|qualified|interview|available|open for work)\b/i.test(recentText)) {
+        profile.goal = 'evaluate_candidate';
+    } else if (/\b(freelance|contract|quote|budget|build (?:me|us)|website for)\b/i.test(recentText)) {
+        profile.goal = 'discuss_project';
+    } else if (/\b(skill|stack|technology|framework|know|use|frontend|backend)\b/i.test(currentText)) {
+        profile.goal = 'verify_skills';
+    } else if (/\b(project|portfolio|built|system|app|website)\b/i.test(recentText)) {
+        profile.goal = 'explore_projects';
+    }
+
+    const canonicalEntities = [
+        ['Countryside Steakhouse', /\b(countryside|steakhouse)\b/i],
+        ['VibeBuilds', /\b(vibebuilds|vibe builds)\b/i],
+        ['Dynbooth', /\bdynbooth\b/i],
+        ['Ismeye', /\bismeye\b/i],
+        ['Altermatch', /\baltermatch\b/i],
+        ['Appen Highlighter Extension', /\b(appen|highlighter extension)\b/i],
+        ['Discord Community Bot', /\bdiscord bot\b/i],
+        ['Charles', /\bcharles\b/i],
+    ];
+    const newestFirst = analysisUserMessages.slice().reverse();
+    for (const message of newestFirst) {
+        const match = canonicalEntities.find(([, pattern]) => pattern.test(message.content || ''));
+        if (match) {
+            profile.activeEntity = match[0];
+            break;
+        }
+    }
+    if (profile.goal === 'explore' && profile.activeEntity && profile.activeEntity !== 'Charles') {
+        profile.goal = 'explore_projects';
+    }
+
+    const currentWordCount = profile.currentQuery.split(/\s+/).filter(Boolean).length;
+    profile.usesEmoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(recentText);
+    if (/\b(please|kindly|could you|would you|may i|regarding|qualifications|professional)\b/i.test(currentText) || currentWordCount >= 14) {
+        profile.formality = 'formal';
+    } else if (/\b(yo|sup|bro|lol|haha|wanna|gonna|cool|astig|lodi|musta)\b/i.test(currentText) || currentWordCount <= 3) {
+        profile.formality = 'casual';
+    }
+
+    if (/\b(explain|details?|tell me more|deep dive|architecture|step by step|compare|elaborate|how does)\b/i.test(currentText)) {
+        profile.responseDepth = 'detailed';
+    } else if (currentWordCount > 0 && currentWordCount <= 4) {
+        profile.responseDepth = 'concise';
+    }
 
     return profile;
 }

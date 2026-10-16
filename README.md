@@ -2,6 +2,9 @@
 
 Vue 3 + Vite portfolio with an AI assistant, deployed on **Vercel**.
 
+> AI assistants and contributors: start with [`AGENTS.md`](AGENTS.md) and the
+> maintained [`docs/ai/`](docs/ai/) codebase guide.
+
 ## Project structure
 
 ```

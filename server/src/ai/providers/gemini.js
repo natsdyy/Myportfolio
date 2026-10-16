@@ -108,8 +108,33 @@ async function streamGemini({ systemPrompt, history, query, onDelta, signal }) {
     const decoder = new TextDecoder();
     let buffer = '';
     let text = '';
-    let sources = [];
+    const sources = new Map();
     let blockReason = null;
+
+    const processLine = (line) => {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) return;
+
+        let payload;
+        try { payload = JSON.parse(trimmed.slice(5).trim()); } catch { return; }
+
+        if (payload.promptFeedback?.blockReason) blockReason = payload.promptFeedback.blockReason;
+        const candidate = payload.candidates?.[0];
+        if (!candidate) return;
+
+        const delta = (candidate.content?.parts || [])
+            .filter(part => typeof part.text === 'string' && !part.thought)
+            .map(part => part.text)
+            .join('');
+        if (delta) {
+            text += delta;
+            onDelta?.(delta);
+        }
+
+        for (const source of extractSources(candidate)) {
+            sources.set(source.url, source);
+        }
+    };
 
     while (true) {
         const { done, value } = await reader.read();
@@ -118,30 +143,13 @@ async function streamGemini({ systemPrompt, history, query, onDelta, signal }) {
 
         let newlineIndex;
         while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-            const line = buffer.slice(0, newlineIndex).trim();
+            const line = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
-            if (!line.startsWith('data:')) continue;
-
-            let payload;
-            try { payload = JSON.parse(line.slice(5).trim()); } catch { continue; }
-
-            if (payload.promptFeedback?.blockReason) blockReason = payload.promptFeedback.blockReason;
-            const candidate = payload.candidates?.[0];
-            if (!candidate) continue;
-
-            const delta = (candidate.content?.parts || [])
-                .filter(p => typeof p.text === 'string' && !p.thought)
-                .map(p => p.text)
-                .join('');
-            if (delta) {
-                text += delta;
-                onDelta?.(delta);
-            }
-
-            const found = extractSources(candidate);
-            if (found.length) sources = found;
+            processLine(line);
         }
     }
+    buffer += decoder.decode();
+    if (buffer.trim()) processLine(buffer);
 
     if (!text) {
         if (blockReason) {
@@ -152,7 +160,7 @@ async function streamGemini({ systemPrompt, history, query, onDelta, signal }) {
         throw new Error('Gemini returned an empty response');
     }
 
-    return { text, sources: sources.slice(0, 5) };
+    return { text, sources: Array.from(sources.values()).slice(0, 5) };
 }
 
 module.exports = { streamGemini, isGeminiConfigured };

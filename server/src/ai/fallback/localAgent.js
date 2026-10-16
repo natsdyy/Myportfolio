@@ -34,15 +34,15 @@ async function processUserQuery(rawQuery, history = []) {
     }
 
     // ── Step 0b: Build Conversation Profile ──────────────
-    const profile = buildConversationProfile(history);
+    const profile = buildConversationProfile(history, rawQuery);
     console.log(`[agent] 👤 Profile: ${profile.turnCount} turns | mood: ${profile.userMood} | topics: [${profile.topicsDiscussed.slice(0, 3).join(', ')}]`);
 
     // ── Step 0c: In-Memory Cache ─────────────────────────
-    const cachedAnswer = await checkCachedAnswer(query);
+    const canUseSharedCache = history.length === 0;
+    const cachedAnswer = canUseSharedCache ? await checkCachedAnswer(query) : null;
     if (cachedAnswer) {
         console.log(`[agent] ✅ Remembered from memory`);
-        const finalCached = applyPersona(cachedAnswer, query, history, { intent: null, profile, mode: 'memory' });
-        return { answer: finalCached, searched: false, sources: ['Memory'], mode: 'memory' };
+        return { answer: cachedAnswer, searched: false, sources: ['Memory'], mode: 'memory' };
     }
 
     // ── Step 1: Clarification Check (Rule 7) ─────────────
@@ -50,7 +50,7 @@ async function processUserQuery(rawQuery, history = []) {
     const clarification = shouldClarify(query, intentResults, profile);
     if (clarification) {
         console.log(`[agent] ❓ Clarification needed for: "${query}"`);
-        await logChatMessage(query, clarification, ['clarification']);
+        if (canUseSharedCache) await logChatMessage(query, clarification, ['clarification']);
         return { answer: clarification, searched: false, sources: ['Clarification'], mode: 'local' };
     }
 
@@ -68,7 +68,7 @@ async function processUserQuery(rawQuery, history = []) {
             intentResults,
         });
 
-        await logChatMessage(query, finalLocalAnswer, ['local-brain']);
+        if (canUseSharedCache) await logChatMessage(query, finalLocalAnswer, ['local-brain']);
         return { answer: finalLocalAnswer, searched: false, sources: ['Local Brain'], mode: 'local' };
     }
 
@@ -115,7 +115,7 @@ async function processUserQuery(rawQuery, history = []) {
     }
 
     // ── Step 7: Log ───────────────────────────────────────
-    await logChatMessage(query, finalAnswer, searchData.sources);
+    if (canUseSharedCache) await logChatMessage(query, finalAnswer, searchData.sources);
 
     return {
         answer: finalAnswer,
